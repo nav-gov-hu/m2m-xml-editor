@@ -161,10 +161,10 @@ public class NavTokenService {
                 method,
                 url,
                 formattedRequestHeaders,
-                NavHttpAuditFormatter.payloadSummary(requestPayload),
+                NavHttpAuditFormatter.requestPayloadForAudit(requestPayload),
                 responseStatus,
                 formattedResponseHeaders,
-                NavHttpAuditFormatter.payloadSummary(responsePayload),
+                responsePayload,
                 NavHttpAuditFormatter.configSnapshot(properties) + "\n" + restTemplateFactory.proxySnapshot()
         ));
     }
@@ -240,9 +240,9 @@ public class NavTokenService {
                         null,
                         t.responseStatus(),
                         t.method() + " " + t.url() + "\n" + nullToEmpty(t.requestHeaders()),
-                        NavHttpAuditFormatter.limit(t.requestPayload()),
+                        t.requestPayload(),
                         NavHttpAuditFormatter.limit(t.responseHeaders()),
-                        NavHttpAuditFormatter.limit(t.responsePayload()),
+                        t.responsePayload(),
                         NavHttpAuditFormatter.limit(t.configSnapshot()),
                         now))
                 .toList();

@@ -19,3 +19,5 @@
 /.idea
 /nav-xsd-parser-tool-multiform/target
 /nav-xsd-parser-tool-versioning/target
+.flattened-pom.xml
+**/.flattened-pom.xml

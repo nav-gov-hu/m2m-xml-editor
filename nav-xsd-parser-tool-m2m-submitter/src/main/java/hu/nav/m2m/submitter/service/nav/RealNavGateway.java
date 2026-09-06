@@ -779,10 +779,10 @@ public class RealNavGateway implements NavGateway {
                 method,
                 url,
                 formattedRequestHeaders,
-                NavHttpAuditFormatter.payloadSummary(requestPayload),
+                NavHttpAuditFormatter.requestPayloadForAudit(requestPayload),
                 responseStatus,
                 formattedResponseHeaders,
-                NavHttpAuditFormatter.payloadSummary(responsePayload),
+                responsePayload,
                 NavHttpAuditFormatter.configSnapshot(properties) + "\n" + restTemplateFactory.proxySnapshot()
         ));
     }

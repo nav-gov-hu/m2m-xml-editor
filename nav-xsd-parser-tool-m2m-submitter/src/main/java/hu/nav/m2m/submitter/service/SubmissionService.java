@@ -1648,9 +1648,9 @@ public class SubmissionService {
             event.setRequestMessageId(trace.requestMessageId() == null ? submission.getMessageId() : trace.requestMessageId());
             event.setResponseCode(trace.responseCode());
             event.setRequestHeaders(trace.requestHeaders());
-            event.setRequestPayload(NavHttpAuditFormatter.limit(trace.requestPayload()));
+            event.setRequestPayload(trace.requestPayload());
             event.setResponseHeaders(NavHttpAuditFormatter.limit(trace.responseHeaders()));
-            event.setResponsePayload(NavHttpAuditFormatter.limit(trace.responsePayload()));
+            event.setResponsePayload(trace.responsePayload());
             event.setConfigSnapshot(NavHttpAuditFormatter.limit(trace.configSnapshot()));
             eventRepository.save(event);
         }
@@ -2235,9 +2235,9 @@ public class SubmissionService {
             event.setRequestMessageId(submission.getMessageId());
             event.setResponseCode(trace.responseStatus());
             event.setRequestHeaders(trace.method() + " " + trace.url() + "\n" + nullToEmpty(trace.requestHeaders()));
-            event.setRequestPayload(NavHttpAuditFormatter.limit(trace.requestPayload()));
+            event.setRequestPayload(trace.requestPayload());
             event.setResponseHeaders(NavHttpAuditFormatter.limit(trace.responseHeaders()));
-            event.setResponsePayload(NavHttpAuditFormatter.limit(trace.responsePayload()));
+            event.setResponsePayload(trace.responsePayload());
             event.setConfigSnapshot(NavHttpAuditFormatter.limit(trace.configSnapshot()));
             eventRepository.save(event);
         }

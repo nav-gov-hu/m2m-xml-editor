@@ -96,11 +96,11 @@ public final class StartupSplashSupport {
      */
     public static void initialize() {
         if (Boolean.getBoolean(DesktopIntegrationSettings.LEGACY_DISABLED_PROPERTY)) {
-            log.info("Startup splash is disabled by system property.");
+            log.info("A startup splash konfigurációból le lett tiltva.");
             return;
         }
         if (GraphicsEnvironment.isHeadless()) {
-            log.info("Startup splash is skipped because the environment is headless.");
+            log.info("A startup splash a headless környezet miatt kihagyásra került.");
             return;
         }
         if (!ENABLED.compareAndSet(false, true)) {
@@ -113,7 +113,7 @@ public final class StartupSplashSupport {
                 installLogAppender();
                 appendLogLine("INFO", "Indítás előkészítése...");
             } catch (Exception ex) {
-                log.warn("Could not initialize startup splash.", ex);
+                log.error("A startup splash inicializálása megszakadt", ex);
                 ENABLED.set(false);
             }
         });

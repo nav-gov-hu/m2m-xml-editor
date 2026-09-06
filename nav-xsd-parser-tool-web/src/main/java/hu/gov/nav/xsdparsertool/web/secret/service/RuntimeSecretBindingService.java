@@ -92,7 +92,7 @@ public class RuntimeSecretBindingService implements ApplicationRunner {
         try {
             secrets.read("nav.xsdparsertool.api-key.value").ifPresent(apiKey::setApiKey);
         } catch (IllegalStateException ex) {
-            log.error("API key secret could not be decrypted: key=nav.xsdparsertool.api-key.value, secretRecordExists={}, cause={}",
+            log.error("API key titok nem dekódolható: key=nav.xsdparsertool.api-key.value, secretRecordExists={}, cause={}",
                     secretRecordExists, ex.getMessage(), ex);
             throw ex;
         }

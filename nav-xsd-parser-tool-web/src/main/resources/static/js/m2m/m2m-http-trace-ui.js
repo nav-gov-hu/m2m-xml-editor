@@ -77,8 +77,9 @@ function renderRows(events){
     return '<tr><td colspan="7" class="m2m-log-empty">Nincs M2M esemény.</td></tr>';
   }
   return events.map((event, index) => {
+    const request = String(event.requestPayload || '–');
     const response = String(event.responsePayload || '–');
-    const expandable = response.length > RESPONSE_PREVIEW_LENGTH;
+    const expandable = request !== '–' || response.length > RESPONSE_PREVIEW_LENGTH;
     const rowId = `m2mLogDetails${index}`;
     return `
       <tr class="m2m-log-event-row">
@@ -90,7 +91,7 @@ function renderRows(events){
         <td class="m2m-log-response-preview"><span>${escapeHtml(responsePreview(response))}</span></td>
         <td class="m2m-log-actions">${expandable ? `<button type="button" class="secondary mini-button m2m-log-expand" data-details-id="${rowId}" aria-expanded="false">Kibontás</button>` : '–'}</td>
       </tr>
-      ${expandable ? `<tr id="${rowId}" class="m2m-log-details-row" hidden><td colspan="7"><div class="m2m-log-details"><div class="m2m-log-details-title">Teljes response payload</div><pre>${escapeHtml(response)}</pre></div></td></tr>` : ''}`;
+      ${expandable ? `<tr id="${rowId}" class="m2m-log-details-row" hidden><td colspan="7"><div class="m2m-log-details"><div class="m2m-log-details-title">Request payload</div><pre>${escapeHtml(request)}</pre><div class="m2m-log-details-title">Teljes response payload</div><pre>${escapeHtml(response)}</pre></div></td></tr>` : ''}`;
   }).join('');
 }
 

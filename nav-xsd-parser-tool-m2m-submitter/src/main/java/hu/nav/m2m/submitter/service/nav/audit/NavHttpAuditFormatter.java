@@ -125,10 +125,10 @@ public final class NavHttpAuditFormatter {
         sb.append("OPERATION: ").append(nullToEmpty(operation)).append('\n');
         sb.append("REQUEST: ").append(nullToEmpty(method)).append(' ').append(nullToEmpty(url)).append('\n');
         sb.append("\n--- REQUEST HEADERS ---\n").append(nullToEmpty(requestHeaders)).append('\n');
-        sb.append("\n--- REQUEST BODY ---\n").append(payloadSummary(requestPayload)).append('\n');
+        sb.append("\n--- REQUEST BODY ---\n").append(requestPayloadForAudit(requestPayload)).append('\n');
         sb.append("\n--- RESPONSE STATUS ---\n").append(nullToEmpty(responseStatus)).append('\n');
         sb.append("\n--- RESPONSE HEADERS ---\n").append(nullToEmpty(responseHeaders)).append('\n');
-        sb.append("\n--- RESPONSE BODY ---\n").append(payloadSummary(responsePayload)).append('\n');
+        sb.append("\n--- RESPONSE BODY ---\n").append(nullToEmpty(responsePayload)).append('\n');
         sb.append("===================== NAV M2M HTTP TRACE END =====================");
         return sb.toString();
     }
@@ -143,6 +143,32 @@ public final class NavHttpAuditFormatter {
         return value == null ? "" : value;
     }
 
+
+    /**
+     * A teljes request payloadot auditálható formában adja vissza. A diagnosztikához szükséges
+     * struktúrát megtartja, de a tipikus hitelesítési titkok értékét maszkolja.
+     *
+     * @param value a HTTP request törzse
+     * @return a teljes, érzékeny értékektől megtisztított request payload
+     */
+    public static String requestPayloadForAudit(String value) {
+        if (value == null) return "";
+        String masked = value;
+        String[] keys = {
+                "clientSecret", "password", "passwordHash", "requestSignature",
+                "signature", "token", "accessToken", "refreshToken", "apiKey"
+        };
+        for (String key : keys) {
+            String quotedKey = java.util.regex.Pattern.quote(key);
+            masked = masked.replaceAll(
+                    "(?i)(\\\"" + quotedKey + "\\\"\\s*:\\s*\\\")[^\\\"]*(\\\")",
+                    "$1****$2");
+            masked = masked.replaceAll(
+                    "(?is)(<" + quotedKey + "(?:\\s+[^>]*)?>).*?(</" + quotedKey + ">)",
+                    "$1****$2");
+        }
+        return masked;
+    }
     /**
      * A technikai állapotot diagnosztikai vagy kliensoldali felhasználásra alkalmas, kontrollált szöveges reprezentációvá alakítja.
      *

@@ -42,13 +42,28 @@ class NavHttpAuditFormatterSecurityTest {
     }
 
     @Test
-    void fullTraceMustHideRequestAndResponsePayloads() {
+    void fullTraceMustContainCompleteResponsePayload() {
         String trace = NavHttpAuditFormatter.fullTraceBlock(
                 "submit", "POST", "https://example.invalid", "headers",
-                "REQUEST_SECRET_PAYLOAD", "200 OK", "headers", "RESPONSE_SECRET_PAYLOAD");
+                "REQUEST_PAYLOAD", "200 OK", "headers", "RESPONSE_PAYLOAD");
 
-        assertFalse(trace.contains("REQUEST_SECRET_PAYLOAD"));
-        assertFalse(trace.contains("RESPONSE_SECRET_PAYLOAD"));
-        assertTrue(trace.contains("payload elrejtve"));
+        assertTrue(trace.contains("REQUEST_PAYLOAD"));
+        assertTrue(trace.contains("RESPONSE_PAYLOAD"));
+        assertFalse(trace.contains("payload elrejtve"));
+    }
+
+    @Test
+    void requestPayloadMustMaskCredentialValuesWithoutTruncation() {
+        String request = "{\"clientId\":\"CLIENT\",\"clientSecret\":\"VERY_SECRET\",\"password\":\"PASSWORD\",\"data\":\""
+                + "x".repeat(5000) + "\"}";
+
+        String audited = NavHttpAuditFormatter.requestPayloadForAudit(request);
+
+        assertTrue(audited.length() > NavHttpAuditFormatter.LIMIT);
+        assertTrue(audited.contains("CLIENT"));
+        assertTrue(audited.contains("\"clientSecret\":\"****\""));
+        assertTrue(audited.contains("\"password\":\"****\""));
+        assertFalse(audited.contains("VERY_SECRET"));
+        assertFalse(audited.contains("PASSWORD"));
     }
 }

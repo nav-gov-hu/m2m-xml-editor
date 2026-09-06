@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>hu.gov.nav.xsdparsertool</groupId>
   <artifactId>nav-xsd-parser-tool</artifactId>
-  <version>2.0.0-SNAPSHOT</version>
+  <version>2.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>nav-xsd-parser-tool</name>
   <description>NAV XSD parser and processing tool</description>
@@ -29,7 +29,8 @@
     <maven.compiler.release>17</maven.compiler.release>
     <app.display.version>${app.release.version} - build ${app.build.timestamp}</app.display.version>
     <flyway.version>10.21.0</flyway.version>
-    <app.release.version>2.0.0-SNAPSHOT</app.release.version>
+    <bouncycastle.version>1.85.2</bouncycastle.version>
+    <app.release.version>2.0.1-SNAPSHOT</app.release.version>
     <spring.boot.version>3.4.4</spring.boot.version>
     <junit.jupiter.version>5.12.2</junit.jupiter.version>
     <app.build.timestamp>${maven.build.timestamp}</app.build.timestamp>

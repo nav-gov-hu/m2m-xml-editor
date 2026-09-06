@@ -48,6 +48,7 @@
         <junit.jupiter.version>5.12.2</junit.jupiter.version>
         <jacoco.version>0.8.15</jacoco.version>
         <flatten.maven.plugin.version>1.6.0</flatten.maven.plugin.version>
+        <bouncycastle.version>1.85.2</bouncycastle.version>
         <argLine></argLine>
 
         <!-- Javadoc plugin konfigurációs tulajdonságok. A Javadoc kimenet a

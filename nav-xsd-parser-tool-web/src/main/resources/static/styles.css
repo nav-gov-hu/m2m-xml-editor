@@ -1,0 +1,25 @@
+/*
+ * M2M XML EDITOR - kompatibilitási CSS belépési pont.
+ *
+ * A phase7 óta a tényleges stílusok a /styles könyvtár moduljaiban vannak.
+ * Az alkalmazás HTML oldalai verziózott <link> elemekkel közvetlenül töltik be őket.
+ * Ez a fájl a külső vagy régi /styles.css hivatkozások kompatibilitását tartja meg.
+ */
+
+@import url("/styles/base.css");
+@import url("/styles/shell.css");
+@import url("/styles/layout.css");
+@import url("/styles/validation.css");
+@import url("/styles/form-viewer.css");
+@import url("/styles/header.css");
+@import url("/styles/processing.css");
+@import url("/styles/xml-files.css");
+@import url("/styles/dialogs.css");
+@import url("/styles/xml-files-advanced.css");
+@import url("/styles/home.css");
+@import url("/styles/admin.css");
+@import url("/styles/multiform.css");
+@import url("/styles/m2m.css");
+@import url("/styles/compact-ui.css");
+@import url("/styles/form-toolbar.css");
+@import url("/styles/login.css");

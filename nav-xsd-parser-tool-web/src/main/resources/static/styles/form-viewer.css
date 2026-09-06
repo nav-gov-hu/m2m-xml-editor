@@ -1,0 +1,1065 @@
+/* UI model based form renderer */
+.form-renderer-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid #d5dbe7;
+  border-radius: 999px;
+  background: #f8fafc;
+}
+.form-renderer-label {
+  padding: 0 6px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #526179;
+  white-space: nowrap;
+}
+.form-renderer-button {
+  border-radius: 999px;
+}
+.form-renderer-button.active {
+  background: #0f5ea8;
+  border-color: #0f5ea8;
+  color: #fff;
+}
+.uimodel-form-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 4px 24px;
+}
+.uimodel-form-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #cbd8eb;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 100%);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+.uimodel-form-hero h3 {
+  margin: 0 0 6px;
+  color: #123e6b;
+  font-size: 22px;
+}
+.uimodel-form-hero p {
+  margin: 0;
+  color: #5b6b83;
+}
+.uimodel-form-mode-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #0f5ea8;
+  color: #fff;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+.uimodel-section-card {
+  border: 1px solid #d6e0ee;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+.uimodel-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e5ecf6;
+  background: #f8fbff;
+}
+.uimodel-section-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #0f5ea8;
+  color: #fff;
+  font-weight: 800;
+}
+.uimodel-section-header h3 {
+  margin: 0;
+  color: #123e6b;
+  font-size: 18px;
+}
+.uimodel-fieldgroup {
+  padding: 16px 18px 18px;
+  border-bottom: 1px solid #edf2f8;
+}
+.uimodel-fieldgroup:last-child { border-bottom: none; }
+.uimodel-fieldgroup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.uimodel-fieldgroup-header h4 {
+  margin: 0;
+  color: #1f3149;
+  font-size: 15px;
+  font-weight: 800;
+}
+.uimodel-fieldgroup-meta {
+  color: #607086;
+  font-size: 12px;
+}
+.uimodel-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
+}
+.uimodel-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.uimodel-field.field-w-1 { grid-column: span 1; }
+.uimodel-field.field-w-2 { grid-column: span 2; }
+.uimodel-field.field-w-3 { grid-column: span 3; }
+.uimodel-field.field-w-4 { grid-column: span 4; }
+.uimodel-field.field-w-5 { grid-column: span 5; }
+.uimodel-field.field-w-6 { grid-column: span 6; }
+.uimodel-field.field-w-7 { grid-column: span 7; }
+.uimodel-field.field-w-8 { grid-column: span 8; }
+.uimodel-field.field-w-9 { grid-column: span 9; }
+.uimodel-field.field-w-10 { grid-column: span 10; }
+.uimodel-field.field-w-11 { grid-column: span 11; }
+.uimodel-field.field-w-12 { grid-column: span 12; }
+.uimodel-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin: 0;
+  background: #2b2d30;
+}
+.uimodel-label-text {
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 800;
+  color: #24364d;
+}
+.uimodel-field-id {
+  color: #66758c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+.uimodel-field input[type="text"],
+.uimodel-field input[type="number"],
+.uimodel-field input[type="date"],
+.uimodel-field select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #bcc9db;
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  background: #fff;
+}
+.uimodel-field input:focus,
+.uimodel-field select:focus {
+  outline: 3px solid rgba(15, 94, 168, .16);
+  border-color: #0f5ea8;
+}
+.uimodel-field-hints {
+  color: #66758c;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.uimodel-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  background: #fbfdff;
+  color: #26374f;
+  font-size: 13px;
+}
+.uimodel-checkbox-row input { margin-top: 2px; }
+.uimodel-subtitle {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #eef5ff;
+  color: #123e6b;
+  font-weight: 800;
+}
+.uimodel-link-button {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: #0f5ea8;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 0;
+  font: inherit;
+}
+@media (max-width: 900px) {
+  .uimodel-field { grid-column: 1 / -1 !important; }
+  .form-renderer-switch { width: 100%; justify-content: flex-start; }
+}
+
+/* 2026-05-13 UI model renderer: table-like field groups and input formatters. */
+.uimodel-table-block {
+  border: 1px solid #d7e2f2;
+  border-radius: 14px;
+  margin: 14px 0;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.uimodel-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f1f6ff 100%);
+  border-bottom: 1px solid #d7e2f2;
+}
+
+.uimodel-table-header h4 {
+  margin: 0;
+  color: #0b3b78;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.uimodel-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 0 0 13px 13px;
+}
+
+.uimodel-entry-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.uimodel-entry-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #eef4fb;
+  color: #12233d;
+  border-bottom: 1px solid #c7d5e8;
+  font-weight: 800;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.uimodel-entry-table td {
+  border-bottom: 1px solid #e5edf7;
+  padding: 10px 12px;
+  vertical-align: top;
+}
+
+.uimodel-entry-table tbody tr:hover {
+  background: #f8fbff;
+}
+
+.uimodel-entry-table tbody tr.field-selected {
+  background: #fff7ed;
+  box-shadow: inset 4px 0 0 #f97316;
+}
+
+.uimodel-entry-table .col-row-no,
+.uimodel-table-row-no {
+  width: 74px;
+  text-align: center;
+  white-space: nowrap;
+  color: #0b3b78;
+  font-weight: 800;
+}
+
+.uimodel-entry-table .col-value,
+.uimodel-table-value {
+  width: 260px;
+}
+
+.uimodel-table-label {
+  font-weight: 700;
+  color: #172033;
+  line-height: 1.35;
+}
+
+.uimodel-table-field-id {
+  margin-top: 4px;
+  color: #50627e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.uimodel-table-field-hints {
+  margin-top: 4px;
+  color: #587091;
+  font-size: 12px;
+}
+
+.uimodel-table-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.uimodel-table-control input[type="text"],
+.uimodel-table-control input[type="number"],
+.uimodel-table-control input[type="date"],
+.uimodel-table-control select {
+  width: 100%;
+  min-width: 120px;
+  border: 1px solid #c4d2e5;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  background: #fff;
+}
+
+.uimodel-table-control input:focus,
+.uimodel-table-control select:focus,
+.uimodel-field input:focus,
+.uimodel-field select:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.28);
+  border-color: #2563eb;
+}
+
+.uimodel-table-unit {
+  color: #334155;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .uimodel-entry-table,
+  .uimodel-entry-table thead,
+  .uimodel-entry-table tbody,
+  .uimodel-entry-table th,
+  .uimodel-entry-table td,
+  .uimodel-entry-table tr {
+    display: block;
+    min-width: 0;
+  }
+
+  .uimodel-entry-table thead {
+    display: none;
+  }
+
+  .uimodel-entry-table tbody tr {
+    padding: 12px;
+    border-bottom: 1px solid #d7e2f2;
+  }
+
+  .uimodel-entry-table td {
+    border-bottom: 0;
+    padding: 4px 0;
+  }
+
+  .uimodel-table-row-no {
+    text-align: left;
+  }
+
+  .uimodel-table-value {
+    width: auto;
+  }
+}
+
+/* 2026-05-13 fix: UI model table rows must not inherit generic .form-field flex/card layout. */
+.uimodel-entry-table col.col-row-no {
+  width: 78px;
+}
+.uimodel-entry-table col.col-value {
+  width: 320px;
+}
+.uimodel-entry-table tbody tr.form-field,
+.uimodel-entry-table tbody tr.uimodel-table-row {
+  display: table-row !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+.uimodel-entry-table tbody tr.form-field > td,
+.uimodel-entry-table tbody tr.uimodel-table-row > td {
+  display: table-cell !important;
+}
+.uimodel-entry-table .col-description,
+.uimodel-table-description {
+  width: auto;
+  min-width: 360px;
+}
+.uimodel-entry-table .col-row-no,
+.uimodel-table-row-no {
+  width: 78px !important;
+}
+.uimodel-entry-table .col-value,
+.uimodel-table-value {
+  width: 320px !important;
+}
+.uimodel-table-value-hints {
+  margin-top: 6px;
+}
+.uimodel-table-control input[type="text"],
+.uimodel-table-control input[type="number"],
+.uimodel-table-control input[type="date"],
+.uimodel-table-control select {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .uimodel-entry-table,
+  .uimodel-entry-table thead,
+  .uimodel-entry-table tbody,
+  .uimodel-entry-table th,
+  .uimodel-entry-table td,
+  .uimodel-entry-table tr {
+    display: block !important;
+    min-width: 0 !important;
+    width: auto !important;
+  }
+  .uimodel-entry-table thead {
+    display: none !important;
+  }
+  .uimodel-entry-table tbody tr.form-field,
+  .uimodel-entry-table tbody tr.uimodel-table-row {
+    display: block !important;
+    padding: 12px !important;
+    border-bottom: 1px solid #d7e2f2 !important;
+  }
+  .uimodel-entry-table tbody tr.form-field > td,
+  .uimodel-entry-table tbody tr.uimodel-table-row > td {
+    display: block !important;
+    border-bottom: 0;
+    padding: 4px 0;
+  }
+}
+
+/* UI model technical details toggle */
+.uimodel-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #d5dbe7;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #526179;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.uimodel-details-toggle input {
+  margin: 0;
+}
+body:not(.uimodel-form-renderer-active) .uimodel-details-toggle {
+  display: none;
+}
+
+/* 2026-05-13: field finder in form header. */
+.field-search-toolbar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 280px;
+}
+
+.field-search-input-wrap {
+  position: relative;
+  min-width: 210px;
+}
+
+.field-search-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #b9c8de;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  background: #fff;
+  color: #0f172a;
+}
+
+.field-search-input:focus {
+  outline: none;
+  border-color: #1f6fcc;
+  box-shadow: 0 0 0 3px rgba(31, 111, 204, 0.14);
+}
+
+.field-search-nav {
+  width: 34px;
+  min-width: 34px;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.field-search-counter {
+  min-width: 42px;
+  text-align: center;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.field-search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(520px, 82vw);
+  max-height: 360px;
+  overflow: auto;
+  z-index: 10020;
+  border: 1px solid #b8c7df;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.22);
+  padding: 6px;
+}
+
+.field-search-result {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #0f172a;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.field-search-result:hover,
+.field-search-result.active {
+  background: #eaf3ff;
+}
+
+.field-search-result-label {
+  display: block;
+  font-weight: 800;
+  color: #0b3b75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-search-result-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-search-empty,
+.field-search-more {
+  padding: 10px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.field-search-jump-highlight {
+  animation: fieldSearchPulse 1.6s ease-out;
+}
+
+@keyframes fieldSearchPulse {
+  0% { box-shadow: 0 0 0 0 rgba(31, 111, 204, 0.45); }
+  45% { box-shadow: 0 0 0 6px rgba(31, 111, 204, 0.18); }
+  100% { box-shadow: 0 0 0 0 rgba(31, 111, 204, 0); }
+}
+
+@media (max-width: 900px) {
+  .field-search-toolbar {
+    order: 20;
+    width: 100%;
+    min-width: 0;
+  }
+  .field-search-input-wrap {
+    flex: 1 1 auto;
+    min-width: 160px;
+  }
+}
+
+/* 2026-05-14: place field search between the form panel title and panel action buttons. */
+.pane-header .pane-field-search-toolbar {
+  flex: 1 1 340px;
+  max-width: 560px;
+  min-width: 240px;
+  margin-left: 10px;
+  margin-right: auto;
+}
+.pane-header .pane-field-search-toolbar .field-search-input-wrap {
+  flex: 1 1 auto;
+  min-width: 180px;
+}
+@media (max-width: 900px) {
+  .pane-header .pane-field-search-toolbar {
+    order: 5;
+    flex: 1 1 100%;
+    max-width: none;
+    margin-left: 0;
+  }
+}
+
+/* 2026-05-14: consolidated view dropdown and UI model field visibility controls. */
+.view-toolbar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.view-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.view-menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.view-menu-current {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8f1ff;
+  color: #0f5ea8;
+  font-weight: 800;
+  font-size: 12px;
+}
+.view-menu-caret {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1;
+  opacity: .85;
+}
+.view-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 230px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #c9d7ec;
+  border-radius: 12px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, .18);
+  z-index: 10020;
+  display: grid;
+  gap: 8px;
+}
+.view-menu[hidden] {
+  display: none !important;
+}
+.view-menu-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #233040;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.view-menu-option input {
+  flex: 0 0 auto;
+}
+.uimodel-details-icon-button.active,
+.uimodel-empty-fields-button.active {
+  background: #0f5ea8;
+  border-color: #0f5ea8;
+  color: #ffffff;
+}
+body:not(.uimodel-form-renderer-active) .uimodel-details-icon-button,
+body:not(.uimodel-form-renderer-active) .uimodel-empty-fields-button {
+  opacity: .55;
+}
+.uimodel-missing-field {
+  border: 1px dashed #d5a240 !important;
+  background: #fff8e8 !important;
+  position: relative;
+}
+.uimodel-field.uimodel-missing-field::after,
+.uimodel-entry-table tr.uimodel-missing-field .uimodel-table-description::after {
+  content: "Nincs az XML-ben";
+  display: inline-flex;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #fff0c2;
+  color: #8a5a00;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .01em;
+}
+.uimodel-entry-table tr.uimodel-missing-field td {
+  background: #fffaf0;
+}
+
+/* 2026-05-14 v38: XSD drawer 'Egyeb informacio' is generic info, not XPath. Show 2 lines by default. */
+.xsd-info-cell {
+  max-width: 70ch;
+}
+.xsd-info-preview,
+.xsd-info-full {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+}
+.xsd-info-cell.is-collapsed .xsd-info-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: calc(1.35em * 2);
+}
+.xsd-info-cell:not(.is-collapsed) .xsd-info-preview {
+  display: none !important;
+}
+.xsd-info-full.hidden {
+  display: none !important;
+}
+.xsd-info-toggle {
+  margin-top: 6px;
+  border: 0;
+  background: transparent;
+  color: #075fc2;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+}
+.xsd-info-toggle:hover,
+.xsd-info-toggle:focus {
+  color: #003d8f;
+}
+
+/* v40: restored stable UI model header/collapsible refinements */
+.form-title-pill-hidden {
+  display: none !important;
+}
+.uimodel-section-header,
+.uimodel-fieldgroup-header,
+.uimodel-table-header {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.uimodel-section-header {
+  justify-content: flex-start;
+}
+.uimodel-section-header .collapse-chevron {
+  margin-left: auto;
+}
+.uimodel-section-content {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 12px 14px 14px;
+  border-radius: 0 0 17px 17px;
+  overflow: hidden;
+}
+.uimodel-fieldgroup-header {
+  padding: 0;
+  background: transparent;
+}
+.uimodel-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.uimodel-table-block.collapsed .uimodel-table-scroll,
+.uimodel-fieldgroup.collapsed .uimodel-fields-grid,
+.uimodel-section-card.collapsed .uimodel-section-content {
+  display: none;
+}
+.uimodel-section-card.collapsed > .uimodel-section-header {
+  border-bottom: none;
+}
+
+/* 2026-05-14: UI model group instance number is now rendered as title prefix, not as a separate badge. */
+.uimodel-fieldgroup-meta {
+  display: none !important;
+}
+
+/* 2026-05-14: When only the form pane is visible, keep the UI model form readable and centered.
+   This prevents labels and input columns from drifting too far apart on wide screens. */
+body.form-only-layout #formContainer {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+}
+body.form-only-layout .uimodel-form-shell {
+  width: 100%;
+  margin: 0 auto;
+}
+body.form-only-layout .uimodel-section-card,
+body.form-only-layout .uimodel-table-block,
+body.form-only-layout .uimodel-fieldgroup {
+  max-width: 1120px;
+}
+body.form-only-layout .uimodel-entry-table {
+  min-width: 0;
+}
+body.form-only-layout .uimodel-entry-table col.col-value {
+  width: 300px;
+}
+body.form-only-layout .uimodel-entry-table .col-value,
+body.form-only-layout .uimodel-table-value {
+  width: 300px !important;
+}
+@media (min-width: 1400px) {
+  body.form-only-layout #formContainer {
+    width: 1080px;
+  }
+}
+
+/* v42: move UI model document metadata into the main form header instead of a separate card. */
+.form-layout-header {
+  align-items: flex-start;
+  gap: 12px;
+}
+.form-layout-header #formViewHeading.form-view-heading-rich {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 14px;
+  row-gap: 2px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.form-heading-title-row {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+.form-heading-more {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid #bfcee6;
+  background: #f6f9ff;
+  color: #245ca8;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.form-heading-more:hover {
+  background: #e8f1ff;
+  border-color: #8fb3ea;
+}
+.form-heading-primary {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.form-heading-meta {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #45617f;
+  white-space: nowrap;
+}
+.form-heading-meta strong {
+  color: #173b72;
+}
+.form-layout-actions {
+  flex: 0 0 auto;
+}
+@media (max-width: 1180px) {
+  .form-heading-primary {
+    flex-basis: 100%;
+  }
+  .form-heading-meta {
+    flex-basis: 100%;
+  }
+}
+
+
+/* 2026-05-15 fix: short XPath/XSD messages must stay visible.
+   Only expanded long messages hide the preview through the .hidden class handled by JS. */
+.xpath-message-cell:not(.is-collapsed) .xpath-message-preview:not(.hidden) {
+  display: block !important;
+}
+
+
+/* Sprint 1 v8: XPath path content is shown as a floating disclosure, not as normal table text. */
+.xpath-path-cell {
+  position: relative;
+}
+.xpath-path-cell .xpath-path-full:not(.hidden) {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 80;
+  min-width: 320px;
+  max-width: min(620px, 82vw);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+}
+
+/* XPath severity badges: 1=WARNING, 2=ERROR, 3=CRITICAL. */
+.validation-severity-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.validation-severity-warning {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #f59e0b;
+}
+.validation-severity-error {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+.validation-severity-critical {
+  color: #ffffff;
+  background: #991b1b;
+  border-color: #7f1d1d;
+}
+.validation-severity-info {
+  color: #075985;
+  background: #eff6ff;
+  border-color: #60a5fa;
+}
+.validation-severity-unknown {
+  color: #374151;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+
+/* Runtime performance: off-screen sections skip layout/paint until needed. */
+.form-section,
+.uimodel-section-card,
+.multiform-detail-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 140px 520px;
+}
+.form-lazy-placeholder {
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  color: #66758a;
+  font-size: 12px;
+  background: linear-gradient(90deg, rgba(244,248,255,.7), rgba(255,255,255,.95), rgba(244,248,255,.7));
+}
+.collapsed > .form-lazy-placeholder,
+.collapsed > .collapsible-content > .form-lazy-placeholder {
+  min-height: 0;
+}
+
+.large-xml-process-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 42, 68, .32);
+  backdrop-filter: blur(2px);
+}
+.large-xml-process-overlay[hidden] { display: none; }
+.large-xml-process-dialog {
+  width: min(460px, calc(100vw - 40px));
+  padding: 28px 32px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0, 32, 64, .28);
+  text-align: center;
+  color: #17324d;
+}
+.large-xml-process-dialog h2 { margin: 14px 0 8px; font-size: 20px; }
+.large-xml-process-dialog p { margin: 0; line-height: 1.5; }
+.large-xml-process-spinner {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;
+  border: 4px solid #d9e7f5;
+  border-top-color: #1468b3;
+  border-radius: 50%;
+  animation: large-xml-process-spin .8s linear infinite;
+}
+@keyframes large-xml-process-spin { to { transform: rotate(360deg); } }
+
+
+/* 2026-07-30: keep controls aligned to the bottom of each UIModel grid cell. */
+html:not([data-color-scheme="dark"]) .uimodel-label {
+  background: transparent;
+}
+
+.uimodel-field > input:not([type="checkbox"]),
+.uimodel-field > select,
+.uimodel-field > textarea,
+.uimodel-field > .uimodel-checkbox-row,
+.uimodel-field > .uimodel-link-button {
+  margin-top: auto;
+}
+
+
+/* 2026-08-05: form field search consumes available toolbar space and wraps results safely. */
+.form-unified-toolbar .field-search-toolbar,.pane-header .pane-field-search-toolbar{flex:1 1 auto;min-width:0;max-width:none}
+.form-unified-toolbar .field-search-input-wrap,.pane-header .pane-field-search-toolbar .field-search-input-wrap{flex:1 1 auto;min-width:120px;max-width:none}
+.field-search-input{box-sizing:border-box;padding-left:8px;padding-right:8px}
+.field-search-results{width:100%;min-width:280px;max-width:min(720px,calc(100vw - 32px));box-sizing:border-box}
+.field-search-result{box-sizing:border-box;overflow:hidden}
+.field-search-result-label,.field-search-result-meta{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;line-height:1.35}

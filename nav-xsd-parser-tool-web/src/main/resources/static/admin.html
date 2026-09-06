@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XML EDITOR MINTA</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles/base.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/shell.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/layout.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/validation.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-viewer.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/processing.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/dialogs.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files-advanced.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/home.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/admin.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/multiform.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/m2m.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/compact-ui.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-toolbar.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+</head>
+<body data-initial-tab="adminTab" class="nav-application-theme">
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-header-left">
+      <div class="site-brand">
+        <img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó">
+      </div>
+      <nav class="header-nav classic-nav" aria-label="Fő navigáció">
+        <a class="tab-button" data-tab="xmlFilesTab" href="/xml-files.html">Űrlapállományok</a>
+        
+        <a class="tab-button" data-tab="formTab" id="formTabButton" href="/form.html">Űrlapmegtekintő</a>
+                <a class="tab-button" data-tab="partnersTab" href="/partners.html">Partnerek</a><a class="tab-button" data-tab="githubTemplatesTab" href="/github-templates.html">Űrlapsablonok</a>
+        <details class="system-menu"><summary class="tab-button">Rendszer</summary><div class="system-menu-panel"><a href="/m2m-submitter.html">M2M beküldés</a><a href="/xml-index-config.html">XML index konfiguráció</a><a data-tab="adminTab" id="adminTabButton" href="/admin.html">Beállítások</a></div></details>
+</nav>
+    </div>
+    <div class="security-header-area" id="securityHeaderArea" hidden>
+      <span class="security-user-label">Felhasználó:</span>
+      <strong id="securityHeaderUsername">-</strong>
+      <form method="post" action="/logout" class="logout-form">
+        <button type="submit" class="secondary mini-button">Kijelentkezés</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<div class="app-shell">
+
+  <div id="homeTab" class="tab-panel page-panel">
+    <main class="home-layout">
+      <section class="panel-card home-hero-card">
+        <div class="home-hero-copy">
+          <p class="eyebrow">XML EDITOR MINTA</p>
+          <h1>XML feldolgozás, felderítés és űrlapnézet</h1>
+          <p class="lead">XSD, UIModel és XML alapú feldolgozás egy korszerű, vállalati felületen. A rendszer célja a sémák felderítése, a validáció támogatása és az XML tartalom űrlap alapú áttekintése és szerkesztése.</p>
+        </div>
+        <div class="home-status-strip">
+          <div class="status-tile">
+            <span class="status-tile-label">Rendszerállapot</span>
+            <strong id="healthSummary">Kapcsolat ellenőrzése…</strong>
+          </div>
+          <div class="status-tile status-tile-wide">
+            <span class="status-tile-label">Aktív konfiguráció</span>
+            <strong id="homeConfigSummary">Konfiguráció betöltése…</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-markdown panel-card">
+        <div class="home-section-header">
+          <div>
+            <p class="eyebrow">Használati információ</p>
+            <h2>Rendszeráttekintés</h2>
+          </div>
+        </div>
+
+        <div class="markdown-grid">
+          <article class="markdown-card markdown-card-wide">
+            <h3>Projekt célja</h3>
+            <p>Java 17 és Maven alapú, többmodulos eszköz XSD vezérelt XML feldolgozáshoz, CLI integrációhoz és webes hosztoláshoz.</p>
+            <p>A webes felület támogatja a sémafeloldást, az XML validációt, a UIModel-alapú űrlapnézetet és az XML-fa alapú kétirányú navigációt.</p>
+          </article>
+
+          <article class="markdown-card">
+            <h3>Modulok</h3>
+            <ul>
+              <li><code>nav-xsd-parser-tool-core</code> — közös domain modellek</li>
+              <li><code>nav-xsd-parser-tool-schema-registry</code> — schema bundle feloldás</li>
+              <li><code>nav-xsd-parser-tool-xsd</code> — XSD parser szerződés</li>
+              <li><code>nav-xsd-parser-tool-uimodel</code> — UI model parser szerződés</li>
+              <li><code>nav-xsd-parser-tool-page-schema</code> — <code>.schema</code> parser szerződés</li>
+              <li><code>nav-xsd-parser-tool-processing</code> — feldolgozási és XML probe logika</li>
+              <li><code>nav-xsd-parser-tool-cli</code> — futtatható CLI JAR</li>
+              <li><code>nav-xsd-parser-tool-web</code> — Spring Boot web host</li>
+            </ul>
+          </article>
+
+          <article class="markdown-card">
+            <h3>Build</h3>
+            <pre><code>mvn clean package</code></pre>
+            <p>A statikus assetek verziózása build közben automatikusan történik.</p>
+          </article>
+
+          <article class="markdown-card markdown-card-wide">
+            <h3>CLI példák</h3>
+            <pre><code>java -jar nav-xsd-parser-tool-cli/target/nav-xsd-parser-tool-cli.jar inspect --xml C:\input\sample.xml --schema-dir C:\schemas
+java -jar nav-xsd-parser-tool-cli/target/nav-xsd-parser-tool-cli.jar validate --xml C:\input\sample.xml --schema-dir C:\schemas
+java -jar nav-xsd-parser-tool-cli/target/nav-xsd-parser-tool-cli.jar generate --document-type T34 --schema-dir C:\schemas --out C:\output\empty.xml</code></pre>
+          </article>
+
+          <article class="markdown-card">
+            <h3>Web indítás</h3>
+            <pre><code>java -jar nav-xsd-parser-tool-web/target/nav-xsd-parser-tool-web.jar</code></pre>
+            <p>Az alkalmazás indítása után a webes felület a böngészőből használható.</p>
+          </article>
+
+          <article class="markdown-card">
+            <h3>Fő lépések</h3>
+            <ol>
+              <li>Nyisd meg a <strong>Felderítés / Validálás</strong> nézetet.</li>
+              <li>Add meg a séma könyvtárakat és az XML forrást.</li>
+              <li>Futtasd az elemzést vagy a betöltést.</li>
+              <li>Érvényes XML esetén válts az <strong>Űrlapmegtekintő</strong> nézetre.</li>
+            </ol>
+          </article>
+
+          <article class="markdown-card markdown-card-wide">
+            <h3>Megjegyzések</h3>
+            <ul>
+              <li>A <code>FileSystemSchemaRegistryService</code> jelenleg <code>xsi:schemaLocation</code> vagy fájlnév alapján oldja fel az XSD-ket.</li>
+              <li>A sématár induláskor előindexeli a konfigurált sablon és általános XSD könyvtárakat, így az <code>inspect</code> és <code>validate</code> műveletek gyorsabban futnak.</li>
+              <li>A következő fő feldolgozási lépés a valós XSD parsing és definition merging továbbfejlesztése a feldolgozási modulokban.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="validateTab" class="tab-panel page-panel">
+    <main class="layout-stack">
+      <section class="panel-card input-card run-card modern-card">
+        <div class="card-header card-header-inline">
+          <div>
+            <h2>Futtatás</h2>
+            <p>Az XML feltölthető, vagy megadható szerver oldali elérési úttal.</p>
+          </div>
+          <div class="quick-actions quick-actions-inline">
+            <button type="button" class="secondary" id="fillExampleButton">Konfigurált értékek betöltése</button>
+          </div>
+        </div>
+
+        <form id="actionForm" class="run-form-grid">
+          <div class="form-block">
+            <label for="schemaDir">XSD séma gyökérkönyvtár</label>
+            <input id="schemaDir" name="schemaDir" type="text" placeholder="pl. C:\Temp\ANYK_KIVALTAS\schemas" autocomplete="off">
+            <p class="hint">Ha üresen hagyod, a rendszer a konfigurációban megadott <code>schema-dir</code> értéket használja.</p>
+          </div>
+
+          <div class="form-block">
+            <label for="generalXsdDir">Általános XSD könyvtár</label>
+            <input id="generalXsdDir" name="generalXsdDir" type="text" placeholder="pl. C:\Temp\ANYK_KIVALTAS\generalxsd" autocomplete="off">
+            <p class="hint">Ide kerülhetnek a közös XSD-k, például a <code>common.xsd</code> vagy az <code>altalanos_enum.xsd</code>.</p>
+          </div>
+
+          <div class="form-block form-block-span-2 run-mode-block">
+            <label>XML forrás</label>
+            <div class="input-mode-row">
+              <label class="radio-option"><input type="radio" name="xmlMode" value="upload" checked> XML feltöltése</label>
+              <label class="radio-option"><input type="radio" name="xmlMode" value="path"> Szerver oldali XML útvonal</label>
+            </div>
+          </div>
+
+          <div id="uploadPane" class="form-block form-block-span-2 mode-pane">
+            <label for="xmlFile">XML fájl</label>
+            <input id="xmlFile" name="xmlFile" type="file" accept=".xml,application/xml,text/xml">
+            <div class="selected-input-path" id="selectedXmlInputPath">Nincs kiválasztott XML fájl.</div>
+          </div>
+
+          <div id="pathPane" class="form-block form-block-span-2 mode-pane hidden">
+            <label for="xmlPath">XML elérési út</label>
+            <input id="xmlPath" name="xmlPath" type="text" placeholder="pl. C:\Temp\ANYK_KIVALTAS\xmlfiles\pelda.xml" autocomplete="off">
+            <div class="selected-input-path" id="selectedXmlServerPath">Nincs megadott XML elérési út.</div>
+          </div>
+
+          <div class="form-block form-block-span-2 action-row-wrap">
+            <div class="button-row action-row-horizontal">
+              <button type="button" id="inspectButton">Elemzés</button>
+              <button type="button" class="primary" id="validateButton">Betöltés</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel-card result-card modern-card">
+        <div class="section-header result-header">
+          <h2>Eredmény</h2>
+          <span id="resultMode" class="status-pill">Nincs futtatás</span>
+        </div>
+        <div id="messages"></div>
+        <div id="summaryGrid" class="summary-grid"></div>
+        <div id="detailSections" class="detail-sections"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="formTab" class="tab-panel page-panel">
+    <section class="panel-card split-card">
+      <div class="section-header form-layout-header">
+        <h2 id="formViewHeading">Űrlap</h2>
+        <div class="form-layout-actions">
+          <span class="status-pill form-title-pill" id="formTitle">Nincs generált űrlap</span>
+          <div class="pane-layout-controls" role="group" aria-label="Panelek elrendezése">
+            <button type="button" class="secondary mini-button pane-layout-button active" id="showBothPanesButton">Duális nézet bekapcsolása</button>
+            <button type="button" class="secondary mini-button pane-layout-button" id="showOnlyFormPaneButton">XML nézet elrejtése</button>
+            <button type="button" class="secondary mini-button pane-layout-button" id="showOnlyXmlPaneButton">Űrlap nézet elrejtése</button>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="split-container" id="splitContainer">
+        <div class="form-pane" id="formPanel">
+          <div class="pane-header">
+            <strong>Űrlap panel</strong>
+            <div class="pane-header-actions">
+              <button type="button" class="secondary mini-button xml-icon-button form-icon-button form-collapse-all-button" id="toggleAllFormCollapseButton" title="Összes elem kinyitása" aria-label="Összes elem kinyitása">
+                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 6h12"/>
+                  <path d="M8 12h12"/>
+                  <path d="M8 18h12"/>
+                  <path d="M4 6h.01"/>
+                  <path d="M4 12h.01"/>
+                  <path d="M4 18h.01"/>
+                </svg>
+              </button>
+              <button type="button" class="secondary mini-button pane-toggle-button" id="toggleFormPaneButton">Űrlap nézet elrejtése</button>
+            </div>
+          </div>
+          <div class="form-pane-scroll" id="formScroll">
+            <div id="formContainer"></div>
+          </div>
+        </div>
+
+        <div class="splitter" id="splitter" aria-label="Panelek méretezése" role="separator" aria-orientation="vertical" tabindex="0"></div>
+
+        <aside class="xml-pane" id="xmlPanel">
+          <div class="xml-pane-header">
+            <div class="pane-header-group">
+              <strong>XML nézet</strong>
+              <button type="button" class="secondary mini-button pane-toggle-button" id="toggleXmlPaneButton">XML nézet elrejtése</button>
+              <div class="xml-toolbar-buttons xml-toolbar-buttons-inline">
+                <button type="button" class="secondary mini-button xml-icon-button xml-icon-validate" id="validateCurrentXmlButton" title="XML validáció" aria-label="XML validáció">
+                  <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/><path d="M12 3v3"/></svg>
+                </button>
+                <button type="button" class="secondary mini-button xml-icon-button xml-icon-save" id="saveXmlFileButton" title="Mentés fájlba" aria-label="Mentés fájlba">
+                  <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V7l4-4h9l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+                </button>
+                <button type="button" class="secondary mini-button xml-icon-button xml-icon-format" id="prettyPrintXmlButton" title="Formázás" aria-label="Formázás">
+                  <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h12"/><path d="M4 12h8"/><path d="M4 17h12"/><path d="m15 5 5 5-5 5"/></svg>
+                </button>
+                <button type="button" class="secondary mini-button xml-icon-button xml-icon-apply" id="applyXmlSourceButton" title="XML alkalmazása" aria-label="XML alkalmazása">
+                  <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3.2-6.9"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="xml-view-tabs">
+              <button type="button" class="xml-tab-button active" data-xml-view="tree">Fa</button>
+              <button type="button" class="xml-tab-button" data-xml-view="source">XML forrás</button>
+            </div>
+          </div>
+
+          <div class="xml-pane-toolbar">
+            <div class="xml-toolbar-xpath">
+              <span class="selected-xpath-label" id="selectedXPathLabel">Nincs kijelölt XML elem</span>
+              <span class="xpath-copy-success" id="xpathCopySuccess" aria-hidden="true">✓</span>
+            </div>
+          </div>
+
+          <div class="xml-pane-scroll xml-view-panel active" id="xmlTreePanel">
+            <div id="xmlContainer"></div>
+          </div>
+
+          <div class="xml-pane-scroll xml-view-panel" id="xmlSourcePanel">
+            <div class="xml-editor-shell">
+              <pre id="xmlSourceHighlight" class="xml-source-highlight" aria-hidden="true"></pre>
+              <textarea id="xmlSourceEditor" class="xml-source-editor" spellcheck="false"></textarea>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <div id="xpathValidatorTab" class="tab-panel page-panel">
+    <main class="layout-stack">
+      <section class="panel-card modern-card">
+        <div class="home-section-header"><div><p class="eyebrow">XPATH validátor</p><h2>Új ellenőrzés</h2></div></div>
+        <form id="xpathValidatorForm" class="run-form-grid">
+          <div class="form-block form-block-span-2"><label for="xpathXmlFile">Vizsgálandó XML</label><input id="xpathXmlFile" type="file" accept=".xml,application/xml,text/xml"><p class="hint">A request azonosítót, az időbélyeget, valamint a űrlap típusát és verzióját a rendszer automatikusan állítja elő a feltöltött XML alapján.</p></div>
+          <div class="form-block form-block-span-2 action-row-wrap"><div class="button-row action-row-horizontal"><button type="button" class="primary" id="xpathSubmitButton">Ellenőrzés</button></div></div>
+        </form>
+      </section>
+
+      <section class="panel-card modern-card">
+        <div class="home-section-header"><div><p class="eyebrow">XPATH validátor</p><h2>Kérések</h2></div><div class="button-row"><label class="inline-select-label">Sorok<select id="xpathPageSizeSelect"><option>1</option><option>5</option><option selected>10</option><option>20</option><option>50</option><option>100</option></select></label><label class="inline-select-label">Auto refresh<select id="xpathAutoRefreshSelect"><option value="0">Kikapcsolva</option><option value="5">5 mp</option><option value="10" selected>10 mp</option><option value="30">30 mp</option><option value="60">60 mp</option></select></label><button type="button" class="secondary" id="xpathRefreshButton">Frissítés</button></div></div>
+        <div class="admin-form-grid"><label class="form-block"><span>Request ID keresés</span><input id="xpathSearchInput" type="text" placeholder="Keresés request_id alapján"></label></div>
+        <div class="table-scroll"><table class="xpath-table"><thead><tr><th>Request ID</th><th>Időbélyeg</th><th>Űrlap</th><th>Validator státusz</th><th>Eredmény</th><th>Hibák</th><th>Letöltés</th></tr></thead><tbody id="xpathRequestsTableBody"><tr><td colspan="7">Nincs adat.</td></tr></tbody></table></div>
+      </section>
+
+      <section class="panel-card modern-card">
+        <div class="home-section-header"><div><p class="eyebrow">XPATH validátor</p><h2>Kiválasztott kérés hibái</h2></div></div>
+        <div class="table-scroll"><table class="xpath-table"><thead><tr><th>Kód</th><th>Üzenet</th><th>Szint</th><th>Elem</th><th>Rule ID</th><th>Path</th></tr></thead><tbody id="xpathErrorsTableBody"><tr><td colspan="6">Válassz egy rekordot a táblázatból.</td></tr></tbody></table></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="adminTab" class="tab-panel active page-panel">
+  <main class="admin-layout">
+    <section class="panel-card admin-card">
+      <div class="home-section-header"><div><p class="eyebrow">Beállítások</p><h2>Rendszerinformáció</h2></div><button type="button" class="secondary" id="refreshAdminButton">Frissítés</button></div>
+      <div class="admin-grid admin-grid-top">
+        <article class="admin-tile"><span class="admin-tile-label">Alkalmazás</span><strong id="adminApplicationName">-</strong></article>
+        <article class="admin-tile"><span class="admin-tile-label">Verzió</span><strong id="adminVersion">-</strong></article>
+        <article class="admin-tile"><span class="admin-tile-label">Üzemidő</span><strong id="adminUptime">-</strong></article>
+        <article class="admin-tile"><span class="admin-tile-label">Java</span><strong id="adminJavaVersion">-</strong></article>
+        <article class="admin-tile admin-tile-wide"><span class="admin-tile-label">Operációs rendszer</span><strong id="adminOsInfo">-</strong></article>
+        <article class="admin-tile admin-tile-wide"><span class="admin-tile-label">Konfigurációs könyvtár</span><strong id="adminConfigDir">-</strong></article>
+        <article class="admin-tile"><span class="admin-tile-label">Séma cache</span><strong id="adminSchemaCacheCount">-</strong></article>
+      </div>
+      <div class="admin-pre-wrap" id="adminCacheFiles">Nincs cache adat.</div>
+      <div class="button-row"><button type="button" class="secondary" id="clearCacheButton">Cache ürítése</button><button type="button" class="secondary" id="reloadCacheButton">Cache újratöltése</button></div>
+    </section>
+
+    <section class="panel-card admin-card">
+      <div class="home-section-header"><div><p class="eyebrow">Konfiguráció</p><h2>Aktív beállítások</h2></div><div class="button-row"><button type="button" class="secondary" id="validateConfigButton">Ellenőrzés</button><button type="button" class="secondary" id="reloadConfigButton">Újraolvasás</button></div></div>
+      <div class="admin-grid" id="adminConfigDiagnostics"></div>
+      <pre class="admin-pre-wrap" id="adminConfigProperties">Betöltés…</pre>
+    </section>
+
+    <section class="panel-card admin-card">
+      <div class="home-section-header"><div><p class="eyebrow">Naplózás</p><h2>Alkalmazásnapló</h2></div><button type="button" class="secondary" id="saveAdminLoggingButton">Mentés</button></div>
+      <div class="admin-form-grid"><label class="form-block"><span>Root logszint</span><select id="adminRootLogLevel"><option>ERROR</option><option>WARN</option><option selected>INFO</option><option>DEBUG</option><option>TRACE</option></select></label></div>
+      <div class="hint">Logfájl: <span id="adminLogFile">-</span></div>
+      <textarea class="admin-log-viewer" id="adminLogViewer" rows="12" readonly></textarea>
+    </section>
+
+
+
+  </main>
+</div>
+
+</div> <!-- app-shell -->
+
+<script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
+<script src="/js/core/app.js?v=@build.asset.version@"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XML index konfiguráció</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles/base.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/shell.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/layout.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/admin.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+</head>
+<body data-initial-tab="xmlIndexConfigTab" class="nav-application-theme">
+<header class="site-header"><div class="site-header-inner"><div class="site-header-left"><div class="site-brand"><img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó"></div>
+<nav class="header-nav classic-nav" aria-label="Fő navigáció"><a class="tab-button" data-tab="xmlFilesTab" href="/xml-files.html">Űrlapállományok</a><a class="tab-button" data-tab="formTab" id="formTabButton" href="/form.html">Űrlapmegtekintő</a>        <a class="tab-button" data-tab="partnersTab" href="/partners.html">Partnerek</a><a class="tab-button" data-tab="githubTemplatesTab" href="/github-templates.html">Űrlapsablonok</a>
+        <details class="system-menu"><summary class="tab-button">Rendszer</summary><div class="system-menu-panel"><a href="/m2m-submitter.html">M2M beküldés</a><a href="/xml-index-config.html">XML index konfiguráció</a><a data-tab="adminTab" id="adminTabButton" href="/admin.html">Beállítások</a></div></details>
+</nav></div><div class="security-header-area" id="securityHeaderArea" hidden><span class="security-user-label">Felhasználó:</span><strong id="securityHeaderUsername">-</strong><form method="post" action="/logout" class="logout-form"><button type="submit" class="secondary mini-button">Kijelentkezés</button></form></div></div></header>
+<div class="app-shell"><div id="xmlIndexConfigTab" class="tab-panel active page-panel"><main class="admin-layout">
+<section class="panel-card admin-card xml-index-admin-card">
+<div class="home-section-header"><div><p class="eyebrow">Konfiguráció</p><h2>XML index konfiguráció</h2></div><div class="button-row"><button type="button" class="secondary" id="xmlIndexReloadButton">Újratöltés</button><button type="button" class="primary" id="xmlIndexSaveButton" disabled>Konfiguráció mentése</button><button type="button" class="primary" id="xmlIndexSaveReturnButton" disabled>Mentés és visszatérés</button></div></div>
+<div id="xmlIndexContextNotice" class="message warning xml-index-context-notice" hidden><strong>Melléklap index konfiguráció szükséges.</strong><br>A melléklapok kezeléséhez válassza ki azokat a mezőket, amelyek alapján keresni szeretne (<strong>Kereshető</strong>), illetve amelyek megjelenjenek a találati listában (<strong>Lista</strong>). Legalább egy Kereshető és egy Lista mezőt állítson be, majd mentse a konfigurációt.</div>
+<p class="hint">A melléklaptáblázat oszlopai kizárólag a Lista jelölésű mezőkből, a keresés pedig kizárólag a Kereshető jelölésű mezőkből épül fel.</p>
+<div class="admin-form-grid xml-index-form-grid"><label class="form-block"><span>Űrlap</span><select id="xmlIndexFormSelect"><option value="">Válassz űrlapt...</option></select></label><label class="form-block"><span>Struktúraforrás verzió</span><select id="xmlIndexVersionSelect" disabled><option value="">Automatikus / legfrissebb</option></select></label><label class="form-block"><span>Űrlaprész / lap</span><select id="xmlIndexPartSelect" disabled><option value="">Összes űrlaprész</option></select></label><div class="form-block"><span>Konfigurációs fájl</span><div class="selected-input-path" id="xmlIndexConfigPath">-</div></div></div>
+<div class="xml-index-layout"><div class="xml-index-tree-panel"><div class="xml-index-panel-title">Elérhető XSD mezők</div><div class="xml-index-field-picker"><input type="search" id="xmlIndexFieldSearch" class="toolbar-search" placeholder="Keresés címkében, mezőnévben, XML path-ban vagy szülő blokk/chain alapján..."><div class="xml-index-field-picker-row"><select id="xmlIndexFieldSelect" disabled><option value="">Válassz mezőt...</option></select><button type="button" class="secondary" id="xmlIndexAddFieldButton" disabled>Hozzáadás</button></div></div><div id="xmlIndexTree" class="xml-index-tree"><p class="hint">Válassz űrlapt.</p></div></div><div class="xml-index-summary-panel"><div class="xml-index-panel-title">Kiválasztott indexmezők</div><div id="xmlIndexSummary" class="xml-index-summary"><p class="hint">Még nincs kiválasztott mező.</p></div></div></div>
+</section></main></div></div><script src="/js/core/ui-shell.js?v=@build.asset.version@"></script><script src="/js/core/app.js?v=@build.asset.version@"></script></body></html>

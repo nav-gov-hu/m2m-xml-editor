@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:common="http://schemas.nav.gov.hu/NTCA/1.0/common"
+           xmlns:xv="http://schemas.nav.gov.hu/xpath-validator/1.0"
+           targetNamespace="http://schemas.nav.gov.hu/xpath-validator/1.0"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+    <xs:import namespace="http://schemas.nav.gov.hu/NTCA/1.0/common"
+               schemaLocation="https://raw.githubusercontent.com/nav-gov-hu/Common/common-1.0.0/schemas/src/main/resources/xsd/hu/gov/nav/schemas/NTCA/1.0/common/common.xsd"/>
+    <xs:annotation><xs:documentation>Logical contract for the XPath validator REST response built on the NAV Common 1.0 namespace import.</xs:documentation></xs:annotation>
+    <xs:simpleType name="ValidatorStatusType"><xs:restriction base="xs:string"><xs:enumeration value="SENT"/><xs:enumeration value="PROCESSING"/><xs:enumeration value="ABORTED"/><xs:enumeration value="FINISHED"/></xs:restriction></xs:simpleType>
+    <xs:simpleType name="ResultStatusType"><xs:restriction base="xs:string"><xs:enumeration value="OK"/><xs:enumeration value="ERROR"/></xs:restriction></xs:simpleType>
+    <xs:complexType name="XPathValidationResponseType"><xs:sequence>
+        <xs:element name="requestId" type="xs:string"/>
+        <xs:element name="sessionId" type="xs:string"/>
+        <xs:element name="requestTimestampUtc" type="xs:dateTime"/>
+        <xs:element name="validatorStatus" type="xv:ValidatorStatusType"/>
+        <xs:element name="resultStatus" type="xv:ResultStatusType" minOccurs="0"/>
+        <xs:element name="errorCount" type="xs:int" minOccurs="0"/>
+        <xs:element name="resultAvailable" type="xs:boolean"/>
+        <xs:element name="resultDownloadPath" type="xs:string" minOccurs="0"/>
+        <xs:element name="technicalErrorMessage" type="xs:string" minOccurs="0"/>
+    </xs:sequence></xs:complexType>
+    <xs:element name="XPathValidationResponse" type="xv:XPathValidationResponseType"/>
+</xs:schema>

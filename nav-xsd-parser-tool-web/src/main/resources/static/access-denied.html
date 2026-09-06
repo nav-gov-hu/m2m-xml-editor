@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'none'">
+  <title>Nincs jogosultság - XML EDITOR MINTA</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles/base.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/shell.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/layout.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/validation.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-viewer.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/processing.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/dialogs.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files-advanced.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/home.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/admin.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/multiform.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/m2m.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/compact-ui.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-toolbar.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+</head>
+<body class="access-denied-page nav-application-theme">
+<script src="/js/core/frame-bust.js?v=@build.asset.version@"></script>
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-header-left">
+      <div class="site-brand">
+        <img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó">
+      </div>
+      <nav class="header-nav classic-nav" aria-label="Fő navigáció">
+        <a class="tab-button" href="/xml-files.html">Űrlapállományok</a>
+        <a class="tab-button" href="/form.html">Űrlapmegtekintő</a>
+              <a class="tab-button" data-tab="partnersTab" href="/partners.html">Partnerek</a>
+        <details class="system-menu"><summary class="tab-button">Rendszer</summary><div class="system-menu-panel"><a href="/m2m-submitter.html">M2M beküldés</a><a href="/xml-index-config.html">XML index konfiguráció</a><a data-tab="adminTab" id="adminTabButton" href="/admin.html">Beállítások</a></div></details>
+</nav>
+    </div>
+    <div class="security-header-area" id="securityHeaderArea" hidden></div>
+  </div>
+</header>
+
+<main class="access-denied-layout">
+  <section class="panel-card access-denied-card">
+    <p class="eyebrow">Jogosultság</p>
+    <h1>Nincs jogosultságod az oldal megnyitásához</h1>
+    <p class="lead">Az Admin felület csak ADMIN szerepkörrel érhető el. Operátor vagy megtekintő felhasználóként a saját jogosultságodnak megfelelő menüpontokat használhatod.</p>
+    <div class="button-row">
+      <a class="primary button-like" href="/xml-files.html">Vissza az Űrlapállományokhoz</a>
+      <a class="secondary button-like" href="/xml-files.html">Űrlapállományok</a>
+    </div>
+  </section>
+</main>
+<script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
+</body>
+</html>

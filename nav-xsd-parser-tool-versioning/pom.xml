@@ -1,0 +1,13 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>hu.gov.nav.xsdparsertool</groupId>
+        <artifactId>nav-xsd-parser-tool</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <artifactId>nav-xsd-parser-tool-versioning</artifactId>
+    <name>nav-xsd-parser-tool-versioning</name>
+    <description>Local Git diff based semantic version decision and build metadata generator.</description>
+</project>

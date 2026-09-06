@@ -1,0 +1,247 @@
+.template-page-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1rem}.template-page-heading h1{margin:.15rem 0 0;font-size:1.45rem}.template-source-state{font-size:.82rem;color:var(--nav-theme-muted);text-align:right}.template-known-toggle{display:flex;align-items:center;gap:.4rem;white-space:nowrap;font-size:.82rem}.github-templates-table{table-layout:fixed;width:100%}.github-templates-table th,.github-templates-table td{text-align:left;vertical-align:middle}.github-templates-table th:nth-child(1){width:42px}.github-templates-table th:nth-child(2){width:125px}.github-templates-table th:nth-child(3){width:90px}.github-templates-table th:nth-child(4){width:120px}.github-templates-table th:nth-child(5){width:155px}.github-templates-table th:nth-child(6){width:auto}.github-templates-table th:nth-child(7),.github-templates-table th:nth-child(8){width:130px}.github-templates-table th:nth-child(9){width:92px;text-align:center}.github-templates-table td:last-child{text-align:center}.template-form-cell{display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;max-width:100%}.template-repo-link{font-weight:700;color:var(--nav-theme-primary);text-decoration:none;white-space:nowrap}.template-known-badge{display:inline-block;flex:0 0 auto;padding:.1rem .35rem;border-radius:999px;font-size:.68rem;white-space:nowrap}.template-known-badge-local{background:#e7f7ed;color:#137a3a}.template-known-badge-github{background:#eef1f5;color:#4b5563}.template-download-button{width:34px;height:30px;border:1px solid var(--nav-theme-border);border-radius:7px;background:#fff;cursor:pointer}.template-download-button:hover{border-color:var(--nav-theme-primary);color:var(--nav-theme-primary)}.template-processing{position:fixed;inset:0;z-index:9999}.template-processing-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.42)}.template-processing-card{position:relative;width:min(440px,calc(100vw - 32px));margin:18vh auto 0;padding:1.5rem;border-radius:14px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.28);text-align:center}.template-spinner{width:38px;height:38px;margin:0 auto 1rem;border:4px solid #dbe7fb;border-top-color:var(--nav-theme-primary);border-radius:50%;animation:template-spin .8s linear infinite}.template-progress-track{height:8px;border-radius:999px;background:#e8eef8;overflow:hidden;margin-top:1rem}.template-progress-track>div{height:100%;width:0;background:var(--nav-theme-primary);transition:width .25s ease}@keyframes template-spin{to{transform:rotate(360deg)}}@keyframes template-progress{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}@media(max-width:1100px){.xml-files-filterbar{flex-wrap:wrap}.template-page-heading{align-items:flex-start;flex-direction:column}.github-templates-table{min-width:1180px}}
+.template-processing-counter{margin-top:.7rem;font-size:.82rem;color:var(--nav-theme-muted)}
+.template-progress-track>div{animation:none;transform:none;transition:width .25s ease;width:0}
+.template-confirm{position:fixed;inset:0;z-index:10000}
+.template-confirm-card{position:relative;width:min(520px,calc(100vw - 32px));margin:22vh auto 0;padding:1.5rem;border-radius:14px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.28)}
+.template-confirm-card h2{margin:0 0 .75rem;font-size:1.2rem}
+.template-confirm-card p{margin:0;color:var(--nav-theme-muted);line-height:1.55}
+.template-confirm-actions{display:flex;justify-content:flex-end;gap:.7rem;margin-top:1.25rem;flex-wrap:wrap}
+.github-token-quick-config{display:grid;gap:.45rem;margin-top:1rem}.github-token-quick-config label{font-weight:700;font-size:.86rem}.github-token-quick-config input{width:100%;min-width:0}.github-token-quick-config .hint{margin-top:.1rem;font-size:.78rem}.github-token-quick-config .error-text{color:var(--nav-theme-danger,#b42318)}
+.template-download-result-card{width:min(880px,calc(100vw - 32px));margin:8vh auto 0;max-height:84vh;display:flex;flex-direction:column}.template-download-result-body{margin-top:1rem;overflow:auto;border-top:1px solid var(--nav-theme-border)}.template-download-result-item{padding:1rem 0;border-bottom:1px solid var(--nav-theme-border)}.template-download-result-item h3{margin:0 0 .35rem;font-size:1rem}.template-download-status{font-size:.8rem;color:var(--nav-theme-muted);overflow-wrap:anywhere}.template-installed-artifacts{display:grid;gap:.45rem;margin-top:.75rem}.template-installed-artifact{display:grid;grid-template-columns:90px 1fr;gap:.6rem;padding:.55rem .7rem;border-radius:8px;background:#eef8f1;font-size:.8rem}.template-installed-artifact.failed{background:#fff0f0}.template-installed-artifact span{overflow-wrap:anywhere}.template-no-installed-artifact{margin-top:.75rem;padding:.65rem;border-radius:8px;background:#f6f7f9;color:var(--nav-theme-muted);font-size:.8rem}
+.template-readme-link{display:inline-block;margin-left:.45rem;font-size:.72rem;font-weight:700;color:var(--nav-theme-primary);text-decoration:none}.template-readme-link:hover{text-decoration:underline}
+
+#templateSearchInput{flex:0 1 25%;width:25%;min-width:180px;max-width:25%;}
+@media(max-width:1100px){#templateSearchInput{flex:1 1 260px;width:auto;max-width:none;}}
+
+/* GitHub sablonkatalógus: egysoros, kompakt eszköztár. */
+body.nav-application-theme .xml-files-toolbar {
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+}
+
+body.nav-application-theme .xml-files-filterbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
+
+body.nav-application-theme #templateSearchInput {
+  flex: 0 0 172px;
+  width: 172px;
+  min-width: 172px;
+  max-width: 172px;
+}
+
+body.nav-application-theme #templateTypeFilter {
+  flex: 0 0 158px;
+  width: 158px;
+}
+
+body.nav-application-theme #templateVersionFilter {
+  flex: 0 0 190px;
+  width: 190px;
+}
+
+body.nav-application-theme .template-known-toggle {
+  flex: 0 0 auto;
+}
+
+body.nav-application-theme .template-page-size-control {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+body.nav-application-theme .template-page-size-control .xml-files-page-size-label {
+  margin: 0;
+}
+
+body.nav-application-theme #templatePageSizeSelect {
+  flex: 0 0 72px;
+  width: 72px;
+  min-width: 72px;
+}
+
+@media (max-width: 1100px) {
+  body.nav-application-theme .xml-files-toolbar {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+  body.nav-application-theme .xml-files-filterbar {
+    flex-wrap: nowrap;
+  }
+  body.nav-application-theme #templateSearchInput {
+    flex: 0 0 172px;
+    width: 172px;
+    max-width: 172px;
+  }
+}
+
+/* Űrlapsablonok: egységes vezérlőmagasság és függőleges igazítás. */
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-toolbar,
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-toolbar-left,
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-filterbar,
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .template-page-size-control {
+  align-items: center !important;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-toolbar-button,
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-filterbar input:not([type="checkbox"]),
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-filterbar select {
+  box-sizing: border-box !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  align-self: center !important;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-toolbar-button {
+  width: 40px !important;
+  min-width: 40px !important;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-filterbar input:not([type="checkbox"]),
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-filterbar select {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 38px !important;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .template-known-toggle,
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .template-page-size-control {
+  min-height: 40px;
+  margin: 0;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-page-size-label {
+  margin: 0;
+}
+
+
+/* Űrlapsablonok: fejléc egyszerűsítés és jobbra zárt oldalméret-választó. */
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .template-source-state[hidden] {
+  display: none !important;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-registry-panel {
+  padding-top: 1rem;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-filterbar {
+  width: 100%;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .template-page-size-control {
+  margin-left: auto !important;
+  justify-content: flex-end;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .template-known-toggle,
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .template-page-size-control {
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+/* Nyomtatvanysablonok: a teljes bongeszoablakot kitolto alkalmazasshell. */
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] {
+  height: 100dvh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .site-header {
+  flex: 0 0 auto;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .app-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] main.layout-stack.xml-files-page.xml-files-modern-page {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-registry-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-toolbar,
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .messages,
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-pagination {
+  flex: 0 0 auto;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-table-wrap {
+  flex: 1 1 0;
+  min-height: 8rem;
+  overflow: auto;
+}
+
+@supports not (height: 100dvh) {
+  body.nav-application-theme[data-initial-tab="githubTemplatesTab"] {
+    height: 100vh;
+    min-height: 100vh;
+  }
+}
+
+/* Nyomtatvanysablonok: a tablazat es a lapozo toltse ki a panel teljes maradek magassagat. */
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-registry-panel {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-table-wrap {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  max-height: none;
+}
+
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-pagination {
+  margin-top: auto;
+  padding-bottom: 0;
+}
+
+.github-manual-refresh {
+  width: auto;
+  min-width: 92px;
+  padding-inline: 12px;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+/* Kézi GitHub-ellenőrzés: a szöveges gomb ne örökölje az ikon-gomb 40 px-es szélességét. */
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-toolbar-button.github-manual-refresh {
+  width: auto !important;
+  min-width: 96px !important;
+  padding: 0 12px !important;
+  white-space: nowrap;
+}
+.template-local-download{text-decoration:none;cursor:pointer}.template-local-download:hover,.template-local-download:focus-visible{outline:1px solid currentColor;text-decoration:underline}
+
+
+/* Specialis repositoryk helyi statusza es hosszu repository-nevek biztonsagos torése. */
+.github-templates-table{table-layout:auto;min-width:1120px}
+.github-templates-table th:nth-child(2){width:auto;min-width:220px}
+.template-form-cell{display:flex;min-width:0;white-space:normal;flex-wrap:wrap}
+.template-repo-link{min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:break-word}

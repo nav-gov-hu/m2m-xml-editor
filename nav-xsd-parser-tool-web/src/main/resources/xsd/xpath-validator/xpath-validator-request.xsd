@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:common="http://schemas.nav.gov.hu/NTCA/1.0/common"
+           xmlns:xv="http://schemas.nav.gov.hu/xpath-validator/1.0"
+           targetNamespace="http://schemas.nav.gov.hu/xpath-validator/1.0"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+    <xs:import namespace="http://schemas.nav.gov.hu/NTCA/1.0/common"
+               schemaLocation="https://raw.githubusercontent.com/nav-gov-hu/Common/common-1.0.0/schemas/src/main/resources/xsd/hu/gov/nav/schemas/NTCA/1.0/common/common.xsd"/>
+    <xs:annotation><xs:documentation>Logical contract for the XPath validator REST request. The actual HTTP transport is multipart/form-data. NAV Common 1.0 is imported as the common base namespace.</xs:documentation></xs:annotation>
+    <xs:simpleType name="RequestIdType"><xs:restriction base="xs:string"><xs:length value="18"/><xs:pattern value="[A-Za-z0-9]{18}"/></xs:restriction></xs:simpleType>
+    <xs:simpleType name="CreateResultType"><xs:restriction base="xs:string"><xs:enumeration value="SYNC"/><xs:enumeration value="ASYNC"/></xs:restriction></xs:simpleType>
+    <xs:complexType name="XPathValidationRequestType"><xs:sequence>
+        <xs:element name="requestId" type="xv:RequestIdType"/>
+        <xs:element name="requestTimestampUtc" type="xs:dateTime"/>
+        <xs:element name="formName"><xs:simpleType><xs:restriction base="xs:string"><xs:maxLength value="20"/></xs:restriction></xs:simpleType></xs:element>
+        <xs:element name="formVersion"><xs:simpleType><xs:restriction base="xs:string"><xs:maxLength value="10"/></xs:restriction></xs:simpleType></xs:element>
+        <xs:element name="createResult" type="xv:CreateResultType"/>
+        <xs:element name="xmlContent" type="xs:base64Binary"/>
+        <xs:element name="fileName" minOccurs="0"><xs:simpleType><xs:restriction base="xs:string"><xs:maxLength value="255"/></xs:restriction></xs:simpleType></xs:element>
+    </xs:sequence></xs:complexType>
+    <xs:element name="XPathValidationRequest" type="xv:XPathValidationRequestType"/>
+</xs:schema>

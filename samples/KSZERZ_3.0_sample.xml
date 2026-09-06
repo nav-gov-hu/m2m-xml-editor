@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ksz:Doc_KSZERZ xmlns:ksz="https://soap.api.nav.gov.hu/definitions/model/2.0/KSZERZ/3.0"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:schemaLocation="https://soap.api.nav.gov.hu/definitions/model/2.0/KSZERZ/3.0 NAV_KSZERZ.xsd">
+  <Form_KSZERZA>
+    <Block_120001>
+      <FieldGroup_120002>
+        <Field_0A0001C001A>12345678901</Field_0A0001C001A>
+        <Field_0A0001C004A>Minta Vagyonkezelő Kft.</Field_0A0001C004A>
+      </FieldGroup_120002>
+      <FieldGroup_120004>
+        <Field_0A0001C005A>Kiss Anna</Field_0A0001C005A>
+        <Field_0A0001C006A>+36 1 555 0101</Field_0A0001C006A>
+      </FieldGroup_120004>
+      <FieldGroup_120003>
+        <Field_0A0001D001A>202608</Field_0A0001D001A>
+        <Field_0A0001D003A>2</Field_0A0001D003A>
+        <Field_0A0001A00500A>E</Field_0A0001A00500A>
+      </FieldGroup_120003>
+    </Block_120001>
+  </Form_KSZERZA>
+
+  <Form_KSZERZM>
+    <Block_120001>
+      <FieldGroup_120002>
+        <Field_0A0001C001A>12345678901</Field_0A0001C001A>
+        <Field_0A0001C002A>Minta Vagyonkezelő Kft.</Field_0A0001C002A>
+        <Field_0A0001C003A>8456789012</Field_0A0001C003A>
+        <Field_0A0001C004A>Dr.</Field_0A0001C004A>
+        <Field_0A0001C005A>Nagy</Field_0A0001C005A>
+        <Field_0A0001C006A>Péter</Field_0A0001C006A>
+      </FieldGroup_120002>
+      <Chain_120005>
+        <Chain_elem>
+          <FieldGroup_120006>
+            <Field_0BXXXXC0001CA>12345678901</Field_0BXXXXC0001CA>
+            <Field_0BXXXXC0002CA>2026-08-10</Field_0BXXXXC0002CA>
+            <Field_0BXXXXC0003AA>1</Field_0BXXXXC0003AA>
+            <Field_0BXXXXC0003BA>2020-05-15</Field_0BXXXXC0003BA>
+            <Field_0BXXXXC0003CA>15000000</Field_0BXXXXC0003CA>
+            <Field_0BXXXXC0004AA>1</Field_0BXXXXC0004AA>
+            <Field_0BXXXXC0004BA>2021-09-01</Field_0BXXXXC0004BA>
+            <Field_0BXXXXC0004CA>42000000</Field_0BXXXXC0004CA>
+            <Field_0BXXXXC0012CA>57000000</Field_0BXXXXC0012CA>
+          </FieldGroup_120006>
+        </Chain_elem>
+        <Chain_elem>
+          <FieldGroup_120006>
+            <Field_0BXXXXC0002CA>2026-08-12</Field_0BXXXXC0002CA>
+            <Field_0BXXXXC0006AA>2</Field_0BXXXXC0006AA>
+            <Field_0BXXXXC0006BA>2022-03-20</Field_0BXXXXC0006BA>
+            <Field_0BXXXXC0006CA>3500000</Field_0BXXXXC0006CA>
+            <Field_0BXXXXC0007AA>1</Field_0BXXXXC0007AA>
+            <Field_0BXXXXC0007BA>2023-01-18</Field_0BXXXXC0007BA>
+            <Field_0BXXXXC0007CA>6800000</Field_0BXXXXC0007CA>
+            <Field_0BXXXXC0012CA>10300000</Field_0BXXXXC0012CA>
+          </FieldGroup_120006>
+        </Chain_elem>
+      </Chain_120005>
+    </Block_120001>
+  </Form_KSZERZM>
+
+  <Form_KSZERZM>
+    <Block_120001>
+      <FieldGroup_120002>
+        <Field_0A0001C001A>12345678901</Field_0A0001C001A>
+        <Field_0A0001C002A>Minta Vagyonkezelő Kft.</Field_0A0001C002A>
+        <Field_0A0001C003A>8123456789</Field_0A0001C003A>
+        <Field_0A0001C005A>Kovács</Field_0A0001C005A>
+        <Field_0A0001C006A>Éva</Field_0A0001C006A>
+      </FieldGroup_120002>
+      <FieldGroup_120003>
+        <Field_0A0001D001A>H</Field_0A0001D001A>
+      </FieldGroup_120003>
+      <Chain_120005>
+        <Chain_elem>
+          <FieldGroup_120006>
+            <Field_0BXXXXC0002CA>2026-08-14</Field_0BXXXXC0002CA>
+            <Field_0BXXXXC0008AA>1</Field_0BXXXXC0008AA>
+            <Field_0BXXXXC0008BA>2024-04-30</Field_0BXXXXC0008BA>
+            <Field_0BXXXXC0008CA>2100000</Field_0BXXXXC0008CA>
+            <Field_0BXXXXC0010AA>2</Field_0BXXXXC0010AA>
+            <Field_0BXXXXC0010BA>2024-11-05</Field_0BXXXXC0010BA>
+            <Field_0BXXXXC0010CA>900000</Field_0BXXXXC0010CA>
+            <Field_0BXXXXC0012CA>3000000</Field_0BXXXXC0012CA>
+          </FieldGroup_120006>
+        </Chain_elem>
+      </Chain_120005>
+    </Block_120001>
+  </Form_KSZERZM>
+</ksz:Doc_KSZERZ>

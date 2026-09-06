@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Partner adatlap</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/partners.css?v=@build.asset.version@">
+</head>
+<body data-initial-tab="partnersTab" class="nav-application-theme partner-edit-page-body">
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-header-left">
+      <div class="site-brand"><img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó"></div>
+      <nav class="header-nav classic-nav" aria-label="Fő navigáció">
+        <a class="tab-button" data-tab="xmlFilesTab" href="/xml-files.html">Űrlapállományok</a>
+        
+        <a class="tab-button" data-tab="formTab" href="/form.html">Űrlapmegtekintő</a>
+        <a class="tab-button active" data-tab="partnersTab" href="/partners.html">Partnerek</a><a class="tab-button" data-tab="githubTemplatesTab" href="/github-templates.html">Űrlapsablonok</a>
+        <details class="system-menu">
+          <summary class="tab-button">Rendszer</summary>
+          <div class="system-menu-panel">
+            <a href="/m2m-submitter.html">M2M beküldés</a>
+            <a href="/xml-index-config.html">XML index konfiguráció</a>
+            <a data-tab="adminTab" id="adminTabButton" href="/admin.html">Beállítások</a>
+          </div>
+        </details>
+      </nav>
+    </div>
+    <div class="security-header-area" id="securityHeaderArea" hidden>
+      <span class="security-user-label">Felhasználó:</span><strong id="securityHeaderUsername">-</strong>
+      <form method="post" action="/logout" class="logout-form"><button type="submit" class="secondary mini-button">Kijelentkezés</button></form>
+    </div>
+  </div>
+</header>
+<div class="app-shell">
+  <main class="layout-stack xml-files-page xml-files-modern-page partners-page partner-edit-page">
+    <section class="panel-card modern-card partner-edit-card">
+      <div class="partner-edit-header">
+        <div>
+          <p class="partner-edit-eyebrow">PARTNER-NYILVÁNTARTÁS</p>
+          <h1 id="partnerEditTitle">Partner adatlap</h1>
+          <p class="hint" id="partnerEditSubtitle">A partner törzsadatainak rögzítése és módosítása.</p>
+        </div>
+        <button type="button" class="secondary" id="backToPartnerList">Vissza a listához</button>
+      </div>
+      <div id="partnerEditMessage" class="partner-edit-message" hidden></div>
+      <form id="partnerEditForm" class="partner-edit-form">
+        <input id="partnerEditId" type="hidden">
+
+        <section class="partner-form-section" aria-labelledby="partnerBaseDataTitle">
+          <h2 id="partnerBaseDataTitle">Alapadatok</h2>
+          <div class="partner-field-grid">
+            <div class="partner-field partner-field-wide">
+              <label for="partnerName">Partner megnevezése <span class="required-mark">*</span></label>
+              <input id="partnerName" name="name" required maxlength="500" autocomplete="organization">
+            </div>
+            <div class="partner-field">
+              <label for="partnerTaxNumber">Adószám <span class="required-mark">*</span></label>
+              <input id="partnerTaxNumber" name="taxNumber" required maxlength="13" inputmode="numeric" pattern="[0-9]{8}-[0-9]-[0-9]{2}" placeholder="12345676-1-42" autocomplete="off">
+            </div>
+            <div class="partner-field">
+              <label for="partnerCommunityTaxCountry">Közösségi adószám országkód</label>
+              <input id="partnerCommunityTaxCountry" name="communityTaxCountry" maxlength="2" autocomplete="country">
+            </div>
+            <div class="partner-field">
+              <label for="partnerCommunityTaxNumber">Közösségi adószám</label>
+              <input id="partnerCommunityTaxNumber" name="communityTaxNumber" autocomplete="off">
+            </div>
+            <div class="partner-field">
+              <label for="partnerRegistrationNumber">Nyilvántartási szám</label>
+              <input id="partnerRegistrationNumber" name="registrationNumber" autocomplete="off">
+            </div>
+            <div class="partner-field">
+              <label for="partnerEmail">E-mail cím</label>
+              <input id="partnerEmail" name="email" type="email" autocomplete="email">
+            </div>
+            <div class="partner-field">
+              <label for="partnerPhone">Telefonszám</label>
+              <input id="partnerPhone" name="phone" autocomplete="tel">
+            </div>
+            <div class="partner-field">
+              <label for="partnerFax">Faxszám</label>
+              <input id="partnerFax" name="fax" autocomplete="off">
+            </div>
+          </div>
+        </section>
+
+        <section class="partner-form-section" aria-labelledby="partnerPermanentAddressTitle">
+          <h2 id="partnerPermanentAddressTitle">Állandó cím</h2>
+          <div class="partner-field-grid">
+            <div class="partner-field"><label for="permanentPostalCode">Irányítószám</label><input id="permanentPostalCode" name="permanentPostalCode" inputmode="numeric"></div>
+            <div class="partner-field partner-field-wide"><label for="permanentCity">Település</label><input id="permanentCity" name="permanentCity"></div>
+            <div class="partner-field partner-field-wide"><label for="permanentPublicPlace">Közterület</label><input id="permanentPublicPlace" name="permanentPublicPlace"></div>
+            <div class="partner-field"><label for="permanentPublicPlaceType">Közterület jellege</label><input id="permanentPublicPlaceType" name="permanentPublicPlaceType"></div>
+            <div class="partner-field"><label for="permanentHouseNumber">Házszám</label><input id="permanentHouseNumber" name="permanentHouseNumber"></div>
+            <div class="partner-field"><label for="permanentBuilding">Épület</label><input id="permanentBuilding" name="permanentBuilding"></div>
+            <div class="partner-field"><label for="permanentStaircase">Lépcsőház</label><input id="permanentStaircase" name="permanentStaircase"></div>
+            <div class="partner-field"><label for="permanentFloor">Emelet</label><input id="permanentFloor" name="permanentFloor"></div>
+            <div class="partner-field"><label for="permanentDoor">Ajtó</label><input id="permanentDoor" name="permanentDoor"></div>
+          </div>
+        </section>
+
+        <section class="partner-form-section" aria-labelledby="partnerMailingAddressTitle">
+          <h2 id="partnerMailingAddressTitle">Levelezési cím</h2>
+          <div class="partner-field-grid">
+            <div class="partner-field"><label for="mailingPostalCode">Irányítószám</label><input id="mailingPostalCode" name="mailingPostalCode" inputmode="numeric"></div>
+            <div class="partner-field partner-field-wide"><label for="mailingCity">Település</label><input id="mailingCity" name="mailingCity"></div>
+            <div class="partner-field partner-field-wide"><label for="mailingPublicPlace">Közterület</label><input id="mailingPublicPlace" name="mailingPublicPlace"></div>
+            <div class="partner-field"><label for="mailingPublicPlaceType">Közterület jellege</label><input id="mailingPublicPlaceType" name="mailingPublicPlaceType"></div>
+            <div class="partner-field"><label for="mailingHouseNumber">Házszám</label><input id="mailingHouseNumber" name="mailingHouseNumber"></div>
+            <div class="partner-field"><label for="mailingBuilding">Épület</label><input id="mailingBuilding" name="mailingBuilding"></div>
+            <div class="partner-field"><label for="mailingStaircase">Lépcsőház</label><input id="mailingStaircase" name="mailingStaircase"></div>
+            <div class="partner-field"><label for="mailingFloor">Emelet</label><input id="mailingFloor" name="mailingFloor"></div>
+            <div class="partner-field"><label for="mailingDoor">Ajtó</label><input id="mailingDoor" name="mailingDoor"></div>
+          </div>
+        </section>
+
+        <section class="partner-form-section" aria-labelledby="partnerOtherDataTitle">
+          <h2 id="partnerOtherDataTitle">Kapcsolattartás és pénzügyi adatok</h2>
+          <div class="partner-field-grid">
+            <div class="partner-field partner-field-wide"><label for="contactName">Ügyintéző neve</label><input id="contactName" name="contactName"></div>
+            <div class="partner-field"><label for="contactPhone">Ügyintéző telefonszáma</label><input id="contactPhone" name="contactPhone" autocomplete="tel"></div>
+            <div class="partner-field"><label for="contactEmail">Ügyintéző e-mail címe</label><input id="contactEmail" name="contactEmail" type="email" autocomplete="email"></div>
+            <div class="partner-field partner-field-wide"><label for="bankName">Pénzintézet neve</label><input id="bankName" name="bankName"></div>
+            <div class="partner-field partner-field-wide"><label for="bankAccountNumber">Bankszámlaszám</label><input id="bankAccountNumber" name="bankAccountNumber" autocomplete="off"></div>
+          </div>
+        </section>
+
+        <div class="partner-edit-actions">
+          <button class="primary" type="submit" id="savePartnerButton">Mentés</button>
+          <button class="secondary" type="button" id="cancelPartnerEdit">Vissza a listához</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</div>
+<script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
+<script src="/js/core/app.js?v=@build.asset.version@"></script>
+<script src="/js/pages/partner-edit.js?v=@build.asset.version@"></script>
+</body>
+</html>

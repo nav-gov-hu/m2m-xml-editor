@@ -1,0 +1,64 @@
+body.nav-application-theme.partner-access-page-body{min-height:100dvh}
+body.nav-application-theme.partner-access-page-body .app-shell{box-sizing:border-box;width:100%;min-width:0}
+body.nav-application-theme.partner-access-page-body .partner-access-page{width:100%;max-width:1240px;margin:0 auto;box-sizing:border-box}
+body.nav-application-theme.partner-access-page-body .partner-access-card{width:100%;padding:0;overflow:hidden}
+body.nav-application-theme.partner-access-page-body .partner-access-content{padding:22px 28px 28px}
+body.nav-application-theme.partner-access-page-body .partner-access-section-body{padding:18px;min-width:0}
+body.nav-application-theme.partner-access-page-body .partner-access-section-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 16px;border-bottom:1px solid #d9e2ee;background:#f3f7fc}
+body.nav-application-theme.partner-access-page-body .partner-access-section-header h2{margin:0;padding:0;border:0;background:transparent;color:#165dbc;font-size:15px}
+body.nav-application-theme.partner-access-page-body .partner-access-section-header .hint{margin:5px 0 0;max-width:880px}
+body.nav-application-theme.partner-access-page-body .partner-access-search-field{width:100%;max-width:none}
+body.nav-application-theme.partner-access-page-body .partner-search-row{position:relative;width:100%;min-width:0}
+body.nav-application-theme.partner-access-page-body .partner-search-row input,
+body.nav-application-theme.partner-access-page-body .rule-row input,
+body.nav-application-theme.partner-access-page-body .rule-row select{display:block;width:100%;height:40px;min-height:40px;padding:8px 10px;box-sizing:border-box;border:1px solid #cbd5e2;border-radius:6px;background:#fff;color:#20344f;font:inherit;line-height:22px;transition:border-color .15s,box-shadow .15s}
+body.nav-application-theme.partner-access-page-body .rule-row select{padding-right:34px}
+body.nav-application-theme.partner-access-page-body .partner-search-row input:focus,
+body.nav-application-theme.partner-access-page-body .rule-row input:focus,
+body.nav-application-theme.partner-access-page-body .rule-row select:focus{outline:none;border-color:#2b74cf;box-shadow:0 0 0 3px rgba(43,116,207,.14)}
+body.nav-application-theme.partner-access-page-body .suggestions{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);max-height:280px;overflow:auto;background:var(--nav-surface,#fff);border:1px solid var(--nav-border,#cbd5e2);border-radius:8px;box-shadow:0 12px 28px rgba(28,54,89,.18)}
+body.nav-application-theme.partner-access-page-body .suggestions:empty{display:none}
+body.nav-application-theme.partner-access-page-body .suggestion,
+body.nav-application-theme.partner-access-page-body .selected-item{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:11px 13px;min-width:0}
+body.nav-application-theme.partner-access-page-body .suggestion{cursor:pointer;border-bottom:1px solid var(--nav-border,#e2e8f0)}
+body.nav-application-theme.partner-access-page-body .suggestion:last-child{border-bottom:0}
+body.nav-application-theme.partner-access-page-body .suggestion:hover{background:#f3f7fc}
+body.nav-application-theme.partner-access-page-body .suggestion > *,
+body.nav-application-theme.partner-access-page-body .selected-item > *{min-width:0;overflow-wrap:anywhere}
+body.nav-application-theme.partner-access-page-body .selected-list{display:grid;gap:8px;margin-top:14px}
+body.nav-application-theme.partner-access-page-body .selected-item{border:1px solid #d9e2ee;border-radius:8px;background:#fff}
+body.nav-application-theme.partner-access-page-body .rules-list{display:grid;gap:10px}
+body.nav-application-theme.partner-access-page-body .rule-row{display:grid;grid-template-columns:minmax(170px,.85fr) minmax(220px,1.2fr) minmax(130px,.7fr) minmax(140px,.75fr) 86px;gap:12px;align-items:end;padding:16px;border:1px solid #d9e2ee;border-radius:8px;background:#fff;min-width:0}
+body.nav-application-theme.partner-access-page-body .rule-row label{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;min-width:0;margin:0;font-size:12px;font-weight:700;line-height:16px;color:#4c6079}
+body.nav-application-theme.partner-access-page-body .rule-row button,
+body.nav-application-theme.partner-access-page-body .partner-access-actions button,
+body.nav-application-theme.partner-access-page-body .selected-item button{box-sizing:border-box;min-height:40px;height:40px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;line-height:1}
+body.nav-application-theme.partner-access-page-body .rule-row button{width:86px;align-self:end}
+body.nav-application-theme.partner-access-page-body .partner-access-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+body.nav-application-theme.partner-access-page-body .table-wrap{width:100%;overflow:auto;margin-top:14px;border:1px solid #d9e2ee;border-radius:8px}
+body.nav-application-theme.partner-access-page-body .partner-access-result-table{width:100%;min-width:900px;table-layout:fixed;border-collapse:collapse}
+body.nav-application-theme.partner-access-page-body .partner-access-result-table th:nth-child(1){width:22%}
+body.nav-application-theme.partner-access-page-body .partner-access-result-table th:nth-child(2){width:22%}
+body.nav-application-theme.partner-access-page-body .partner-access-result-table th:nth-child(3){width:15%}
+body.nav-application-theme.partner-access-page-body .partner-access-result-table th:nth-child(4){width:14%}
+body.nav-application-theme.partner-access-page-body .partner-access-result-table th:nth-child(5){width:12%}
+body.nav-application-theme.partner-access-page-body .partner-access-result-table th:nth-child(6){width:15%}
+body.nav-application-theme.partner-access-page-body .partner-access-result-table td{overflow-wrap:anywhere;word-break:break-word;vertical-align:top}
+body.nav-application-theme.partner-access-page-body .test-summary{font-weight:700;color:#27466e}
+body.nav-application-theme.partner-access-page-body .pager{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:12px}
+body.nav-application-theme.partner-access-page-body .access-message{margin:18px 28px 0}
+body.nav-application-theme.partner-access-page-body .partner-access-test-section .partner-access-section-body:has(.test-summary:empty) .table-wrap,
+body.nav-application-theme.partner-access-page-body .partner-access-test-section .partner-access-section-body:has(.test-summary:empty) .pager{display:none}
+body.nav-application-theme.dark-mode.partner-access-page-body .partner-access-section-header,
+body.nav-application-theme.dark-mode.partner-access-page-body .partner-form-section > h2{background:#18263a;border-color:#34455d;color:#8dbdff}
+body.nav-application-theme.dark-mode.partner-access-page-body .partner-form-section,
+body.nav-application-theme.dark-mode.partner-access-page-body .rule-row,
+body.nav-application-theme.dark-mode.partner-access-page-body .selected-item{background:#111b2a;border-color:#34455d}
+body.nav-application-theme.dark-mode.partner-access-page-body .partner-search-row input,
+body.nav-application-theme.dark-mode.partner-access-page-body .rule-row input,
+body.nav-application-theme.dark-mode.partner-access-page-body .rule-row select{background:#101927;border-color:#42536b;color:#e5edf7}
+body.nav-application-theme.dark-mode.partner-access-page-body .rule-row label{color:#bdcce0}
+body.nav-application-theme.dark-mode.partner-access-page-body .suggestion:hover{background:#1c2b40}
+body.nav-application-theme.dark-mode.partner-access-page-body .test-summary{color:#c5d8f1}
+@media(max-width:1000px){body.nav-application-theme.partner-access-page-body .rule-row{grid-template-columns:1fr 1fr}body.nav-application-theme.partner-access-page-body .rule-row button{width:auto;justify-self:start}body.nav-application-theme.partner-access-page-body .partner-access-section-header{align-items:flex-start}}
+@media(max-width:700px){body.nav-application-theme.partner-access-page-body .partner-access-content{padding:16px}body.nav-application-theme.partner-access-page-body .rule-row{grid-template-columns:1fr}body.nav-application-theme.partner-access-page-body .partner-access-section-header{flex-direction:column}body.nav-application-theme.partner-access-page-body .partner-access-actions{width:100%;justify-content:flex-start}}

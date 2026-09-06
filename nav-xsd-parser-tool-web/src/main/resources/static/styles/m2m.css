@@ -1,0 +1,461 @@
+/* Sprint 11 v27 - NAV M2M Submitter integration */
+.m2m-submit-dropdown { position: relative; display: inline-flex; }
+.m2m-submit-menu-button .toolbar-icon-text { font-weight: 700; font-size: 0.78rem; letter-spacing: 0.02em; }
+.m2m-submit-menu { min-width: 260px; }
+.log-viewer { min-height: 220px; max-height: 520px; overflow: auto; white-space: pre-wrap; background: #0f172a; color: #e2e8f0; border-radius: 12px; padding: 1rem; }
+.table-wrapper { overflow: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th, .data-table td { padding: 0.55rem 0.7rem; border-bottom: 1px solid rgba(148,163,184,0.35); text-align: left; vertical-align: top; }
+.data-table tr.selected { background: rgba(37,99,235,0.08); }
+
+/* Sprint 11 v29 - M2M submitter proxy panel and page polish */
+body.m2m-submitter-page .app-shell {
+  background: transparent;
+}
+
+.m2m-layout-stack {
+  gap: 18px;
+}
+
+.m2m-card {
+  padding: 18px;
+  border: 1px solid #d8e2f1;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15,35,75,.06);
+  overflow: hidden;
+}
+
+.m2m-card-header,
+.m2m-section-header {
+  padding: 0 0 14px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(148,163,184,.28);
+}
+
+.m2m-card-header .hint,
+.m2m-section-header .hint {
+  margin: 4px 0 0;
+}
+
+.m2m-header-actions {
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+.m2m-form-grid {
+  gap: 16px 20px;
+}
+
+.m2m-form-grid .form-block {
+  background: #f8fbff;
+  border: 1px solid rgba(185,200,218,.75);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.m2m-form-grid .form-block label {
+  color: #102544;
+}
+
+.m2m-form-grid input[type=text],
+.m2m-form-grid input[type=password],
+.m2m-form-grid input[type=file],
+.m2m-form-grid input[type=number],
+.m2m-form-grid select {
+  margin-bottom: 0;
+  background: #fff;
+  border: 1px solid #b9c8da;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 2px rgba(15,35,75,.03);
+}
+
+.m2m-form-grid input[type=text]:focus,
+.m2m-form-grid input[type=password]:focus,
+.m2m-form-grid input[type=number]:focus,
+.m2m-form-grid select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+
+.m2m-checkbox-panel {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.m2m-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 700;
+  color: #102544;
+}
+
+.m2m-checkbox-row input[type=checkbox] {
+  width: auto;
+  margin: 0;
+}
+
+.m2m-inline-check {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #4d5f7a;
+}
+
+.m2m-proxy-card[hidden] {
+  display: none;
+}
+
+.m2m-test-result {
+  min-height: 92px;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  background: #f8fafc;
+  color: #102544;
+  border: 1px solid rgba(148,163,184,.45);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 14px 0 0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 0.88rem;
+}
+
+.m2m-table-wrapper {
+  border: 1px solid rgba(148,163,184,.35);
+  border-radius: 14px;
+  background: #fff;
+}
+
+body.m2m-submitter-page .data-table th {
+  background: #f8fafc;
+  color: #253858;
+  font-weight: 800;
+}
+
+body.m2m-submitter-page .data-table th,
+body.m2m-submitter-page .data-table td {
+  border-bottom: 1px solid rgba(148,163,184,.32);
+}
+
+body.m2m-submitter-page .log-viewer {
+  border: 1px solid rgba(15,23,42,.15);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.18);
+}
+
+@media (max-width: 960px) {
+  .m2m-header-actions,
+  .action-row-horizontal {
+    justify-content: flex-start;
+  }
+
+  .m2m-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sprint 11 v36 - M2M submissions table paging and scroll */
+.m2m-table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 0 0 12px 0;
+}
+
+.m2m-table-summary {
+  color: #4d5f7a;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.m2m-pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.m2m-pagination-controls label {
+  margin: 0;
+  color: #4d5f7a;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.m2m-pagination-controls select {
+  width: auto;
+  min-width: 76px;
+  margin: 0;
+  padding: 0.42rem 0.62rem;
+  border: 1px solid #b9c8da;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.m2m-page-info {
+  min-width: 54px;
+  text-align: center;
+  color: #253858;
+  font-weight: 800;
+}
+
+body.m2m-submitter-page .m2m-table-wrapper {
+  max-height: 430px;
+  overflow: auto;
+}
+
+body.m2m-submitter-page #m2mSubmissionsTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* M2M eseménynapló dialógus */
+.m2m-log-modal .app-dialog-card {
+  width: min(1600px, 96vw);
+  max-width: 96vw;
+  max-height: 92vh;
+}
+
+.m2m-log-table-wrap {
+  max-height: 68vh;
+  overflow: auto;
+  border: 1px solid var(--border-color, #d9dee8);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+
+.m2m-log-table {
+  min-width: 1180px;
+  table-layout: fixed;
+}
+
+.m2m-log-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-muted, #f7f9fc);
+}
+
+
+.m2m-log-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+}
+.m2m-log-table th:nth-child(1) { width: 165px; }
+.m2m-log-table th:nth-child(2),
+.m2m-log-table td:nth-child(2) { min-width: 220px; width: 220px; }
+.m2m-log-table th:nth-child(3),
+.m2m-log-table td:nth-child(3) { min-width: 220px; width: 220px; }
+.m2m-log-table th:nth-child(4) { width: 105px; }
+.m2m-log-table th:nth-child(5) { width: 190px; }
+.m2m-log-table th:nth-child(7) { width: 110px; }
+
+.m2m-log-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.m2m-log-sort:hover,
+.m2m-log-sort:focus-visible,
+.m2m-log-sort.active {
+  color: var(--nav-theme-primary, #1f5fbf);
+}
+
+.m2m-log-event-row td {
+  vertical-align: top;
+}
+
+.m2m-log-date,
+.m2m-log-message-id,
+.m2m-log-response-preview,
+.m2m-log-details pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.m2m-log-date {
+  white-space: nowrap;
+}
+
+.m2m-log-message-id,
+.m2m-log-response-preview {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.m2m-log-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.m2m-log-status.success { background: #dcfce7; color: #166534; }
+.m2m-log-status.warning { background: #fef3c7; color: #92400e; }
+.m2m-log-status.error { background: #fee2e2; color: #991b1b; }
+.m2m-log-status.neutral { background: #e5e7eb; color: #4b5563; }
+
+.m2m-log-actions {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.m2m-log-details-row td {
+  padding: 0 !important;
+  background: var(--surface-muted, #f7f9fc);
+}
+
+.m2m-log-details {
+  padding: 12px 14px 16px;
+  border-top: 1px solid var(--border-color, #d9dee8);
+}
+
+.m2m-log-details-title {
+  margin-bottom: 7px;
+  color: #4d5f7a;
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.m2m-log-details pre {
+  max-height: 48vh;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  user-select: text;
+  border: 1px solid var(--border-color, #d9dee8);
+  border-radius: 9px;
+  padding: 12px;
+  background: var(--surface, #fff);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.m2m-log-empty {
+  padding: 24px !important;
+  text-align: center !important;
+  color: #64748b;
+}
+
+
+.m2m-process-dialog progress{width:100%;height:18px}.m2m-process-steps{margin:16px 0 0;padding-left:22px;text-align:left}.m2m-process-steps li{opacity:.55;padding:3px 0}.m2m-process-steps li.active{opacity:1;font-weight:700}.m2m-process-steps li.done{opacity:.85}.m2m-process-steps li.done::marker{content:'✓  '}.m2m-result-overlay{position:fixed;inset:0;z-index:10050;background:rgba(15,23,42,.54);display:grid;place-items:center;padding:24px}.m2m-result-dialog{background:#fff;border-radius:10px;box-shadow:0 20px 55px rgba(0,0,0,.3);width:min(850px,96vw);max-height:88vh;overflow:auto;padding:24px}.m2m-result-dialog h2.success{color:#157347}.m2m-result-dialog h2.error{color:#b42318}.m2m-result-dialog table{width:100%;border-collapse:collapse}.m2m-result-dialog th,.m2m-result-dialog td{padding:9px 12px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.m2m-result-dialog th{width:210px;background:#f7f7f7}.m2m-result-dialog button{margin-top:18px}
+
+.m2m-attachment-inline-actions{margin-top:10px;padding:10px 12px;border:1px solid #d8dee8;border-radius:8px;background:#f8fafc}.m2m-attachment-inline-status{font-size:.88rem;margin-bottom:8px}.m2m-attachment-inline-status.valid{color:#176b3a}.m2m-attachment-inline-status.expired{color:#a61b1b}.m2m-attachment-inline-buttons{display:flex;gap:8px;flex-wrap:wrap}.m2m-attachment-inline-buttons button{min-height:32px}
+
+/* Kompakt csatolmánykártya az űrlapon */
+.m2m-attachment-card{margin:10px 0 4px;padding:10px 12px;border:1px solid #d8e1ec;border-radius:8px;background:#f8fafc;box-shadow:0 1px 2px rgba(24,55,90,.05)}
+.m2m-attachment-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.m2m-attachment-card-header strong{display:block;color:#173f6d;overflow-wrap:anywhere}
+.m2m-attachment-card-meta{margin-top:2px;color:#617187;font-size:.82rem}
+.m2m-attachment-status-badge{flex:0 0 auto;padding:3px 8px;border-radius:999px;font-size:.76rem;font-weight:700;background:#e5e7eb;color:#4b5563}
+.m2m-attachment-status-badge.valid{background:#dcfce7;color:#166534}.m2m-attachment-status-badge.warning{background:#fef3c7;color:#92400e}.m2m-attachment-status-badge.expired{background:#fee2e2;color:#991b1b}.m2m-attachment-status-badge.unknown{background:#e5e7eb;color:#4b5563}
+.m2m-attachment-card-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 14px;margin:9px 0 10px}
+.m2m-attachment-card-details div{min-width:0}.m2m-attachment-card-details dt{font-size:.72rem;color:#66768a}.m2m-attachment-card-details dd{margin:1px 0 0;font-size:.84rem;color:#26384c;overflow-wrap:anywhere}
+.m2m-attachment-card .m2m-attachment-inline-buttons{margin-top:2px}
+.m2m-attachment-status-reason{margin:0 0 10px;padding:8px 10px;border-left:4px solid #6b7280;border-radius:4px;background:#f3f4f6;color:#374151;font-size:.82rem;line-height:1.35}
+.m2m-attachment-status-reason.warning{border-left-color:#d97706;background:#fffbeb;color:#78350f}
+.m2m-attachment-status-reason.expired{border-left-color:#dc2626;background:#fef2f2;color:#7f1d1d}
+.m2m-attachment-status-reason.unknown{border-left-color:#64748b;background:#f8fafc;color:#334155}
+@media (max-width:900px){.m2m-attachment-card-details{grid-template-columns:1fr}.m2m-attachment-card-header{align-items:flex-start}}
+
+/* Az XML-ben szereplő valamennyi Attachment_1 példány külön kártyát kap. */
+.m2m-attachment-cards{display:grid;grid-template-columns:1fr;grid-column:1/-1;width:100%;gap:8px;margin-top:10px}
+.m2m-attachment-card-number{color:#5c6f85;font-weight:700}
+
+/* A csatolmánykártyák az Attachment_1 XML-struktúrát képviselik, ezért a nyers technikai mezők nem jelennek meg mellettük. */
+.m2m-attachment-source-field,
+.m2m-attachment-source-field-hidden{display:none!important;visibility:hidden!important}
+
+/* Csatolmányok önálló űrlapblokkja és XML-kijelölési állapota. */
+.m2m-attachment-section-content{padding-top:8px}
+.m2m-attachment-section .m2m-attachment-cards{margin-top:0}
+.m2m-attachment-card{cursor:pointer;scroll-margin:18px}
+.m2m-attachment-card.field-selected,
+body.nav-application-theme[data-initial-tab="formTab"] .m2m-attachment-card.field-selected{
+  background:var(--nav-theme-primary-light,#edf4ff)!important;
+  border-color:var(--nav-theme-primary,#1f5fbf)!important;
+  box-shadow:0 0 0 2px rgba(27,61,107,.12)!important;
+  outline:0!important;
+}
+.m2m-attachment-card:focus-visible{
+  outline:2px solid var(--nav-theme-primary,#1f5fbf);
+  outline-offset:2px;
+}
+.m2m-attachment-card .m2m-attachment-inline-buttons button{cursor:pointer}
+
+/* NAV Bizonylat online validation and calculation toolbar menus */
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-operation-menu-button {
+  width: 78px !important;
+  min-width: 78px !important;
+  padding: 0 6px !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar #m2mCalculationMenuButton {
+  width: 86px !important;
+  min-width: 86px !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-operation-menu-button .toolbar-icon-text {
+  font-size: 10px;
+  font-weight: 700;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-operation-menu {
+  min-width: 230px;
+  position: fixed !important;
+  z-index: 13050 !important;
+}
+.m2m-operation-result-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+  overflow: auto;
+}
+.m2m-operation-result-dialog .m2m-result-summary {
+  margin: 0 0 12px;
+}
+.m2m-operation-result-dialog td {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Online validáció eredménydialógus kiegészítő műveletei. */
+.m2m-result-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:18px}
+.m2m-result-actions button,.m2m-result-dialog .m2m-inline-result-action{margin-top:0}
+.m2m-inline-result-action{margin-left:10px;white-space:nowrap}
+
+/* A drawer bezáró gomb mindig kompakt négyzet marad. */
+.xpath-drawer-header > .mini-button[id$="Close"],
+.xpath-drawer-header > #formXpathValidationPopupClose{
+  width:34px !important;
+  min-width:34px !important;
+  max-width:34px !important;
+  height:34px !important;
+  padding:0 !important;
+  display:inline-grid !important;
+  place-items:center;
+  flex:0 0 34px !important;
+}
+
+/* Hiányzó M2M hitelesítési adatok: vizuálisan inaktív, de kattintható a magyarázó dialógushoz. */
+.m2m-unavailable{opacity:.48;filter:grayscale(.35);cursor:not-allowed!important;}
+.m2m-confirm-dialog .button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;}

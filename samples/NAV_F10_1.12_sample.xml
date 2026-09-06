@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<f10:Doc_NAV_F10 xmlns:f10="https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.12" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Form_NAV_F10>
+    <Block_120001>
+      <FieldGroup_120002>
+        <Field_0A0001F0114ZA>false</Field_0A0001F0114ZA>
+        <Field_0A0001F0132ZA>false</Field_0A0001F0132ZA>
+      </FieldGroup_120002>
+      <FieldGroup_120003>
+        <Field_0A0001E0101ZA>12345678901</Field_0A0001E0101ZA>
+        <Field_0A0001E0102ZA>FE123456789</Field_0A0001E0102ZA>
+        <Field_0A0001E0105ZA>Minta Fémkereskedő Kft.</Field_0A0001E0105ZA>
+        <Field_0A0001E0106ZA>1054</Field_0A0001E0106ZA>
+        <Field_0A0001E0107ZA>Budapest</Field_0A0001E0107ZA>
+        <Field_0A0001E0108ZA>Minta utca</Field_0A0001E0108ZA>
+        <Field_0A0001E0109ZA>10</Field_0A0001E0109ZA>
+      </FieldGroup_120003>
+      <FieldGroup_120004>
+        <Field_0A0001G0117ZA>Budapest</Field_0A0001G0117ZA>
+        <Field_0A0001G0118ZA>2026-08-15</Field_0A0001G0118ZA>
+        <Field_0A0001G0119ZA>1234567890</Field_0A0001G0119ZA>
+      </FieldGroup_120004>
+    </Block_120001>
+    <Block_120005>
+      <Chain_120027>
+        <Chain_elem>
+          <FieldGroup_120028>
+            <Field_0BXXXXB001A>1</Field_0BXXXXB001A>
+            <Field_0BXXXXC0140ZA>HULL-ENG-001</Field_0BXXXXC0140ZA>
+            <Field_0BXXXXC0103ZA>Minta Feladó Kft.</Field_0BXXXXC0103ZA>
+            <Field_0BXXXXC0102ZA>FE123456789</Field_0BXXXXC0102ZA>
+            <Field_0BXXXXC0104ZA>1111</Field_0BXXXXC0104ZA>
+            <Field_0BXXXXC0105ZA>Budapest</Field_0BXXXXC0105ZA>
+            <Field_0BXXXXC0106ZA>Feladó utca</Field_0BXXXXC0106ZA>
+            <Field_0BXXXXC0107ZA>1</Field_0BXXXXC0107ZA>
+            <Field_0BXXXXC0109ZA>12345678901</Field_0BXXXXC0109ZA>
+            <Field_0BXXXXC0110ZA>HU12345678</Field_0BXXXXC0110ZA>
+            <Field_0BXXXXC0111ZA>Minta Címzett Kft.</Field_0BXXXXC0111ZA>
+            <Field_0BXXXXC001A>FE987654321</Field_0BXXXXC001A>
+            <Field_0BXXXXC0112ZA>2222</Field_0BXXXXC0112ZA>
+            <Field_0BXXXXC0113ZA>Győr</Field_0BXXXXC0113ZA>
+            <Field_0BXXXXC0114ZA>Címzett út</Field_0BXXXXC0114ZA>
+            <Field_0BXXXXC0115ZA>2</Field_0BXXXXC0115ZA>
+            <Field_0BXXXXC0117ZA>10987654321</Field_0BXXXXC0117ZA>
+            <Field_0BXXXXC0118ZA>HU87654321</Field_0BXXXXC0118ZA>
+            <Field_0BXXXXC0134ZA>Minta Fuvarozó Kft.</Field_0BXXXXC0134ZA>
+            <Field_0BXXXXC002A>FE112233445</Field_0BXXXXC002A>
+            <Field_0BXXXXC0135ZA>3333</Field_0BXXXXC0135ZA>
+            <Field_0BXXXXC0136ZA>Tatabánya</Field_0BXXXXC0136ZA>
+            <Field_0BXXXXC0137ZA>Fuvaros utca</Field_0BXXXXC0137ZA>
+            <Field_0BXXXXC0138ZA>3</Field_0BXXXXC0138ZA>
+            <Field_0BXXXXC0126ZA>Tehergépkocsi</Field_0BXXXXC0126ZA>
+            <Field_0BXXXXC0127ZA>ABC-123</Field_0BXXXXC0127ZA>
+            <Field_0BXXXXC0119ZA>Szállítólevél</Field_0BXXXXC0119ZA>
+            <Field_0BXXXXC0120ZA>SZL-2026-0001</Field_0BXXXXC0120ZA>
+            <Field_0BXXXXC003A>1111</Field_0BXXXXC003A>
+            <Field_0BXXXXC004A>Budapest</Field_0BXXXXC004A>
+            <Field_0BXXXXC005A>Indulás utca</Field_0BXXXXC005A>
+            <Field_0BXXXXC006A>1</Field_0BXXXXC006A>
+            <Field_0BXXXXC007A>2026-08-20</Field_0BXXXXC007A>
+            <Field_0BXXXXC008A>2222</Field_0BXXXXC008A>
+            <Field_0BXXXXC009A>Győr</Field_0BXXXXC009A>
+            <Field_0BXXXXC010A>Érkezés út</Field_0BXXXXC010A>
+            <Field_0BXXXXC011A>2</Field_0BXXXXC011A>
+            <Field_0BXXXXC012A>2026-08-20</Field_0BXXXXC012A>
+            <Field_0BXXXXC0121ZA>7204</Field_0BXXXXC0121ZA>
+            <Field_0BXXXXC0122ZA>Vas- és acélhulladék</Field_0BXXXXC0122ZA>
+            <Field_0BXXXXC0123ZA>1</Field_0BXXXXC0123ZA>
+            <Field_0BXXXXC0124ZA>Minta fémkereskedelmi engedélyköteles anyag</Field_0BXXXXC0124ZA>
+            <Field_0BXXXXC0125ZA>1250,5</Field_0BXXXXC0125ZA>
+            <Field_0BXXXXC013A>1250,5</Field_0BXXXXC013A>
+            <Field_0BXXXXC014A>1248,0</Field_0BXXXXC014A>
+          </FieldGroup_120028>
+        </Chain_elem>
+      </Chain_120027>
+    </Block_120005>
+  </Form_NAV_F10>
+</f10:Doc_NAV_F10>

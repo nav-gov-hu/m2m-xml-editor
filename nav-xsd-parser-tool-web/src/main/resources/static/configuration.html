@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Konfiguráció</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/configuration.css?v=@build.asset.version@">
+</head>
+<body data-initial-tab="configurationTab" class="nav-application-theme configuration-page-body">
+<header class="site-header"><div class="site-header-inner"><div class="site-header-left"><div class="site-brand"><img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó"></div><nav class="header-nav classic-nav" aria-label="Fő navigáció"><a class="tab-button" data-tab="xmlFilesTab" href="/xml-files.html">Űrlapállományok</a><a class="tab-button" data-tab="formTab" href="/form.html">Űrlapmegtekintő</a><a class="tab-button" data-tab="partnersTab" href="/partners.html">Partnerek</a><a class="tab-button" data-tab="githubTemplatesTab" href="/github-templates.html">Űrlapsablonok</a><details class="system-menu"><summary class="tab-button active">Rendszer</summary><div class="system-menu-panel"><a href="/m2m-submitter.html">M2M beküldés</a><a href="/xml-index-config.html">XML index konfiguráció</a><a href="/users.html">Felhasználók</a><a href="/configuration.html" class="active">Konfiguráció</a><a href="/admin.html">Beállítások</a></div></details></nav></div><div class="security-header-area" id="securityHeaderArea" hidden></div></div></header>
+<div class="app-shell configuration-shell">
+  <main class="configuration-main">
+    <section class="panel-card modern-card configuration-card">
+      <div class="configuration-header">
+        <div><h1>Konfiguráció</h1></div>
+        <div class="configuration-actions">
+          <div class="configuration-search-wrap">
+            <label class="sr-only" for="configurationSearch">Keresés a konfigurációk között</label>
+            <input id="configurationSearch" class="configuration-search" type="search" name="configuration-filter-query" autocomplete="off" readonly value="" placeholder="Keresés kulcsban vagy leírásban…" aria-controls="configurationSearchResults" aria-expanded="false">
+            <div id="configurationSearchResults" class="configuration-search-results" role="listbox" hidden></div>
+          </div>
+          <div class="mode-switch" role="group" aria-label="Megjelenítési mód"><button type="button" id="simpleMode" class="secondary active" aria-pressed="true">Egyszerű mód</button><button type="button" id="advancedMode" class="secondary" aria-pressed="false">Haladó mód</button></div>
+          <div class="view-switch" role="group" aria-label="Konfigurációs nézet"><button type="button" id="cardView" class="secondary active" aria-pressed="true">Kártyák</button><button type="button" id="listView" class="secondary" aria-pressed="false">Lista</button></div><button type="button" id="missingOnlyFilter" class="secondary configuration-filter-button" aria-pressed="false"><span>Hiányzó beállítások</span><strong id="missingConfigurationCount">0</strong></button>
+          <details class="configuration-tools-menu" id="configurationToolsMenu">
+            <summary class="secondary" aria-label="Eszközök menü megnyitása">Eszközök</summary>
+            <div class="configuration-tools-panel" role="menu" aria-label="Konfigurációs eszközök">
+              <button type="button" id="exportConfiguration" role="menuitem">Export</button>
+              <button type="button" id="importConfiguration" role="menuitem">Import</button>
+              <button type="button" id="reloadConfiguration" role="menuitem">Újratöltés</button>
+              <button type="button" id="restartApplication" role="menuitem" hidden>Alkalmazás újraindítása</button>
+            </div>
+          </details>
+          <input type="file" id="importConfigurationFile" accept="application/json,.json" hidden>
+          <button type="button" id="saveConfiguration" class="primary">Beállítások mentése</button>
+        </div>
+      </div>
+      <div id="configurationNotice" class="configuration-notice" hidden></div>
+      <div class="configuration-legend"><span><i class="storage-dot bootstrap"></i> Bootstrap fájl</span><span><i class="storage-dot database"></i> Adatbázis</span><span class="restart-badge">Újraindítást igényel</span></div>
+      <nav id="configurationTabs" class="configuration-tabs" aria-label="Konfigurációs kategóriák"></nav>
+      <div id="configurationContent" class="configuration-content"><div class="configuration-loading">Konfiguráció betöltése…</div></div>
+      <div class="configuration-footer"><div id="configurationSummary">–</div><button type="button" id="saveConfigurationBottom" class="primary">Beállítások mentése</button></div>
+    </section>
+  </main>
+</div>
+<script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
+<script src="/js/pages/configuration.js?v=@build.asset.version@"></script>
+</body></html>

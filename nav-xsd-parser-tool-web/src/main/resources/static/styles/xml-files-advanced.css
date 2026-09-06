@@ -1,0 +1,654 @@
+/* Sprint 7 v23: active XML close button and compact lock status */
+.xml-close-active-button {
+  border-color: rgba(220, 38, 38, 0.28);
+  color: #991b1b;
+  background: #fff7f7;
+}
+.xml-close-active-button:hover:not(:disabled) {
+  border-color: rgba(220, 38, 38, 0.5);
+  background: #fee2e2;
+}
+.xml-close-active-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.xml-close-active-button.is-dirty::after {
+  content: ' •';
+  color: #dc2626;
+  font-weight: 900;
+}
+.status-ready-locked,
+.status-ready-lock,
+.status-ready- {
+  border-color: rgba(217, 119, 6, 0.35);
+  background: #fffbeb;
+  color: #92400e;
+}
+
+
+/* Sprint 8 Űrlapállomány státusz ikonok */
+.xml-status-cell{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-width:42px;
+}
+.xml-status-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;
+  height:24px;
+  border-radius:999px;
+  font-weight:800;
+  line-height:1;
+  color:#ffffff;
+  box-shadow:0 1px 2px rgba(15,23,42,.18);
+}
+.xml-status-ready{ background:#16a34a; }
+.xml-status-registered{ background:#2563eb; }
+.xml-status-unknown,
+.xml-status-warning{ background:#f59e0b; color:#111827; }
+.xml-status-archived{ background:#64748b; }
+.xml-status-failed{ background:#dc2626; }
+.xml-status-default{ background:#94a3b8; }
+.xml-status-lock-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:#7c2d12;
+  font-size:16px;
+}
+.xml-files-filterbar select:disabled{
+  opacity:.62;
+  cursor:not-allowed;
+  background:#eef2f7;
+}
+.sr-only{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+
+/* Sprint 9: server-side XML save dropdown and diff viewer */
+.xml-save-dropdown{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+}
+.xml-save-dropdown .xml-icon-save{
+  gap:4px;
+}
+.xml-save-caret{
+  font-size:11px;
+  line-height:1;
+  opacity:.8;
+}
+.xml-save-menu{
+  position:fixed;
+  min-width:230px;
+  max-width:min(320px, calc(100vw - 24px));
+  padding:8px;
+  border:1px solid #c9d7ec;
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 14px 32px rgba(15,23,42,.18);
+  z-index:10080;
+}
+.xml-save-menu[hidden]{display:none!important;}
+.xml-save-menu button{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#17233c;
+  text-align:left;
+  padding:9px 10px;
+  border-radius:9px;
+  font-weight:700;
+  cursor:pointer;
+}
+.xml-save-menu button:hover,
+.xml-save-menu button:focus{background:#eef5ff;outline:none;}
+.xml-save-menu button:disabled{opacity:.45;cursor:not-allowed;background:transparent;}
+.xml-save-menu-separator{height:1px;background:#d9e2ef;margin:6px 0;}
+.xml-diff-modal .app-dialog-card{width:min(1100px,92vw);max-height:84vh;overflow:hidden;display:flex;flex-direction:column;}
+.xml-diff-summary{margin:0 0 12px;color:#506174;font-weight:700;}
+.xml-diff-table-wrap{overflow:auto;border:1px solid #d7e3f4;border-radius:12px;}
+.xml-diff-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+.xml-diff-table th,.xml-diff-table td{border-bottom:1px solid #e4ecf7;padding:8px;vertical-align:top;word-break:break-word;}
+.xml-diff-table th{background:#eef5ff;text-align:left;color:#0f2550;position:sticky;top:0;z-index:1;}
+.xml-diff-type{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;font-weight:800;font-size:11px;}
+.xml-diff-type.ADDED{background:#dcfce7;color:#166534;}
+.xml-diff-type.CHANGED{background:#fef3c7;color:#92400e;}
+.xml-diff-type.REMOVED{background:#fee2e2;color:#991b1b;}
+
+/* Sprint 9 v7: status icons must align from the left edge of the status column */
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(9),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(9) {
+  text-align: left;
+}
+body[data-initial-tab="xmlFilesTab"] .xml-status-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+body[data-initial-tab="xmlFilesTab"] .xml-status-icon,
+body[data-initial-tab="xmlFilesTab"] .xml-status-lock-icon {
+  flex: 0 0 auto;
+}
+
+/* 2026-05-18 v8: Form/XML page must fit the viewport without an outer page scroll.
+   The header remains outside; the formTab fills the remaining height and the inner
+   form/xml panes own their scrollbars. */
+body[data-initial-tab="formTab"] {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body[data-initial-tab="formTab"] .site-header {
+  flex: 0 0 auto;
+}
+
+body[data-initial-tab="formTab"] .app-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 8px;
+}
+
+body[data-initial-tab="formTab"] #formTab.tab-panel.active {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body[data-initial-tab="formTab"] #formTab .split-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body[data-initial-tab="formTab"] #formTab .form-layout-header {
+  flex: 0 0 auto;
+}
+
+body[data-initial-tab="formTab"] #formTab .split-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  overflow: hidden;
+}
+
+body[data-initial-tab="formTab"] #formTab .form-pane,
+body[data-initial-tab="formTab"] #formTab .xml-pane {
+  min-height: 0;
+  overflow: hidden;
+}
+
+body[data-initial-tab="formTab"] #formTab .form-pane-scroll,
+body[data-initial-tab="formTab"] #formTab .xml-pane-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  overflow: auto;
+}
+
+body[data-initial-tab="formTab"] #formTab #xmlSourcePanel.active {
+  min-height: 0;
+  height: auto;
+}
+
+body[data-initial-tab="formTab"] #formTab .xml-editor-shell {
+  min-height: 0;
+}
+
+
+/* Sprint 9: Űrlapállomány változáselőzmények modal */
+.xml-file-menu-item.changes-info .xml-file-menu-icon {
+  color: #7c3aed;
+  background: #f3e8ff;
+  font-weight: 800;
+}
+.xml-changes-dialog {
+  width: min(1180px, calc(100vw - 64px));
+  max-height: calc(100dvh - 80px);
+  display: flex;
+  flex-direction: column;
+}
+.xml-changes-subtitle {
+  margin: 0 0 12px;
+  color: #475569;
+  font-weight: 700;
+  word-break: break-word;
+}
+.xml-changes-content {
+  min-height: 260px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.xml-changes-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  flex: 1;
+}
+.xml-revision-list,
+.xml-revision-detail {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #dbe7f7;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+.xml-revision-list {
+  padding: 8px;
+}
+.xml-revision-card {
+  width: 100%;
+  display: block;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #0f172a;
+}
+.xml-revision-card:hover,
+.xml-revision-card.is-active {
+  background: #eef6ff;
+  border-color: #bfdbfe;
+}
+.xml-revision-main,
+.xml-revision-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.xml-revision-main {
+  justify-content: space-between;
+  font-weight: 700;
+}
+.xml-revision-meta {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+.xml-changes-note {
+  margin-top: 8px;
+  color: #334155;
+  font-size: 13px;
+}
+.xml-revision-detail {
+  padding: 12px;
+  background: #ffffff;
+}
+.xml-changes-empty {
+  padding: 18px;
+  color: #64748b;
+  font-weight: 700;
+}
+.xml-revision-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 12px;
+  color: #475569;
+}
+.xml-revision-detail-header h3 {
+  margin: 0;
+  color: #0f172a;
+}
+.xml-revision-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin: 0 0 14px;
+}
+.xml-revision-detail-meta div {
+  min-width: 0;
+}
+.xml-revision-detail-meta dt {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.xml-revision-detail-meta dd {
+  margin: 3px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #0f172a;
+}
+.xml-diff-table-wrap {
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+.xml-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+.xml-diff-table th,
+.xml-diff-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xml-diff-table th {
+  position: sticky;
+  top: 0;
+  background: #eef4ff;
+  z-index: 1;
+  color: #0b2f66;
+}
+.xml-diff-added td:first-child { color: #047857; font-weight: 800; }
+.xml-diff-changed td:first-child { color: #b45309; font-weight: 800; }
+.xml-diff-removed td:first-child { color: #b91c1c; font-weight: 800; }
+@media (max-width: 900px) {
+  .xml-changes-layout { grid-template-columns: 1fr; }
+  .xml-revision-detail-meta { grid-template-columns: 1fr; }
+}
+
+/* Sprint 9 v11: center glyph-only buttons consistently (close, kebab, icon buttons). */
+button.app-dialog-close,
+button.app-toast-close,
+button.xml-files-modal-close,
+button.resolver-info-close,
+button.xml-file-kebab-button,
+button.xml-file-icon-action,
+button.form-icon-button,
+button.icon-button,
+button.xml-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+button.app-dialog-close,
+button.xml-files-modal-close,
+button.resolver-info-close {
+  font-size: 18px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button.app-toast-close {
+  font-size: 18px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button.xml-file-kebab-button {
+  font-size: 22px;
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0;
+}
+
+button.xml-file-kebab-button > span,
+button.xml-file-icon-action > span,
+button.form-icon-button > span,
+button.icon-button > span,
+button.xml-icon-button > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Sprint 9 v12: XML changes indicators and wider changes modal. */
+.xml-status-change-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  background:#7c3aed;
+  color:#fff;
+  font-size:13px;
+  font-weight:900;
+  line-height:1;
+  box-shadow:0 1px 2px rgba(15,23,42,.18);
+}
+body[data-initial-tab="xmlFilesTab"] .xml-status-change-icon{
+  flex:0 0 22px;
+}
+tr.is-highlighted{
+  outline:3px solid rgba(37,99,235,.55);
+  outline-offset:-3px;
+  background:#eff6ff !important;
+}
+.xml-changes-dialog{
+  width:min(1540px, calc(100vw - 36px));
+  max-height:calc(100dvh - 36px);
+}
+.xml-changes-layout{
+  grid-template-columns:minmax(320px, 430px) minmax(0, 1fr);
+}
+.xml-changes-content{
+  min-height:min(640px, calc(100dvh - 220px));
+}
+.xml-revision-detail-meta{
+  grid-template-columns:repeat(2, minmax(320px, 1fr));
+}
+.xml-revision-detail-meta dd,
+.xml-diff-table th,
+.xml-diff-table td{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.xml-diff-table{
+  table-layout:auto;
+  min-width:920px;
+}
+.xml-diff-table-wrap{
+  max-height:calc(100dvh - 430px);
+}
+.xml-revision-target-row dd{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+}
+.xml-revision-target-row dd span{
+  min-width:0;
+  flex:1;
+}
+.xml-revision-jump-file{
+  flex:0 0 auto;
+  width:30px;
+  height:30px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #bfdbfe;
+  border-radius:10px;
+  background:#eff6ff;
+  color:#1d4ed8;
+  font-weight:900;
+  cursor:pointer;
+}
+.xml-revision-jump-file:hover{
+  background:#dbeafe;
+  border-color:#93c5fd;
+}
+@media (max-width: 1100px){
+  .xml-changes-layout{ grid-template-columns:1fr; }
+  .xml-revision-detail-meta{ grid-template-columns:1fr; }
+}
+
+/* Sprint 9 v13: make XML-list jump target from revision details clearly visible. */
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table tbody tr.is-highlighted,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table tbody tr.is-highlighted > td,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table tbody tr.is-jump-highlighted,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table tbody tr.is-jump-highlighted > td {
+  background: #fef3c7 !important;
+}
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table tbody tr.is-highlighted,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table tbody tr.is-jump-highlighted {
+  outline: 3px solid #f59e0b !important;
+  outline-offset: -3px;
+  box-shadow: inset 5px 0 0 #2563eb, 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table tbody tr.is-jump-highlighted > td:first-child {
+  border-left: 5px solid #2563eb;
+}
+
+/* Sprint 9 v17: XSD error indicator and popup on XML files list. */
+.xml-status-xsd-error-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  background:#dc2626;
+  color:#fff;
+  font-size:13px;
+  font-weight:900;
+  line-height:1;
+  box-shadow:0 1px 2px rgba(15,23,42,.18);
+}
+body[data-initial-tab="xmlFilesTab"] .xml-status-xsd-error-icon{
+  flex:0 0 22px;
+}
+.xml-xsd-errors-modal[hidden]{ display:none !important; }
+.xml-xsd-errors-modal{
+  position:fixed;
+  inset:0;
+  z-index:4100;
+}
+.xml-xsd-errors-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(15,23,42,.48);
+  backdrop-filter:blur(3px);
+}
+.xml-xsd-errors-dialog{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(1280px, calc(100vw - 40px));
+  max-height:calc(100dvh - 48px);
+  overflow:auto;
+  background:#fff;
+  border:1px solid #cfe0f7;
+  border-radius:18px;
+  box-shadow:0 24px 70px rgba(15,23,42,.28);
+  padding:22px 24px 24px;
+}
+.xml-xsd-errors-close{
+  position:absolute;
+  right:16px;
+  top:14px;
+  width:34px;
+  height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #bfdbfe;
+  border-radius:10px;
+  background:#fff;
+  color:#0f2f5f;
+  font-size:18px;
+  font-weight:800;
+  cursor:pointer;
+}
+.xml-xsd-errors-subtitle{
+  margin:6px 0 14px;
+  color:#475569;
+  font-size:14px;
+}
+.xml-xsd-errors-summary{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 18px;
+  padding:12px 14px;
+  margin-bottom:14px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  border-radius:12px;
+  color:#7c2d12;
+}
+.xml-xsd-errors-table-wrap{
+  overflow:auto;
+  border:1px solid #dbe7f6;
+  border-radius:12px;
+}
+.xml-xsd-errors-table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:auto;
+}
+.xml-xsd-errors-table th,
+.xml-xsd-errors-table td{
+  padding:10px 12px;
+  border-bottom:1px solid #e5edf8;
+  text-align:left;
+  vertical-align:top;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.xml-xsd-errors-table thead th{
+  background:#eef5ff;
+  color:#0b2a55;
+  font-weight:800;
+}
+.xml-xsd-errors-empty{
+  padding:16px;
+  border:1px dashed #cbd5e1;
+  border-radius:12px;
+  color:#475569;
+  background:#f8fafc;
+}
+.xml-file-menu-item.download-xsd-error .xml-file-menu-icon { color: #1d4ed8; background: #eff6ff; }
+.xml-file-menu-item.physical-archive .xml-file-menu-icon { color: #7f1d1d; background: #fef2f2; }
+
+
+.xml-copy-filename-row{display:grid;grid-template-columns:minmax(0,1fr) 36px;gap:8px;align-items:center;}
+.xml-copy-filename-state{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:999px;border:1px solid #cbd5e1;font-weight:900;background:#f8fafc;color:#64748b;}
+.xml-copy-filename-state.ok{background:#dcfce7;border-color:#86efac;color:#16a34a;}
+.xml-copy-filename-state.error{background:#fee2e2;border-color:#fecaca;color:#dc2626;}
+.large-file-mode-active .xml-tab-button[data-xml-view="tree"],
+.large-file-mode-active .xml-source-only-action{opacity:.45;cursor:not-allowed;}
+.large-file-mode-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #facc15;background:#fef9c3;color:#854d0e;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:800;}
+

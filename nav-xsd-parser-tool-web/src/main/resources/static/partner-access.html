@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Partnerjogosultság</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/partners.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/partner-access.css?v=@build.asset.version@">
+</head>
+<body class="nav-application-theme partner-edit-page-body partner-access-page-body">
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-header-left">
+      <div class="site-brand"><img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó"></div>
+      <nav class="header-nav classic-nav" aria-label="Fő navigáció">
+        <a class="tab-button" href="/xml-files.html">Űrlapállományok</a>
+        <a class="tab-button" href="/github-templates.html">Űrlapsablonok</a>
+        <a class="tab-button" href="/form.html">Űrlapmegtekintő</a>
+        <a class="tab-button" href="/partners.html">Partnerek</a>
+        <details class="system-menu">
+          <summary class="tab-button active">Rendszer</summary>
+          <div class="system-menu-panel">
+            <a href="/users.html" class="active">Felhasználók</a>
+            <a href="/admin.html">Beállítások</a>
+          </div>
+        </details>
+      </nav>
+    </div>
+    <div id="securityHeaderArea" hidden></div>
+  </div>
+</header>
+<div class="app-shell">
+  <main class="layout-stack partners-page partner-edit-page partner-access-page">
+    <section class="panel-card modern-card partner-edit-card partner-access-card">
+      <div class="partner-edit-header">
+        <div>
+          <p class="partner-edit-eyebrow">FELHASZNÁLÓKEZELÉS</p>
+          <h1>Partnerjogosultság szerkesztése</h1>
+          <p id="userLabel" class="hint"></p>
+        </div>
+        <button id="backButton" class="secondary" type="button">Vissza a felhasználóhoz</button>
+      </div>
+
+      <div id="message" class="partner-edit-message access-message" hidden></div>
+
+      <div class="partner-access-content">
+        <section class="partner-form-section">
+          <h2>Közvetlen partner-hozzárendelések</h2>
+          <div class="partner-access-section-body">
+            <div class="partner-field partner-access-search-field">
+              <label for="partnerSearch">Partner keresése</label>
+              <div class="partner-search-row">
+                <input id="partnerSearch" type="search" placeholder="Keresés partnernév vagy adószám alapján" autocomplete="off">
+                <div id="partnerSuggestions" class="suggestions" role="listbox"></div>
+              </div>
+            </div>
+            <div id="selectedPartners" class="selected-list"></div>
+          </div>
+        </section>
+
+        <section class="partner-form-section">
+          <div class="partner-access-section-header">
+            <div>
+              <h2>Adószám alapú szabályok</h2>
+              <p class="hint">A * bármelyik mezőben tetszőleges értéket jelent. A kizáró szabály felülírja az engedélyezőt.</p>
+            </div>
+            <button id="addRule" class="secondary" type="button">Új szabály</button>
+          </div>
+          <div class="partner-access-section-body">
+            <div id="rules" class="rules-list"></div>
+          </div>
+        </section>
+
+        <section class="partner-form-section partner-access-test-section">
+          <div class="partner-access-section-header">
+            <div>
+              <h2>Jogosultsági szabályok tesztelése</h2>
+              <p class="hint">A teszt nem menti el a módosításokat.</p>
+            </div>
+            <div class="partner-access-actions">
+              <button id="testButton" class="secondary" type="button">Kifejezések tesztelése</button>
+              <button id="saveButton" class="primary" type="button">Mentés</button>
+            </div>
+          </div>
+          <div class="partner-access-section-body">
+            <div id="testSummary" class="test-summary"></div>
+            <div class="table-wrap xml-files-table-wrap">
+              <table class="partners-table partner-access-result-table">
+                <thead><tr><th>Fájlnév</th><th>Partner</th><th>Adószám</th><th>Űrlap</th><th>Státusz</th><th>Létrehozva</th></tr></thead>
+                <tbody id="testRows"></tbody>
+              </table>
+            </div>
+            <div id="pager" class="pager xml-files-pagination"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
+<script src="/js/pages/partner-access.js?v=@build.asset.version@"></script>
+</body>
+</html>

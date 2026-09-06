@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Űrlapállományok - XML EDITOR MINTA</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles/base.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/shell.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/layout.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/validation.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-viewer.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/processing.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/dialogs.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files-advanced.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/home.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/admin.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/multiform.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/m2m.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/compact-ui.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-toolbar.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+</head>
+<body data-initial-tab="xmlFilesTab" class="nav-application-theme">
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-header-left">
+      <div class="site-brand">
+        <img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó">
+      </div>
+      <nav class="header-nav classic-nav" aria-label="Fő navigáció">
+        <a class="tab-button active" data-tab="xmlFilesTab" href="/xml-files.html">Űrlapállományok</a>
+        
+        <a class="tab-button" data-tab="formTab" id="formTabButton" href="/form.html">Űrlapmegtekintő</a>
+                <a class="tab-button" data-tab="partnersTab" href="/partners.html">Partnerek</a><a class="tab-button" data-tab="githubTemplatesTab" href="/github-templates.html">Űrlapsablonok</a>
+        <details class="system-menu"><summary class="tab-button">Rendszer</summary><div class="system-menu-panel"><a href="/m2m-submitter.html">M2M beküldés</a><a href="/xml-index-config.html">XML index konfiguráció</a><a data-tab="adminTab" id="adminTabButton" href="/admin.html">Beállítások</a></div></details>
+</nav>
+    </div>
+    <div class="security-header-area" id="securityHeaderArea" hidden>
+      <span class="security-user-label">Felhasználó:</span>
+      <strong id="securityHeaderUsername">-</strong>
+      <form method="post" action="/logout" class="logout-form">
+        <button type="submit" class="secondary mini-button">Kijelentkezés</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<div class="app-shell">
+  <main class="layout-stack xml-files-page xml-files-modern-page">
+    <section class="panel-card modern-card xml-files-registry-panel">
+      <div class="xml-files-toolbar" role="toolbar" aria-label="Űrlapállományok műveletei">
+        <div class="xml-files-toolbar-left">
+          <button type="button" class="xml-files-toolbar-button upload" id="openXmlUploadModalButton" title="XML feltöltése" aria-label="XML feltöltése">⬆</button>
+          <button type="button" class="xml-files-toolbar-button refresh" id="refreshXmlFilesButton" title="Lista frissítése" aria-label="Lista frissítése">↻</button>
+          <button type="button" class="xml-files-toolbar-button archive-toggle" id="toggleArchivedXmlFilesButton" title="Archivált állományok megjelenítése" aria-label="Archivált állományok megjelenítése" aria-pressed="false">◴</button>
+        </div>
+        <div class="xml-files-filterbar" aria-label="Űrlapállományok szűrése">
+          <input id="xmlFileSearchInput" type="search" placeholder="Keresés névben vagy megjegyzésben" aria-label="Keresés névben vagy megjegyzésben">
+          <div class="partner-predictive"><input id="xmlFilePartnerFilter" type="search" placeholder="Partner szűrés (min. 2 karakter)" autocomplete="off"><input id="xmlFilePartnerFilterId" type="hidden"><div id="xmlFilePartnerSuggestions" class="partner-suggestions" hidden></div></div>
+          <select id="xmlFileFormTypeFilter" aria-label="Űrlap típus szűrő">
+            <option value="">Minden űrlap</option>
+          </select>
+          <select id="xmlFileFormVersionFilter" aria-label="Verzió szűrő" disabled>
+            <option value="">Előbb válassz űrlapt</option>
+          </select>
+          <select id="xmlFileStatusFilter" aria-label="Státusz szűrő">
+            <option value="">Minden státusz</option>
+          </select>
+          <span class="xml-files-page-size-control">
+            <label class="xml-files-page-size-label" for="xmlFilePageSizeSelect">Sorok</label>
+            <select id="xmlFilePageSizeSelect" aria-label="Oldalméret">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
+          </span>
+        </div>
+      </div>
+
+      <div id="xmlFileMessages" class="messages"></div>
+
+      <div class="table-wrap xml-files-table-wrap">
+        <table class="data-table xml-files-table xml-files-full-width-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th class="xml-attachment-toggle-column" aria-label="Csatolmányok"></th>
+              <th>Fájlnév</th>
+              <th>Partner</th>
+              <th><button type="button" class="xml-files-sort-button" data-sort-field="createdAt">Létrehozás dátuma <span id="xmlFileCreatedSortIndicator" aria-hidden="true">▼</span></button></th>
+              <th><button type="button" class="xml-files-sort-button" data-sort-field="updatedAt">Módosítás dátuma <span id="xmlFileUpdatedSortIndicator" aria-hidden="true"></span></button></th>
+              <th>Űrlap</th>
+              <th>Verzió</th>
+              <th>Méret</th>
+              <th>Megjegyzés</th>
+              <th>Státusz</th>
+              <th>Műveletek</th>
+            </tr>
+          </thead>
+          <tbody id="xmlFilesTableBody">
+            <tr><td colspan="12">Betöltés...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="xml-files-pagination" aria-label="Űrlapállományok lapozása">
+        <div id="xmlFilesPaginationInfo" class="xml-files-pagination-info">-</div>
+        <div class="xml-files-pagination-actions">
+          <button type="button" class="secondary mini-button" id="xmlFilesFirstPageButton" aria-label="Első oldal">«</button>
+          <button type="button" class="secondary mini-button" id="xmlFilesPrevPageButton" aria-label="Előző oldal">‹</button>
+          <span id="xmlFilesPageIndicator" class="xml-files-page-indicator" aria-live="polite">1</span>
+          <button type="button" class="secondary mini-button" id="xmlFilesNextPageButton" aria-label="Következő oldal">›</button>
+          <button type="button" class="secondary mini-button" id="xmlFilesLastPageButton" aria-label="Utolsó oldal">»</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="xmlUploadModal" class="xml-files-modal" hidden>
+  <div class="xml-files-modal-backdrop" data-close-xml-upload="true"></div>
+  <section class="xml-files-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="xmlUploadModalTitle">
+    <button type="button" class="xml-files-modal-close" data-close-xml-upload="true" aria-label="Bezárás">×</button>
+    <p class="eyebrow">Űrlapállománykezelés</p>
+    <h2 id="xmlUploadModalTitle">XML feltöltése</h2>
+    <p class="hint">A feltöltés után az állomány automatikusan regisztrálódik, majd elindul az XSD validáció, ha van feloldott XSD.</p>
+    <form id="xmlUploadForm" class="xml-file-form xml-upload-modal-form">
+      <label for="xmlUploadFile">XML fájl</label>
+      <input id="xmlUploadFile" type="file" accept=".xml,application/xml,text/xml" required>
+      <label for="xmlUploadPartnerSearch">Partner <span aria-hidden="true">*</span></label><div class="partner-predictive"><input id="xmlUploadPartnerSearch" type="search" placeholder="Adószám vagy partnernév (min. 2 karakter)" autocomplete="off"><input id="xmlUploadPartnerId" type="hidden"><div id="xmlUploadPartnerSuggestions" class="partner-suggestions" hidden></div></div>
+      <div class="xml-upload-quick-partner">
+        <label for="xmlUploadPartnerTaxNumber">Adószám</label>
+        <input id="xmlUploadPartnerTaxNumber" type="text" inputmode="numeric" maxlength="13" placeholder="12345676-1-42" autocomplete="off">
+        <label for="xmlUploadPartnerName">Partner neve</label>
+        <input id="xmlUploadPartnerName" type="text" maxlength="255" placeholder="Partner megnevezése" autocomplete="organization">
+        <button type="button" class="secondary" id="xmlUploadPartnerSaveButton">Partner mentése</button>
+      </div>
+      <label for="xmlUploadNote">Felhasználói megjegyzés</label>
+      <input id="xmlUploadNote" type="text" maxlength="1000" placeholder="pl. Gipsz Jakab Bt 20260517">
+      <div class="xml-files-modal-actions">
+        <button type="submit" class="primary">Feltöltés</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div id="xmlCopyModal" class="xml-files-modal" hidden>
+  <div class="xml-files-modal-backdrop" data-close-xml-copy="true"></div>
+  <section class="xml-files-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="xmlCopyModalTitle">
+    <button type="button" class="xml-files-modal-close" data-close-xml-copy="true" aria-label="Bezárás">×</button>
+    <p class="eyebrow">Űrlapállománykezelés</p>
+    <h2 id="xmlCopyModalTitle">XML másolása</h2>
+    <p class="hint" id="xmlCopySourceHint"></p>
+    <form id="xmlCopyForm" class="xml-file-form">
+      <input id="xmlCopySourceId" type="hidden">
+      <label for="xmlCopyFileName">Új fájlnév</label>
+      <div class="xml-copy-filename-row">
+        <input id="xmlCopyFileName" type="text" maxlength="500" placeholder="pl. eredeti_masolat.xml" autocomplete="off" required>
+        <span id="xmlCopyFileNameState" class="xml-copy-filename-state" aria-live="polite">-</span>
+      </div>
+      <p id="xmlCopyFileNameMessage" class="hint"></p>
+      <label for="xmlCopyNote">Felhasználói megjegyzés</label>
+      <textarea id="xmlCopyNote" maxlength="1000" rows="4" placeholder="Megjegyzés..."></textarea>
+      <div class="xml-files-modal-actions">
+        <button type="submit" class="primary" id="xmlCopySubmitButton" disabled>Másolás</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div id="xmlNoteModal" class="xml-files-modal" hidden>
+  <div class="xml-files-modal-backdrop" data-close-xml-note="true"></div>
+  <section class="xml-files-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="xmlNoteModalTitle">
+    <button type="button" class="xml-files-modal-close" data-close-xml-note="true" aria-label="Bezárás">×</button>
+    <p class="eyebrow">Űrlapállománykezelés</p>
+    <h2 id="xmlNoteModalTitle">Megjegyzés szerkesztése</h2>
+    <form id="xmlNoteForm" class="xml-file-form">
+      <input id="xmlNoteFileId" type="hidden">
+      <label for="xmlNoteText">Felhasználói megjegyzés</label>
+      <textarea id="xmlNoteText" maxlength="1000" rows="6" placeholder="Megjegyzés..."></textarea>
+      <div class="xml-files-modal-actions">
+        <button type="submit" class="primary">Mentés</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<div id="xmlPartnerModal" class="xml-files-modal" hidden>
+  <div class="xml-files-modal-backdrop" data-close-xml-partner="true"></div>
+  <section class="xml-files-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="xmlPartnerModalTitle">
+    <button type="button" class="xml-files-modal-close" data-close-xml-partner="true" aria-label="Bezárás">×</button>
+    <p class="eyebrow">Űrlapállománykezelés</p>
+    <h2 id="xmlPartnerModalTitle">Partner módosítása</h2>
+    <p class="hint" id="xmlPartnerCurrentHint"></p>
+    <form id="xmlPartnerForm" class="xml-file-form">
+      <input id="xmlPartnerFileId" type="hidden">
+      <label for="xmlPartnerSearch">Új partner</label>
+      <div class="partner-predictive"><input id="xmlPartnerSearch" type="search" placeholder="Adószám vagy partnernév (min. 2 karakter)" autocomplete="off" required><input id="xmlPartnerId" type="hidden"><div id="xmlPartnerSuggestions" class="partner-suggestions" hidden></div></div>
+      <div class="xml-files-modal-actions"><button type="submit" class="primary">Mentés</button></div>
+    </form>
+  </section>
+</div>
+
+<script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
+<script src="/js/core/app.js?v=@build.asset.version@"></script>
+<script src="/js/xml/xml-files.js?v=@build.asset.version@"></script>
+</body>
+</html>

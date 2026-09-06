@@ -1,0 +1,3 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+hu.gov.nav.xsdparsertool.web.setup.BootstrapDefaultsEnvironmentPostProcessor,\
+hu.gov.nav.xsdparsertool.web.systemconfig.service.DatabaseConfigurationEnvironmentPostProcessor

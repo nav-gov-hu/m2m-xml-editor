@@ -1,0 +1,1005 @@
+/* XPath validator */
+.inline-select-label{display:flex;align-items:center;gap:8px;font-size:14px;}
+.table-scroll{overflow:auto;width:100%;}
+.xpath-table{width:100%;border-collapse:collapse;font-size:14px;}
+.xpath-table th,.xpath-table td{padding:10px 12px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top;}
+.xpath-table tbody tr{cursor:pointer;}
+.xpath-table tbody tr:hover{background:#f8fafc;}
+.xpath-table tbody tr.active{background:#eef6ff;}
+.xpath-download-link{white-space:nowrap;}
+
+
+/* XPath validator visual alignment with validate page */
+.xpath-validator-page .panel-card {
+  padding: 20px;
+}
+
+.xpath-validator-page .card-header,
+.xpath-validator-page .section-header {
+  margin-bottom: 16px;
+}
+
+.xpath-validator-page .card-header h2,
+.xpath-validator-page .section-header h2 {
+  margin: 0 0 8px 0;
+}
+
+.xpath-validator-page .card-header p {
+  margin: 0;
+  max-width: 980px;
+}
+
+.xpath-validator-page .run-form-grid {
+  gap: 18px 20px;
+}
+
+.xpath-validator-page .form-block > label,
+.xpath-validator-page .inline-select-label {
+  font-weight: 700;
+}
+
+.xpath-validator-page .selected-input-path {
+  margin-top: 8px;
+}
+
+.xpath-validator-page .hint {
+  margin-top: 10px;
+}
+
+.xpath-validator-page .button-row {
+  align-items: center;
+}
+
+.xpath-validator-page .table-scroll {
+  margin-top: 12px;
+}
+
+.xpath-validator-page .compact-filter-grid {
+  margin-top: 4px;
+}
+
+.xpath-validator-page .xpath-table th,
+.xpath-validator-page .xpath-table td {
+  padding: 12px 12px;
+}
+.print-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.print-override-input{min-width:320px;max-width:420px;}
+.print-option{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#233040;background:#f6f8fb;border:1px solid #d7e0ea;border-radius:999px;padding:6px 10px;}
+@media (max-width:1200px){.print-override-input{min-width:220px;max-width:100%;}.print-toolbar{justify-content:flex-start;}}
+
+/* XPath validation popup on Form and XML view */
+.xpath-current-validation-button .toolbar-icon {
+  stroke-width: 2.2;
+}
+
+.xpath-floating-popup {
+  position: fixed;
+  top: 88px;
+  right: 28px;
+  width: min(1180px, calc(100vw - 56px));
+  max-height: calc(100vh - 120px);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #b9c8df;
+  border-radius: 16px;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+}
+
+.xpath-floating-popup.hidden {
+  display: none;
+}
+
+.xpath-floating-popup-header,
+.xpath-floating-popup-footer {
+  flex: 0 0 auto;
+  background: #f7faff;
+  border-color: #d9e3f1;
+}
+
+.xpath-floating-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #d9e3f1;
+}
+
+.xpath-floating-popup-header h2 {
+  margin: 2px 0 0;
+  font-size: 20px;
+}
+
+.xpath-floating-popup-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px 18px 4px;
+  overflow: auto;
+}
+
+.xpath-floating-popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 18px;
+  border-top: 1px solid #d9e3f1;
+}
+
+.xpath-popup-message {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #d2def0;
+  background: #f8fbff;
+  font-weight: 600;
+}
+
+.xpath-popup-message.hidden {
+  display: none;
+}
+
+.xpath-popup-message.loading {
+  color: #1f4f96;
+  background: #eef6ff;
+  border-color: #b7d3f2;
+}
+
+.xpath-popup-message.success {
+  color: #17633a;
+  background: #eefbf3;
+  border-color: #bce5c9;
+}
+
+.xpath-popup-message.error {
+  color: #8f1d1d;
+  background: #fff1f1;
+  border-color: #efc2c2;
+}
+
+.xpath-popup-summary-scroll {
+  margin-bottom: 12px;
+}
+
+.xpath-popup-errors-scroll {
+  max-height: calc(100vh - 360px);
+}
+
+.xpath-popup-errors-table td:nth-child(2),
+.xpath-popup-errors-table td:nth-child(6) {
+  max-width: 420px;
+  word-break: break-word;
+}
+
+.xpath-element-link {
+  border: 0;
+  background: transparent;
+  color: #075fc2;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.xpath-element-link:hover,
+.xpath-element-link:focus {
+  color: #003d8f;
+}
+
+.form-field.xpath-jump-highlight,
+.form-field.xpath-jump-persistent {
+  outline: 3px solid #d93025;
+  outline-offset: 2px;
+  background: #fff3f3;
+  box-shadow: 0 0 0 5px rgba(217, 48, 37, 0.14);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-field.xpath-jump-persistent input,
+.form-field.xpath-jump-persistent select,
+.form-field.xpath-jump-persistent textarea {
+  border-color: #d93025 !important;
+  box-shadow: 0 0 0 2px rgba(217, 48, 37, 0.12);
+}
+
+/* Visible text button for current Form/XML XPath validation */
+.xml-toolbar-buttons .xpath-current-validation-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 132px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #b7cdfa;
+  background: linear-gradient(180deg,#eef4ff,#dbeafe);
+  color: #1d4ed8;
+  box-shadow: 0 3px 8px rgba(15,23,42,.08);
+  font-weight: 700;
+}
+.xml-toolbar-buttons .xpath-current-validation-button .toolbar-icon {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.xml-toolbar-buttons .xpath-current-validation-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15,23,42,.12);
+}
+
+/* 2026-05-13: XPath popup and print toolbar fixes */
+.print-option {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.print-option input {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+.xpath-floating-popup {
+  height: min(760px, calc(100vh - 110px));
+  resize: both;
+  min-width: min(780px, calc(100vw - 32px));
+  min-height: 360px;
+}
+.xpath-floating-popup-header {
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+}
+.xpath-floating-popup-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.xpath-popup-summary-scroll {
+  flex: 0 0 auto;
+  overflow: auto;
+}
+.xpath-popup-errors-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+.xpath-popup-errors-table {
+  margin-bottom: 0;
+}
+
+/* 2026-05-13: requested UI cleanup and XPath popup message folding */
+.xml-toolbar-buttons .xpath-current-validation-button {
+  min-width: 38px !important;
+  width: 38px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+.xml-toolbar-buttons .xpath-current-validation-button span {
+  display: none !important;
+}
+.xpath-message-cell {
+  max-width: 520px;
+}
+.xpath-message-preview,
+.xpath-message-full {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+}
+.xpath-message-toggle {
+  margin-top: 6px;
+  border: 0;
+  background: transparent;
+  color: #075fc2;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+}
+.xpath-message-toggle:hover,
+.xpath-message-toggle:focus {
+  color: #003d8f;
+}
+.xpath-message-cell .hidden {
+  display: none !important;
+}
+
+/* 2026-05-13 fix: visually clamp XPath popup message preview to exactly 4 lines. */
+.xpath-message-cell {
+  max-width: 100ch;
+}
+.xpath-message-cell.is-collapsed .xpath-message-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: calc(1.35em * 4);
+}
+.xpath-message-cell:not(.is-collapsed) .xpath-message-preview {
+  display: none !important;
+}
+.xpath-message-full {
+  max-width: 100ch;
+}
+
+/* 2026-05-13 fix: visually clamp XPath popup message preview to exactly 4 lines. */
+.xpath-message-cell {
+  max-width: 100ch;
+}
+.xpath-message-cell.is-collapsed .xpath-message-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: calc(1.35em * 4);
+}
+.xpath-message-cell:not(.is-collapsed) .xpath-message-preview {
+  display: none !important;
+}
+.xpath-message-full {
+  max-width: 100ch;
+}
+
+/* 2026-05-13 fix: keep XPath popup error table header visible while scrolling error list. */
+.xpath-popup-errors-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.xpath-popup-errors-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #ffffff;
+  box-shadow: 0 1px 0 #e5e7eb, 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+.xpath-popup-errors-table thead th:first-child {
+  left: 0;
+}
+
+/* 2026-05-13: consolidated print dropdown controls */
+.print-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.print-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.print-menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.print-menu-caret {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1;
+  opacity: .85;
+}
+
+.print-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #c9d7ec;
+  border-radius: 12px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, .18);
+  z-index: 10020;
+}
+
+.print-menu[hidden] {
+  display: none !important;
+}
+
+.print-menu-section {
+  display: grid;
+  gap: 8px;
+}
+
+.print-menu-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #233040;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.print-menu-option input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.print-menu-separator {
+  height: 1px;
+  background: #d9e2ef;
+  margin: 10px 0;
+}
+
+.print-menu-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .print-menu {
+    right: auto;
+    left: 0;
+  }
+}
+
+/* 2026-05-13: XPath popup path column is collapsed by default with view/copy actions. */
+.xpath-popup-errors-table td:nth-child(6) {
+  max-width: 220px;
+  width: 220px;
+  word-break: normal;
+}
+.xpath-path-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+.xpath-path-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.xpath-path-toggle,
+.xpath-path-copy,
+.xpath-path-jump {
+  border: 0;
+  background: transparent;
+  color: #075fc2;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+}
+.xpath-path-copy {
+  color: #0f766e;
+}
+.xpath-path-toggle:hover,
+.xpath-path-toggle:focus,
+.xpath-path-copy:hover,
+.xpath-path-copy:focus,
+.xpath-path-jump:hover,
+.xpath-path-jump:focus {
+  color: #003d8f;
+}
+.xpath-path-full {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  max-width: 70ch;
+  max-height: 160px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  border: 1px solid #d9e3f1;
+  border-radius: 8px;
+  background: #f8fbff;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.xpath-path-full.hidden {
+  display: none !important;
+}
+
+/* 2026-05-13 v11: XPath validation result drawer replacing the floating popup. */
+.xpath-drawer-tab {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9998;
+  width: 36px;
+  min-width: 36px;
+  max-width: 36px;
+  height: 178px;
+  padding: 0;
+  border: 1px solid #b8c7df;
+  border-right: 0;
+  border-radius: 14px 0 0 14px;
+  background: #64748b;
+  color: #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.24);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  letter-spacing: .01em;
+  overflow: hidden;
+}
+
+.xpath-drawer-tab:hover,
+.xpath-drawer-tab:focus {
+  filter: brightness(1.04);
+  outline: 3px solid rgba(37, 99, 235, .22);
+  outline-offset: 2px;
+}
+
+.xpath-drawer-tab .xpath-drawer-tab-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  transform: rotate(90deg);
+  transform-origin: center center;
+}
+
+.xpath-drawer-tab .xpath-drawer-tab-title {
+  display: inline;
+  font-size: 13px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.xpath-drawer-tab .xpath-drawer-tab-separator {
+  display: inline;
+  opacity: .78;
+}
+
+.xpath-drawer-tab .xpath-drawer-tab-count {
+  display: inline;
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+}
+
+.xpath-drawer-tab.neutral { background: #64748b; }
+.xpath-drawer-tab.running,
+.xpath-drawer-tab.warning { background: #b45309; }
+.xpath-drawer-tab.ok { background: #15803d; }
+.xpath-drawer-tab.error { background: #b91c1c; }
+
+.xpath-validation-drawer {
+  position: fixed;
+  top: 92px;
+  right: 0;
+  bottom: 24px;
+  width: min(1040px, 74vw);
+  max-width: calc(100vw - 88px);
+  background: #ffffff;
+  border-left: 1px solid #b8c7df;
+  border-radius: 18px 0 0 18px;
+  box-shadow: -18px 0 40px rgba(15, 23, 42, 0.24);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(calc(100% + 24px));
+  transition: transform 190ms ease;
+  overflow: hidden;
+}
+
+.xpath-validation-drawer.open {
+  transform: translateX(0);
+}
+
+.xpath-drawer-header,
+.xpath-drawer-footer {
+  flex: 0 0 auto;
+  background: #f8fbff;
+  border-color: #d9e2ef;
+}
+
+.xpath-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid #d9e2ef;
+}
+
+.xpath-drawer-header h2 {
+  margin: 2px 0 4px;
+}
+
+.xpath-drawer-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #eef2f7;
+  color: #334155;
+}
+
+.xpath-drawer-status.running,
+.xpath-drawer-status.warning {
+  background: #fff7ed;
+  color: #92400e;
+}
+
+.xpath-drawer-status.ok {
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.xpath-drawer-status.error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.xpath-drawer-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.xpath-validation-drawer .xpath-popup-summary-scroll {
+  flex: 0 0 auto;
+  max-height: 128px;
+  overflow: auto;
+}
+
+.xpath-validation-drawer .xpath-popup-errors-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.xpath-drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid #d9e2ef;
+}
+
+@media (max-width: 980px) {
+  .xpath-validation-drawer {
+    width: calc(100vw - 44px);
+    max-width: calc(100vw - 44px);
+    top: 76px;
+    bottom: 14px;
+  }
+}
+
+/* 2026-05-13: XSD validation drawer tab under the XPath drawer tab. */
+.xsd-drawer-tab {
+  top: calc(50% + 196px);
+}
+
+.xsd-validation-drawer {
+  z-index: 10000;
+}
+
+.xsd-validation-drawer .xpath-popup-summary-table td:nth-child(3) {
+  max-width: 360px;
+  word-break: break-all;
+}
+
+/* 2026-05-13: Header menu visibility controlled by external properties. */
+.header-nav .tab-button.hidden-by-config {
+  display: none !important;
+}
+
+/* 2026-05-13 v23: when the XPath/XSD drawer is open, reserve space for it so the form/XML splitter moves left instead of being covered. */
+:root {
+  --validation-drawer-open-width: 0px;
+}
+
+#formTab {
+  transition: padding-right 190ms ease;
+}
+
+#formTab .split-card {
+  transition: width 190ms ease, max-width 190ms ease;
+}
+
+body.validation-drawer-open #formTab {
+  padding-right: min(var(--validation-drawer-open-width), calc(100vw - 360px));
+}
+
+body.validation-drawer-open .xpath-drawer-tab {
+  right: var(--validation-drawer-open-width);
+  transition: right 190ms ease, filter 120ms ease;
+}
+
+@media (max-width: 980px) {
+  body.validation-drawer-open #formTab {
+    padding-right: 0;
+  }
+
+  body.validation-drawer-open .xpath-drawer-tab {
+    right: 0;
+  }
+}
+
+
+
+
+/* 2026-07-13: XPath/XSD drawers are overlays and never resize the form/XML workspace. */
+.xpath-validation-drawer {
+  width: min(50vw, 760px);
+  max-width: min(50vw, calc(100vw - 44px));
+}
+
+body.validation-drawer-open #formTab {
+  padding-right: 0 !important;
+}
+
+body.validation-drawer-open .xpath-drawer-tab {
+  right: 0 !important;
+}
+
+@media (max-width: 980px) {
+  .xpath-validation-drawer {
+    width: min(50vw, calc(100vw - 44px));
+    max-width: calc(100vw - 44px);
+  }
+}
+
+/* A kizárólagos XML/űrlap nézet ténylegesen eltávolítja a másik panelt. */
+.split-container.form-collapsed > .form-pane,
+.split-container.xml-collapsed > .xml-pane,
+.split-container.form-collapsed > .splitter,
+.split-container.xml-collapsed > .splitter {
+  display: none !important;
+}
+
+.split-container.form-collapsed > .xml-pane,
+.split-container.xml-collapsed > .form-pane {
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  max-width: none !important;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+}
+
+
+/* 2026-07-16: Configurable XPath/XSD drawer side and scrollbar-safe tabs. */
+:root {
+  --browser-scrollbar-width: 0px;
+  --validation-drawer-edge-gap: 8px;
+}
+
+body.validation-drawer-side-right .xpath-drawer-tab {
+  left: auto !important;
+  right: calc(var(--browser-scrollbar-width, 0px) + var(--validation-drawer-edge-gap)) !important;
+  border-right: 0;
+  border-left: 1px solid #b8c7df;
+  border-radius: 14px 0 0 14px;
+}
+
+body.validation-drawer-side-right .xpath-validation-drawer {
+  left: auto;
+  right: calc(var(--browser-scrollbar-width, 0px) + var(--validation-drawer-edge-gap));
+  border-left: 1px solid #b8c7df;
+  border-right: 0;
+  border-radius: 18px 0 0 18px;
+  box-shadow: -18px 0 40px rgba(15, 23, 42, 0.24);
+  transform: translateX(calc(100% + var(--browser-scrollbar-width, 0px) + 32px));
+}
+
+body.validation-drawer-side-right .xpath-validation-drawer.open {
+  transform: translateX(0);
+}
+
+body.validation-drawer-side-left .xpath-drawer-tab {
+  right: auto !important;
+  left: var(--validation-drawer-edge-gap) !important;
+  border-left: 0;
+  border-right: 1px solid #b8c7df;
+  border-radius: 0 14px 14px 0;
+}
+
+body.validation-drawer-side-left .xpath-drawer-tab .xpath-drawer-tab-label {
+  transform: rotate(-90deg);
+}
+
+body.validation-drawer-side-left .xpath-validation-drawer {
+  right: auto;
+  left: var(--validation-drawer-edge-gap);
+  border-right: 1px solid #b8c7df;
+  border-left: 0;
+  border-radius: 0 18px 18px 0;
+  box-shadow: 18px 0 40px rgba(15, 23, 42, 0.24);
+  transform: translateX(calc(-100% - 32px));
+}
+
+body.validation-drawer-side-left .xpath-validation-drawer.open {
+  transform: translateX(0);
+}
+
+/* 2026-07-16: Reserve a fixed rail for left-side validation tabs so they never cover the form workspace. */
+:root {
+  --validation-drawer-tab-rail-width: 52px;
+}
+
+body.validation-drawer-side-left #formTab {
+  box-sizing: border-box;
+  padding-left: var(--validation-drawer-tab-rail-width) !important;
+  transition: padding-left 190ms ease;
+}
+
+body.validation-drawer-side-left .xpath-drawer-tab {
+  left: var(--validation-drawer-edge-gap) !important;
+}
+
+@media (max-width: 980px) {
+  :root {
+    --validation-drawer-tab-rail-width: 44px;
+  }
+}
+
+/* 2026-07-28: XPath hibalista szűrés és hibakód szerinti rendezés. */
+.xpath-error-controls {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid #d9e2ef;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.xpath-error-controls.hidden {
+  display: none;
+}
+
+.xpath-error-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.xpath-error-controls-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.xpath-error-filter-options {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.xpath-error-filter-option,
+.xpath-error-sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #334155;
+}
+
+.xpath-error-filter-option input {
+  margin: 0;
+}
+
+.xpath-error-sort-control select {
+  min-height: 30px;
+  padding: 4px 28px 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+}
+
+/* 2026-07-28: XPath hibatípus-szűrők a drawer fejlécében, Kód fejléc alapú rendezés. */
+.xpath-drawer-header {
+  display: grid;
+  grid-template-columns: minmax(190px, auto) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+}
+
+.xpath-drawer-heading {
+  min-width: 0;
+}
+
+.xpath-error-controls-header {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.xpath-error-controls-header.hidden {
+  display: none;
+}
+
+.xpath-error-controls-header .xpath-error-filter-options {
+  gap: 12px;
+}
+
+.xpath-error-controls-header .xpath-error-filter-option {
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.xpath-error-controls-header .xpath-error-filter-option input {
+  width: 15px;
+  height: 15px;
+}
+
+.xpath-error-filter-count {
+  min-width: 1.2em;
+  font-weight: 700;
+  color: #334155;
+}
+
+.xpath-code-sort-header {
+  white-space: nowrap;
+}
+
+.xpath-code-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.xpath-code-sort-button:hover,
+.xpath-code-sort-button:focus-visible {
+  color: #0b5fc6;
+}
+
+.xpath-code-sort-indicator {
+  font-size: 0.65rem;
+}
+
+@media (max-width: 760px) {
+  .xpath-drawer-header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .xpath-error-controls-header {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

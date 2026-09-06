@@ -1,0 +1,251 @@
+/* Sprint 7 v19 - egységes toast és alkalmazás modalok, natív alert/confirm/prompt kiváltása */
+.app-toast-container {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 50000;
+  display: grid;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.app-toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 30px;
+  align-items: start;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid #c7d7f3;
+  background: #ffffff;
+  color: #153050;
+  box-shadow: 0 20px 48px rgba(15, 35, 70, .22);
+  animation: app-toast-in .18s ease-out;
+}
+.app-toast.is-closing {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .16s ease, transform .16s ease;
+}
+.app-toast-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 900;
+  background: #edf4ff;
+  color: #194880;
+}
+.app-toast-message {
+  line-height: 1.45;
+  font-weight: 700;
+  word-break: break-word;
+}
+.app-toast-close {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #63718a;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.app-toast-close:hover { background: #edf4ff; color: #153050; }
+.app-toast-success { border-color: #a7f3d0; background: #f0fdf4; }
+.app-toast-success .app-toast-icon { background: #dcfce7; color: #166534; }
+.app-toast-error { border-color: #fecaca; background: #fff7f7; }
+.app-toast-error .app-toast-icon { background: #fee2e2; color: #991b1b; }
+.app-toast-warning { border-color: #fde68a; background: #fffbeb; }
+.app-toast-warning .app-toast-icon { background: #fef3c7; color: #92400e; }
+.app-toast-info .app-toast-icon { background: #dbeafe; color: #1d4ed8; }
+@keyframes app-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.app-dialog-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 49000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.app-dialog-modal.is-closing {
+  opacity: 0;
+  transition: opacity .14s ease;
+}
+.app-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 23, 48, .46);
+  backdrop-filter: blur(3px);
+}
+.app-dialog-card {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 96vw);
+  max-height: 88vh;
+  overflow: auto;
+  border-radius: 20px;
+  border: 1px solid #c7d7f3;
+  background: #fff;
+  padding: 26px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .30);
+}
+.app-dialog-card h2 {
+  margin: 0 44px 12px 0;
+}
+.app-dialog-message {
+  white-space: pre-line;
+  color: #374969;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+.app-dialog-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #c7d7f3;
+  background: #fff;
+  color: #15335f;
+  cursor: pointer;
+  font-weight: 900;
+}
+.app-dialog-input-wrap {
+  margin-top: 14px;
+}
+.app-dialog-label {
+  display: block;
+  font-weight: 800;
+  color: #163a6b;
+  margin-bottom: 8px;
+}
+.app-dialog-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 110px;
+  border: 1px solid #b9c9e8;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  box-sizing: border-box;
+}
+.app-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+.app-dialog-danger .app-dialog-card {
+  border-color: #fecaca;
+}
+.app-dialog-danger .app-dialog-card .primary {
+  background: #b91c1c;
+  border-color: #991b1b;
+}
+.app-dialog-warning .app-dialog-card {
+  border-color: #fde68a;
+}
+
+/* Sprint 7 v19 - jogosultsági oldal panel padding egységesítése */
+.access-denied-page .app-shell,
+.access-denied-layout {
+  box-sizing: border-box;
+}
+.access-denied-card {
+  padding: 28px 30px;
+  box-sizing: border-box;
+}
+.access-denied-card .lead {
+  margin: 0 0 20px;
+  line-height: 1.55;
+  color: #374969;
+}
+.access-denied-card .button-row {
+  margin-top: 18px;
+}
+@media (max-width: 640px) {
+  .app-toast-container { right: 14px; bottom: 14px; width: calc(100vw - 28px); }
+  .app-dialog-card { padding: 22px; }
+  .app-dialog-actions { flex-direction: column-reverse; align-items: stretch; }
+  .access-denied-card { padding: 22px; }
+}
+
+.status-pill.status-ready-locked,
+.status-pill.status-locked {
+  border-color: #f59e0b;
+  background: #fff7ed;
+  color: #92400e;
+  font-weight: 800;
+}
+tr.is-locked td {
+  background-image: linear-gradient(90deg, rgba(245,158,11,0.08), rgba(245,158,11,0));
+}
+.xml-file-menu-item.lock-info .xml-file-menu-icon {
+  color: #92400e;
+  background: #fff7ed;
+}
+
+
+.m2m-confirm-backdrop{position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:24px}.m2m-confirm-dialog{width:min(520px,100%);background:#fff;border-radius:10px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.28)}.m2m-confirm-dialog h3{margin:0 0 12px}.m2m-confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.m2m-confirm-actions button,.m2m-attachment-inline-buttons button{min-height:34px}.m2m-confirm-actions .danger,.m2m-attachment-inline-buttons .danger{border-color:#c62828;color:#a31515;background:#fff5f5}
+
+/* M2M csatolmánytörlés: natív prompt helyett alkalmazásmodalos választólista. */
+.m2m-confirm-choice-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(320px, 45vh);
+  overflow: auto;
+  margin-top: 14px;
+  padding: 4px;
+}
+
+.m2m-confirm-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #d8dde5;
+  border-radius: 7px;
+  background: #fafbfc;
+  cursor: pointer;
+}
+
+.m2m-confirm-choice:hover,
+.m2m-confirm-choice:focus-within {
+  border-color: #8aa4c3;
+  background: #f4f7fb;
+}
+
+.m2m-confirm-choice input {
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+
+.m2m-confirm-choice span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.app-dialog-fields {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.app-dialog-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.app-dialog-field input.app-dialog-input {
+  min-height: 2.75rem;
+  resize: none;
+}

@@ -1,0 +1,101 @@
+/* UI layout polish - compact header, unified form toolbar, smaller radii */
+:root{
+  --ui-radius-lg: 9px;
+  --ui-radius-md: 7px;
+  --ui-radius-sm: 5px;
+}
+
+/* Compact global header */
+.site-header{
+  padding:0 25px 0 !important;
+}
+.site-header-inner{
+  min-height:42px !important;
+  padding:6px 10px !important;
+  gap:8px !important;
+  border-radius:var(--ui-radius-lg) !important;
+}
+.site-header-left{
+  gap:6px !important;
+}
+.site-brand{
+  padding-right:8px !important;
+  margin-right:0 !important;
+}
+.site-header .toolbar-logo{
+  width:86px !important;
+  max-width:86px !important;
+}
+.classic-nav{
+  gap:1px !important;
+  padding:2px 3px !important;
+  border-radius:var(--ui-radius-lg) !important;
+}
+.classic-nav .tab-button{
+  padding:6px 8px !important;
+  border-radius:var(--ui-radius-md) !important;
+  font-size:13px !important;
+}
+.site-header-right.security-user-area,
+.security-header-area{
+  gap:6px !important;
+  font-size:12px !important;
+}
+.security-header-area .mini-button,
+.site-header-right.security-user-area .mini-button{
+  padding:5px 8px !important;
+  border-radius:var(--ui-radius-md) !important;
+}
+
+/* Global compact margins and softer corners */
+.app-shell{
+  padding:10px 25px 18px !important;
+  gap:10px !important;
+}
+.panel-card,
+.home-hero-card,
+.home-markdown,
+.input-card,
+.result-card,
+.split-card,
+.admin-card,
+.admin-tile,
+.status-tile,
+.markdown-card,
+.xml-index-node,
+.m2m-table-wrapper,
+.app-footer-inner{
+  border-radius:var(--ui-radius-lg) !important;
+}
+button,
+.button-like,
+.mini-button,
+.tab-button,
+input[type=text],
+input[type=file],
+input[type=search],
+input[type=date],
+input[type=number],
+select,
+textarea,
+.form-field,
+.form-section,
+.fieldgroup-card,
+.uimodel-field,
+.uimodel-fieldgroup,
+.uimodel-section-card,
+.xml-save-menu,
+.view-menu,
+.print-menu,
+.status-pill,
+.selected-xpath-label,
+.field-search-input,
+.field-search-results,
+.xml-file-menu,
+.app-dialog-card,
+.admin-log-viewer,
+.admin-pre-wrap,
+.m2m-log-pre{
+  border-radius:var(--ui-radius-md) !important;
+}
+

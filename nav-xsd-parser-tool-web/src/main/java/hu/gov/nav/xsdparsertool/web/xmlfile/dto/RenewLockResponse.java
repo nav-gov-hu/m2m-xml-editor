@@ -1,0 +1,16 @@
+package hu.gov.nav.xsdparsertool.web.xmlfile.dto;
+
+import java.time.LocalDateTime;
+
+/**
+ * A webes rétegek közötti adatátadás strukturált modellje.
+ *
+ * <p>A {@code RenewLockResponse} rekord a web modul XML-állománykezelési területéhez tartozik. A típus a réteg felelősségi határain belül tartja a hozzá tartozó adatokat és műveleteket, és nem helyettesíti az alacsonyabb szintű modulok üzleti szolgáltatásait.</p>
+ */
+public record RenewLockResponse(
+        Long xmlFileId,
+        String lockToken,
+        String lockedBy,
+        LocalDateTime lockExpiresAt,
+        String status
+) {}

@@ -1,0 +1,85 @@
+package hu.nav.m2m.submitter.dto;
+
+import hu.nav.m2m.submitter.domain.InterfaceType;
+import hu.nav.m2m.submitter.domain.GatewayMode;
+import hu.nav.m2m.submitter.domain.SubmissionStatus;
+import hu.nav.m2m.submitter.domain.CompressionType;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Az M2M beküldés állapotát, csatolmányait és kapcsolódó műveleti adatokat összefogó REST válasz.
+ */
+public record SubmissionResponse(
+        UUID id,
+        InterfaceType interfaceType,
+        String bizonylatTipus,
+        String bizonylatVerzio,
+        GatewayMode gatewayMode,
+        String xmlFileName,
+        Long xmlFileSize,
+        String xmlSha256Hex,
+        CompressionType compression,
+        String navFileId,
+        String navUgyAzonosito,
+        String navErkeztetesiSzam,
+        String navStatus,
+        SubmissionStatus internalStatus,
+        String resultCode,
+        String resultMessage,
+        Instant navBefogadasIdopontja,
+        String navMegjegyzes,
+        String navValidaciosHibak,
+        String navResponseBody,
+        Integer navHttpStatus,
+        Instant submissionStartedAt,
+        Instant submissionFinishedAt,
+        Long submissionDurationMs,
+        String messageId,
+        String correlationId,
+        Instant createdAt,
+        Instant updatedAt,
+        Instant m2mSubmitMarkedAt,
+        Instant m2mSubmittedAt,
+        Instant m2mFinalizedAt,
+        Instant m2mNextPollAt,
+        Instant m2mLastPollAt,
+        Integer m2mPollAttempts,
+        Boolean m2mTerminal,
+        Boolean m2mResubmittable,
+        String navValidacioUgyAzonosito,
+        String navValidacioStatusz,
+        String navValidacioResultCode,
+        String navValidacioResultMessage,
+        String navValidacioHibak,
+        String navValidaciosTanusitvany,
+        String navValidacioResponseBody,
+        Instant navValidacioStartedAt,
+        Instant navValidacioFinishedAt,
+        Instant navValidacioLastCheckedAt,
+        String navValidacioMessageId,
+        String navValidacioCorrelationId,
+        String navValidacioPayloadSha256,
+        Boolean fastTrackSubmissionEligible,
+        Boolean fastTrackSubmissionUsed,
+        String navKalkulacioUgyAzonosito,
+        String navKalkulacioStatusz,
+        String navKalkulacioResultCode,
+        String navKalkulacioResultMessage,
+        String navKalkulacioHibaKod,
+        String navKalkulacioHibaUzenet,
+        String navKalkulacioMezoAzonosito,
+        String navKalkulacioSzabalyAzonosito,
+        String navKalkulacioTomorites,
+        String navKalkulaltXml,
+        String navKalkulacioResponseBody,
+        Instant navKalkulacioStartedAt,
+        Instant navKalkulacioFinishedAt,
+        Instant navKalkulacioLastCheckedAt,
+        String navKalkulacioMessageId,
+        String navKalkulacioCorrelationId,
+        List<AttachmentReferenceDto> xmlAttachmentReferences,
+        List<UploadedAttachmentDto> uploadedAttachments
+) {}

@@ -1,0 +1,542 @@
+/* Sprint 11 v9 - runtime multiform viewer with searchable virtual dropdown */
+.multiform-runtime-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 100%;
+}
+.multiform-runtime-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color, #d6e2f2);
+  padding: 0 0 8px 0;
+}
+.multiform-runtime-tab {
+  border: 1px solid var(--border-color, #d6e2f2);
+  border-radius: 12px 12px 0 0;
+  background: #f7fbff;
+  color: #123b6d;
+  font-weight: 700;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.multiform-runtime-tab.active {
+  background: #ffffff;
+  border-bottom-color: #ffffff;
+  box-shadow: 0 -2px 10px rgba(24, 86, 160, 0.08);
+}
+.multiform-runtime-panel { display: none; }
+.multiform-runtime-panel.active { display: block; }
+.multiform-repeating-selector-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 1180px;
+}
+.multiform-selector-toolbar {
+  border: 1px solid var(--border-color, #d6e2f2);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(24, 86, 160, 0.06);
+  padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(160px, 190px) minmax(420px, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+.multiform-selector-control,
+.multiform-selector-combo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #063568;
+  font-weight: 700;
+  font-size: 13px;
+}
+.multiform-selector-control select,
+.multiform-selector-combo input {
+  min-height: 38px;
+  border: 1px solid var(--border-color, #c7d7ed);
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: #fff;
+  color: #10253f;
+}
+.multiform-selector-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.multiform-dropdown-toggle {
+  min-height: 38px;
+}
+.multiform-selector-hint {
+  color: #587594;
+  font-size: 13px;
+  padding: 0 4px;
+}
+.multiform-suggestion-dropdown {
+  display: none;
+  border: 1px solid #c7d7ed;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(24, 86, 160, 0.16);
+  max-width: 920px;
+  overflow: hidden;
+}
+.multiform-suggestion-dropdown.open {
+  display: block;
+}
+.multiform-suggestion-list {
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.multiform-suggestion-item {
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #e4edf8;
+  background: #ffffff;
+  color: #10253f;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.multiform-suggestion-item:hover,
+.multiform-suggestion-item.selected {
+  background: #eaf4ff;
+  color: #073a70;
+}
+.multiform-suggestion-empty,
+.multiform-suggestion-more {
+  color: #587594;
+  font-weight: 700;
+  padding: 14px;
+  text-align: center;
+}
+.multiform-selected-form-host {
+  min-height: 320px;
+}
+.multiform-detail-empty {
+  border: 1px dashed #c7d7ed;
+  border-radius: 16px;
+  color: #547095;
+  background: #fbfdff;
+  font-weight: 700;
+  padding: 34px;
+  text-align: center;
+}
+.multiform-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  color: #063568;
+  border: 1px solid #d6e2f2;
+  border-radius: 14px;
+  background: #f7fbff;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.multiform-detail-header span {
+  color: #587594;
+  font-size: 13px;
+}
+.multiform-runtime-field .uimodel-field-value {
+  min-height: 32px;
+  border: 1px solid #d5e2f1;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: #fafcff;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+@media (max-width: 1200px) {
+  .multiform-selector-toolbar { grid-template-columns: 1fr; }
+}
+
+/* Sprint 11 v10 - multiform viewer layout polish */
+body.form-only-layout.uimodel-form-renderer-active #formContainer {
+  width: min(100%, 80vw);
+  max-width: none;
+  margin: 0 auto;
+}
+body.form-only-layout.uimodel-form-renderer-active .uimodel-form-shell,
+body.form-only-layout.uimodel-form-renderer-active .multiform-runtime-shell {
+  width: 100%;
+  max-width: none;
+}
+body.form-only-layout.uimodel-form-renderer-active .uimodel-section-card,
+body.form-only-layout.uimodel-form-renderer-active .uimodel-table-block,
+body.form-only-layout.uimodel-form-renderer-active .uimodel-fieldgroup,
+body.form-only-layout.uimodel-form-renderer-active .multiform-detail-card {
+  max-width: none;
+}
+body.form-only-layout.uimodel-form-renderer-active .multiform-repeating-selector-layout {
+  max-width: none;
+}
+
+.multiform-runtime-shell {
+  position: relative;
+  gap: 0;
+}
+.multiform-runtime-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 18;
+  background: #ffffff;
+  padding-top: 4px;
+  margin-bottom: 0;
+}
+.multiform-runtime-toolbar {
+  position: sticky;
+  top: 52px;
+  z-index: 17;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0 12px 0;
+  margin-bottom: 12px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-color, #d6e2f2);
+}
+.multiform-runtime-toolbar .pane-field-search-toolbar {
+  flex: 1 1 460px;
+  min-width: 320px;
+}
+.multiform-runtime-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 0 1 auto;
+}
+.multiform-runtime-action-row .pane-header-actions,
+.multiform-runtime-action-row .xml-toolbar-buttons-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: 0;
+  width: auto;
+}
+.multiform-runtime-panel.active {
+  min-height: 0;
+}
+.multiform-repeating-selector-layout {
+  max-width: none;
+}
+.multiform-selector-toolbar {
+  position: sticky;
+  top: 116px;
+  z-index: 16;
+  grid-template-columns: minmax(220px, 280px) minmax(170px, 210px) minmax(420px, 1fr);
+  margin-bottom: 10px;
+}
+.multiform-suggestion-dropdown.open {
+  position: relative;
+  z-index: 21;
+}
+.multiform-selected-form-host {
+  width: 100%;
+  max-width: none;
+}
+.multiform-detail-header {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  background: #ffffff;
+}
+.multiform-detail-card .uimodel-fields-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: start;
+}
+.multiform-detail-card .uimodel-field.multiform-runtime-field {
+  grid-column: auto !important;
+  min-width: 0;
+}
+.multiform-detail-card .uimodel-field-label {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: auto;
+  line-height: 1.25;
+}
+.multiform-detail-card .uimodel-field-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+@media (min-width: 1500px) {
+  .multiform-detail-card .uimodel-fields-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
+/* Sprint 11 v12 - multiform viewer UX cleanup */
+#formPanel > .pane-header {
+  display: none;
+}
+.multiform-selector-toolbar,
+.multiform-selector-hint,
+.multiform-dropdown-toggle {
+  display: none !important;
+}
+.multiform-inline-selector-row {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex: 1 1 520px;
+  min-width: 320px;
+}
+.multiform-inline-selector-row .multiform-selector-combo {
+  flex: 1 1 auto;
+  min-width: 280px;
+}
+.multiform-inline-selector-row .multiform-selector-input-row {
+  display: block;
+}
+.multiform-inline-selector-row .multiform-selector-combo input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.multiform-repeating-selector-layout {
+  gap: 8px;
+}
+.multiform-selected-form-host {
+  margin-top: 8px;
+}
+.multiform-detail-header {
+  top: 0;
+}
+.multiform-detail-card .uimodel-fields-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+.multiform-detail-card .uimodel-field.multiform-uimodel-field {
+  min-width: 0;
+}
+.multiform-detail-card .uimodel-field.multiform-uimodel-field input,
+.multiform-detail-card .uimodel-field.multiform-uimodel-field select,
+.multiform-detail-card .uimodel-field.multiform-uimodel-field textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.multiform-detail-card .uimodel-label-text {
+  overflow-wrap: anywhere;
+}
+.multiform-suggestion-dropdown.open {
+  width: 100%;
+  max-width: none;
+}
+.multiform-runtime-toolbar .multiform-repeating-selector-layout {
+  display: contents;
+}
+.multiform-selector-mount {
+  flex: 2 1 520px;
+  min-width: 360px;
+}
+.multiform-selector-mount[hidden],
+.multiform-selector-mount:empty {
+  display: none;
+}
+
+/* Sprint 11 v14: XSD hibás mezők űrlapon történő javítása. */
+.form-field.xsd-invalid-field,
+.uimodel-field.xsd-invalid-field {
+  border: 1px solid #dc2626 !important;
+  background: #fff1f2 !important;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.08);
+}
+.form-field.xsd-invalid-field input,
+.form-field.xsd-invalid-field select,
+.form-field.xsd-invalid-field textarea {
+  border-color: #dc2626 !important;
+  background: #fffafa;
+}
+
+/* Nagy XML melléklapok: lapozható lista és a meglévő tab-sávban megnyíló részletek. */
+.multiform-runtime-shell {
+  background: #fff;
+}
+.multiform-runtime-tabs {
+  min-height: 38px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+.multiform-runtime-toolbar {
+  top: 38px;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 8px;
+  background: #fff;
+}
+.multiform-runtime-panel {
+  background: #fff;
+}
+.multiform-runtime-detail-tab {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.form-unified-toolbar-section-xml .multiform-selector-mount {
+  display: flex;
+  flex: 1 1 420px;
+  min-width: 280px;
+  max-width: 760px;
+  margin-left: 10px;
+}
+.form-unified-toolbar-section-xml .multiform-selector-mount[hidden],
+.form-unified-toolbar-section-xml .multiform-selector-mount:empty {
+  display: none;
+}
+.multiform-table-search-wrap {
+  width: 100%;
+}
+.multiform-table-search-wrap input {
+  width: 100%;
+  min-height: 34px;
+  box-sizing: border-box;
+}
+.multiform-table-layout {
+  display: block;
+  width: 100%;
+  padding-top: 12px;
+}
+.multiform-table-card {
+  width: 100%;
+  border: 1px solid var(--border-color, #d6e2f2);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.multiform-table-header,
+.multiform-table-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--nav-theme-subtle, #f4f7fb);
+}
+.multiform-table-header {
+  border-bottom: 1px solid var(--border-color, #d6e2f2);
+}
+.multiform-table-pager {
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-color, #d6e2f2);
+}
+.multiform-table-pager button,
+.multiform-table-pager select {
+  min-height: 32px;
+}
+.multiform-table-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 330px);
+}
+.multiform-record-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.multiform-record-table th,
+.multiform-record-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-color, #e4ebf5);
+  text-align: left;
+  vertical-align: top;
+}
+.multiform-record-table th:first-child,
+.multiform-record-table td:first-child {
+  width: 110px;
+}
+.multiform-record-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--nav-theme-primary, #155acb);
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+.multiform-record-link:hover,
+.multiform-record-link:focus-visible {
+  text-decoration: underline;
+}
+.multiform-table-empty {
+  padding: 24px !important;
+  text-align: center !important;
+  color: var(--nav-theme-muted, #64748b);
+}
+
+/* Large multiform table: same pagination language as the XML files screen. */
+.multiform-table-pager .xml-files-pagination-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.multiform-table-pager .xml-files-page-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: auto;
+}
+.multiform-table-pager .xml-files-page-number {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d7e0eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f4fa8;
+  font-weight: 800;
+  cursor: pointer;
+}
+.multiform-table-pager .xml-files-page-number:hover {
+  border-color: #8eb4ea;
+  background: #f4f8fe;
+}
+.multiform-table-pager .xml-files-page-number.is-active {
+  border-color: #1261c9;
+  background: #eaf2ff;
+  color: #0b4da4;
+}
+.multiform-table-pager .xml-files-page-gap {
+  padding: 0 3px;
+  color: #60758d;
+  font-weight: 800;
+}
+.multiform-record-table th,
+.multiform-record-table td {
+  white-space: nowrap;
+}
+.multiform-table-scroll {
+  overflow: auto;
+}
+
+/* Egyideju szerkesztesi zar: mentetlen es sikeresen mentett taballapot. */
+.multiform-runtime-tab.is-dirty,
+.multiform-runtime-tab[data-save-state="dirty"] {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #991b1b !important;
+}
+.multiform-runtime-tab.is-saved,
+.multiform-runtime-tab[data-save-state="saved"] {
+  background: #dcfce7 !important;
+  border-color: #86efac !important;
+  color: #166534 !important;
+}
+.multiform-runtime-tab.is-dirty::after { content: "  • Mentetlen"; font-size: .82em; font-weight: 700; }
+.multiform-runtime-tab.is-saved::after { content: "  ✓ Mentve"; font-size: .82em; font-weight: 700; }

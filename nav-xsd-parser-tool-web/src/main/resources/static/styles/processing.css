@@ -1,0 +1,182 @@
+/* Sprint 3 - Űrlapállománykezelő oldal */
+.xml-files-page .lead { margin: 0.25rem 0 0; color: var(--muted-text, #405578); }
+.xml-file-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.xml-file-action-card {
+  border: 1px solid rgba(59, 103, 170, 0.22);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.72);
+  padding: 1rem;
+  box-shadow: 0 6px 18px rgba(20, 50, 90, 0.06);
+}
+.xml-file-action-card h2 { margin: 0 0 .35rem; font-size: 1.05rem; color: #0b3b75; }
+.xml-file-form { display: grid; gap: .55rem; margin-top: .75rem; }
+.xml-file-form input[type="text"],
+.xml-file-form input[type="file"],
+.xml-file-form select {
+  width: 100%;
+  border: 1px solid #b9c9e8;
+  border-radius: 10px;
+  padding: .58rem .7rem;
+  background: #fff;
+}
+.xml-files-table-wrap { overflow: auto; max-height: 58vh; }
+.xml-files-table th { position: sticky; top: 0; z-index: 1; background: #edf4ff; }
+.xml-file-path { color: #60708c; font-size: .78rem; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xml-files-table tr.is-archived { opacity: .7; }
+.message { margin: .75rem 0; border-radius: 12px; padding: .75rem .9rem; font-weight: 700; }
+.message-success { background: #e9f8ef; color: #0f7038; border: 1px solid #b9e7c9; }
+.message-error { background: #fff0f0; color: #9b1414; border: 1px solid #f0b7b7; }
+.security-header-area {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: #163a6b;
+  font-size: .9rem;
+}
+.security-header-area[hidden] { display: none !important; }
+.logout-form { margin: 0; }
+@media (max-width: 900px){
+  .security-header-area { width: 100%; justify-content: flex-end; margin-top: .5rem; }
+}
+
+.xml-file-resources {
+  margin-top: 0.35rem;
+  color: #4b5f7b;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  word-break: break-all;
+}
+
+.xml-file-resolution-status {
+  margin-top: 0.25rem;
+  color: #4b5f7b;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.xml-file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.xml-file-readonly-mode #saveXmlFileButton,
+.xml-file-readonly-mode #applyXmlSourceButton {
+  opacity: .55;
+  pointer-events: none;
+}
+
+/* Sprint 6: egységes processing job overlay */
+.processing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(9, 23, 48, 0.42);
+  backdrop-filter: blur(4px);
+}
+.processing-overlay[hidden] {
+  display: none !important;
+}
+.processing-dialog {
+  width: min(560px, 96vw);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  align-items: start;
+  padding: 24px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #c7d7f3;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+.processing-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 5px solid #dbe8ff;
+  border-top-color: #2563eb;
+  animation: processing-spin 0.9s linear infinite;
+}
+.processing-copy h2 {
+  margin: 0 0 8px;
+}
+.processing-message {
+  min-height: 1.4em;
+  margin: 0 0 14px;
+  color: #334155;
+}
+.processing-progress {
+  width: 100%;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5eefc;
+  border: 1px solid #c7d7f3;
+}
+.processing-progress-bar {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1d4ed8, #38bdf8);
+  transition: width 0.25s ease;
+}
+.processing-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-weight: 700;
+}
+.processing-actions {
+  margin-top: 18px;
+}
+@keyframes processing-spin {
+  to { transform: rotate(360deg); }
+}
+@media (max-width: 640px) {
+  .processing-dialog {
+    grid-template-columns: 1fr;
+  }
+}
+
+.access-denied-layout {
+  min-height: calc(100vh - 86px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.access-denied-card {
+  max-width: 760px;
+  width: 100%;
+}
+
+.access-denied-card h1 {
+  margin-top: 0;
+}
+
+.header-nav a.hidden-by-role,
+.header-nav a[hidden] {
+  display: none !important;
+}
+
+/* Sprint 7: XSD validacio megszakitott/allapot figyelmeztetes. */
+.xpath-popup-message.warning {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+

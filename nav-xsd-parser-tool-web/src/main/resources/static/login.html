@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XML EDITOR MINTA - Bejelentkezés</title>
+  <script>
+    (function () {
+      var mode = null;
+      var cookieMatch = document.cookie.match(/(?:^|;\s*)nav_xsd_parser_color_scheme=(dark|light)(?:;|$)/);
+      if (cookieMatch) mode = cookieMatch[1];
+      if (!mode) {
+        try {
+          var stored = localStorage.getItem('nav-xsd-parser-color-scheme');
+          if (stored === 'dark' || stored === 'light') mode = stored;
+        } catch (ignored) {}
+      }
+      if (!mode) mode = 'light';
+      document.documentElement.setAttribute('data-color-scheme', mode);
+      document.documentElement.style.colorScheme = mode;
+    }());
+  </script>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles/base.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/shell.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/layout.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/validation.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-viewer.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/processing.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/dialogs.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files-advanced.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/home.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/admin.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/multiform.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/m2m.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/compact-ui.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-toolbar.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/login.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+</head>
+<body class="nav-application-theme">
+<main class="login-page">
+  <section class="login-card" aria-labelledby="loginTitle">
+    <div class="login-brand">
+      <div>
+        <h1 class="login-title" id="loginTitle">Bejelentkezés</h1>
+        <p class="login-subtitle">M2M XML SZERKESZTŐ</p>
+      </div>
+    </div>
+
+    <div id="loginError" class="login-alert error">Sikertelen bejelentkezés. Ellenőrizd a felhasználónevet és a jelszót.</div>
+    <div id="loginLogout" class="login-alert success">Sikeresen kijelentkeztél.</div>
+    <div id="loginExpired" class="login-alert error">A munkamenet lejárt. Jelentkezz be újra.</div>
+    <div id="masterKeyError" class="login-alert error">A titkosítási mesterkulcs nem oldható fel. Ellenőrizd a jelszót és a master.key fájl sértetlenségét.</div>
+
+    <form method="post" action="/login" autocomplete="on">
+      <div class="login-field">
+        <label for="username">Felhasználónév</label>
+        <input id="username" name="username" type="text" autocomplete="username" required autofocus>
+      </div>
+      <div class="login-field">
+        <label for="password">Jelszó</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="login-button">Belépés</button>
+      <div class="login-version">Verzió: @app.display.version@</div>
+    </form>
+  </section>
+</main>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('error')) document.getElementById('loginError').style.display = 'none';
+  if (!params.has('logout')) document.getElementById('loginLogout').style.display = 'none';
+  if (!params.has('sessionExpired')) document.getElementById('loginExpired').style.display = 'none';
+  if (!params.has('masterKeyError')) document.getElementById('masterKeyError').style.display = 'none';
+</script>
+</body>
+</html>

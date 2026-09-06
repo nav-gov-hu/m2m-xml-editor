@@ -1,0 +1,15 @@
+drop table APP_ROLE cascade constraints PURGE;
+drop table APP_USER cascade constraints PURGE;
+drop table APP_USER_ROLE cascade constraints PURGE;
+drop table flyway_schema_history cascade constraints PURGE;
+drop table OPERATION_AUDIT_LOG cascade constraints PURGE;
+drop table PROCESSING_JOB cascade constraints PURGE;
+drop table XML_FILE cascade constraints PURGE;
+drop table XML_FILE_LOCK cascade constraints PURGE;
+drop table XML_FILE_SESSION cascade constraints PURGE;
+drop table XPATH_VALIDATION_ERROR cascade constraints PURGE;
+drop table XPATH_VALIDATION_REQUEST cascade constraints PURGE;
+drop table XPATH_VALIDATION_REQUEST_JOURNAL cascade constraints PURGE;
+drop table XSD_VALIDATION_ERROR cascade constraints PURGE;
+drop table XSD_VALIDATION_REQUEST cascade constraints PURGE;
+drop table "DC7"."flyway_schema_history" cascade constraints PURGE;

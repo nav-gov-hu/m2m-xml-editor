@@ -1,0 +1,208 @@
+﻿M2M XML EDITOR
+LICENC ÉS NYILATKOZATOK
+
+========================================================================
+1. SZERZŐI JOG
+========================================================================
+
+Copyright © [2026] Nemzeti Adó- és Vámhivatal (NAV), Magyarország
+
+A szoftvert a NAV fejleszti és teszi közzé az ügyfelei (adózók, könyvelők,
+adatszolgáltatók, szoftverfejlesztők) számára, hogy segítse a NAV M2M
+(machine-to-machine) XML séma- és UI model szabványok szerinti űrlapok
+kezelését.
+
+========================================================================
+2. LICENC
+========================================================================
+
+Ez a szoftver az Európai Unió Nyilvános Licencének (EUPL) 1.2 vagy bármely
+későbbi verziója alatt áll rendelkezésre. Az EUPL 15. cikkében foglaltak szerint,
+és azt megerősítve: mivel a licencbe adó NAV székhelye Magyarországon található, 
+erre a licencre – valamint a jelen fájlban foglalt kiegészítő rendelkezésekre – 
+Magyarország joga az irányadó, a nemzetközi magánjogi kollíziós szabályok
+alkalmazása nélkül. Az EUPL 14. cikke alapján a licenc értelmezéséből eredő
+jogvitákra a licencbe adó székhelye szerinti magyar bíróság rendelkezik kizárólagos
+joghatósággal. E rendelkezés az EUPL által biztosított jogokat nem szűkíti.
+
+A teljes licencszöveg a következő helyen érhető el:
+The full text of the Licence is available at:
+
+    https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+
+A hivatalos magyar nyelvű változat ezen az oldalon, a "HU" nyelvi
+változatban érhető el.
+
+Az EUPL alatt Önnek joga van a szoftvert:
+  - használni bármilyen célra,
+  - tanulmányozni és módosítani,
+  - többszörözni és terjeszteni (akár módosítva is),
+  a licencben részletezett feltételek mellett (különösen: a copyright
+  feliratok megtartása, módosítások jelzése, és származékos művek azonos
+  licenc alatti továbbterjesztése — copyleft).
+
+========================================================================
+3. GARANCIA KIZÁRÁSA
+========================================================================
+
+Az EUPL 7. szakaszában foglaltak szerint, és azt megerősítve:
+
+A szoftvert a szerző "AHOGY VAN" ("AS IS") alapon bocsátja rendelkezésre,
+mindenfajta — sem kifejezett, sem hallgatólagos — szavatosság vagy garancia
+nélkül. Ez különösen, de nem kizárólagosan, magában foglalja a forgalmazha-
+tóságra, az adott célra való alkalmasságra, a hibamentességre, a folyamatos
+működésre, a jogtisztaságra (harmadik fél jogainak nem sértésére), valamint
+az adatok pontosságára vonatkozó szavatosságok kizárását.
+
+========================================================================
+4. FELELŐSSÉG KORLÁTOZÁSA
+========================================================================
+
+Az EUPL 8. szakaszában foglaltak szerint, és azt megerősítve:
+
+A NAV (mint szerző és jogosult) semmilyen jogcímen — sem szerződéses, sem
+szerződésen kívüli (deliktuális), sem egyéb alapon — nem felelős semmilyen
+közvetlen vagy közvetett, anyagi vagy nem anyagi kárért, amely a szoftver
+használatából vagy a használat akadályozottságából ered. Ide tartoznak
+különösen, de nem kizárólagosan: adatvesztés, üzleti tevékenység megszaka-
+dása, elmaradt haszon, hardver- vagy szoftverhiba, valamint a szoftverrel
+előállított vagy kezelt XML állományokra vonatkozó adattartalmi vagy formai
+hibákból eredő következmények a jogszabály által megengedett legteljesebb
+mértékben, a szándékos károkozás, valamint a természetes személyeknek
+közvetlenül okozott károk kivételével.
+
+========================================================================
+5. ADATVÉDELEM
+========================================================================
+
+A szoftver a felhasználó saját eszközén, helyben futó alkalmazás. Az általa
+megnyitott, szerkesztett, validált és mentett XML állományok — amelyek jellemzően
+adózói, könyvelési és egyéb személyes adatokat tartalmaznak — kizárólag a
+felhasználó eszközén kerülnek feldolgozásra; a szoftver ezeket a NAV részére nem
+továbbítja, és a NAV ezekhez semmilyen módon nem fér hozzá. Ennek megfelelően az
+így kezelt személyes adatok tekintetében az (EU) 2016/679 rendelet (GDPR) szerinti
+adatkezelő a felhasználó, illetve az a szervezet, amelynek nevében a felhasználó eljár.
+A NAV e körben sem adatkezelőnek, sem adatfeldolgozónak nem minősül, és a szoftver e
+használatához adatvédelmi tájékoztató kiadására nem köteles. A felhasználó felelős
+azért, hogy az általa kezelt adatok vonatkozásában a jogalapot, az érintetti
+tájékoztatást, a megőrzési időt és a megfelelő technikai-szervezési intézkedéseket
+— így különösen az eszköz és a mentett állományok védelmét — biztosítsa.
+A szoftver nem gyűjt telemetriai, használati vagy diagnosztikai adatot, azt harmadik
+fél részére nem továbbítja. Az alkalmazás által készített helyi naplóállományok
+kizárólag a felhasználó eszközén jönnek létre és maradnak. Ezek tartalmazhatják a 
+feldolgozott állományok elérési útját és a hibaüzenetek részleteit, ezért hibajegy
+beküldése esetén a felhasználó felelőssége, hogy a naplóból a személyes adatokat
+eltávolítsa. A projekt nyilvános repozitóriuma nem alkalmas személyes adat vagy valós
+adóadat továbbítására, oda ilyen állomány nem tölthető fel.
+A NAV felé történő tényleges adatszolgáltatás és űrlapbeküldés ezen forráskódon illetve
+repozitóriumon keresztül nem történik.
+Az ehhez kapcsolódó adatkezelésre a NAV honlapján közzétett, mindenkor hatályos 
+adatkezelési tájékoztatók irányadók.
+
+========================================================================
+6. HIVATALOS TÁMOGATÁS HIÁNYA
+========================================================================
+
+Bár ezt a szoftvert a NAV fejleszti és teszi közzé, a NAV — mint hatóság —
+ehhez a szoftverhez NEM nyújt:
+
+  (a) szolgáltatási szintű megállapodást (SLA),
+  (b) garantált hibajavítási vagy reakcióidőt,
+  (c) hivatalos ügyfélszolgálati / helpdesk támogatást,
+  (d) telepítési, üzemeltetési vagy testreszabási szolgáltatást,
+  (e) a szoftver kimenete nem minősül a NAV hatósági döntésének,
+  	  hivatalos tájékoztatásának, sem az Art./Air. szerinti bármely
+  	  kötelező erejű nyilatkozatnak.
+
+A szoftver használata az Ön felelősségére történik. A szoftverrel kapcsolatos
+kérdéseket és hibajegyeket a https://github.com/nav-gov-hu/m2m-xml-editor/issues
+valamint a https://github.com/nav-gov-hu/m2m-xml-editor/discussions
+címen lehet benyújtani. A NAV ezekre — kapacitásától függően — legjobb
+szándékkal, de kötelezettség nélkül reagál.
+
+========================================================================
+7. A SZOFTVER KIMENETÉNEK JOGI STÁTUSZA
+========================================================================
+
+A szoftver által végzett XSD-séma és XPath validáció, fájlkezelés, mentés,
+verziózás és bármely más művelet TÁJÉKOZTATÓ JELLEGŰ technikai segédlet.
+
+A szoftver kimenete és a benne végzett validáció:
+
+  (a) NEM helyettesíti a NAV felé történő hivatalos adat- vagy űrlapbeküldést;
+  (b) NEM minősül hatósági ellenőrzésnek, ellenjegyzésnek vagy jogi
+      állásfoglalásnak;
+  (c) NEM mentesít az adóügyi, adatszolgáltatási, könyvviteli és egyéb
+      jogszabályi kötelezettségek alól.
+
+A felhasználó felelős azért, hogy a NAV felé ténylegesen benyújtott állományok
+tartalmilag és formailag is megfeleljenek a hatályos jogszabályoknak és a
+NAV által közzétett, mindenkor érvényes hivatalos séma- és üzleti
+szabályoknak.
+
+========================================================================
+8. VÉDJEGYEK ÉS A SZOFTVER NEVE
+========================================================================
+
+8.1. A NAV megjelölései — NEM részei a licencnek
+
+A "NAV", a "Nemzeti Adó- és Vámhivatal" megjelölés, valamint a NAV
+emblémája és egyéb hivatalos jelei a NAV tulajdonát képezik
+és NEM állnak az EUPL hatálya alatt. Az EUPL által biztosított jogok NEM
+foglalják magukban e megjelölések és emblémák használatát.
+
+A "NAV M2M" elnevezés a szoftverben és annak dokumentációjában kizárólag
+a NAV által közzétett M2M szabványok azonosítása céljából szerepel.
+
+
+8.2. A szoftver neve: "M2M XML EDITOR" — NEM részei a licencnek
+
+A "M2M XML EDITOR" megnevezés (és ennek rövidített formái,
+valamint az ehhez kapcsolódó logó, ikon és vizuális megjelenés) a NAV
+tulajdonát képezik, és KIFEJEZETTEN KI VANNAK ZÁRVA az EUPL hatálya alól.
+
+Ennek megfelelően az EUPL által biztosított jogok (felhasználás, módosítás,
+többszörözés, terjesztés) NEM terjednek ki a "M2M XML EDITOR"
+név, embléma és vizuális azonosítás felhasználására.
+
+A "M2M XML EDITOR" elnevezést, embléma és vizuális
+megjelenést kizárólag a NAV által hivatalosan kiadott változatokban szabad
+használni. Származékos művek (forkok, módosított kiadások, integrált
+termékek) NEM jogosultak ezt a nevet vagy ennek bármely megtévesztésig
+hasonló változatát saját termékükre használni — sem teljes, sem rövidített
+formában (pl. "NAV M2M EDITOR", "NAV XML EDITOR" és ehhez hasonló
+megjelölések is kizártak).
+
+
+8.3. Származékos művekre vonatkozó kötelezettség
+
+Származékos művek és továbbterjesztett változatok esetén a fenti
+megjelöléseket — beleértve a NAV neveket és emblémát, valamint a "M2M
+XML EDITOR" megnevezést — az alkalmazás nevéből, dokumentációjából
+és vizuális megjelenéséből el kell távolítani vagy átalakítani úgy, hogy a
+származékos mű ne keltse a NAV általi hivatalos kiadás látszatát.
+
+Megengedett ugyanakkor olyan tényközlő hivatkozás, amely a származékos mű
+eredetét leírja, például: "Ez a szoftver a NAV által kiadott M2M XML EDITOR
+származékos műve, amelyet a NAV NEM támogat hivatalosan." Az
+ilyen hivatkozás nem alkothatja a származékos mű elsődleges megjelölését.
+
+========================================================================
+9. HARMADIK FÉL ÖSSZETEVŐI / THIRD-PARTY COMPONENTS
+========================================================================
+
+Ez a szoftver harmadik felek által fejlesztett, saját licencük alatt
+terjesztett nyílt forráskódú összetevőket használ (pl. Spring Boot,
+SLF4J / Logback, picocli, Saxon-HE, springdoc-openapi, JDBC meghajtók
+stb.). Ezen összetevők saját szerzői joga és licence érvényesül rájuk;
+a vonatkozó licencszövegek a `NOTICE` / `THIRD-PARTY-NOTICES` fájlban
+találhatók (a NAV által kiadott csomag részeként).
+
+========================================================================
+10. KAPCSOLAT / CONTACT
+========================================================================
+
+   Nemzeti Adó- és Vámhivatal
+   https://github.com/nav-gov-hu/m2m-xml-editor
+
+

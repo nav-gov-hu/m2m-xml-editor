@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#f7fbff"/>
+      <stop offset="1" stop-color="#eef7ff"/>
+    </linearGradient>
+    <linearGradient id="wave1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1f6fca" stop-opacity="0.42"/>
+      <stop offset="0.5" stop-color="#22a7c7" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#62b83f" stop-opacity="0.38"/>
+    </linearGradient>
+    <linearGradient id="wave2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#73b8ff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#62c96a" stop-opacity="0.24"/>
+    </linearGradient>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="2" fill="#3b91dc" opacity="0.18"/>
+    </pattern>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect x="1390" y="0" width="530" height="340" fill="url(#dots)" opacity="0.55"/>
+  <g fill="none" stroke="#4e9ce1" stroke-width="2" opacity="0.22">
+    <path d="M80 190h120l55 55h120l70-70h130"/>
+    <path d="M1460 120h125l45 45h130"/>
+    <path d="M1540 210h85l50 50h120"/>
+    <path d="M120 760h110l55-55h125"/>
+  </g>
+  <g fill="none" stroke="#4e9ce1" stroke-width="2" opacity="0.28">
+    <path d="M1410 120l42 24v48l-42 24-42-24v-48z"/>
+    <path d="M1515 190l52 30v60l-52 30-52-30v-60z"/>
+    <path d="M1640 95l34 20v40l-34 20-34-20v-40z"/>
+    <path d="M1700 360l58 34v68l-58 34-58-34v-68z"/>
+    <path d="M160 250l48 28v56l-48 28-48-28v-56z"/>
+    <path d="M85 650l40 24v48l-40 24-40-24v-48z"/>
+  </g>
+  <g fill="#2d86d0" opacity="0.24">
+    <circle cx="200" cy="190" r="6"/><circle cx="375" cy="245" r="6"/><circle cx="1448" cy="144" r="6"/>
+    <circle cx="1585" cy="165" r="6"/><circle cx="1675" cy="260" r="6"/><circle cx="285" cy="705" r="6"/>
+  </g>
+  <g fill="none" stroke="url(#wave1)" stroke-width="3" opacity="0.78">
+    <path d="M-120 805C190 650 350 1010 690 805s520-190 760 0 390 190 610 20"/>
+    <path d="M-120 830C180 680 370 1035 700 830s520-180 760 0 390 175 610 15"/>
+    <path d="M-120 855C165 715 390 1060 710 855s520-170 760 0 390 160 610 10"/>
+    <path d="M-120 880C150 750 410 1080 720 880s520-160 760 0 390 145 610 5"/>
+  </g>
+  <g fill="none" stroke="url(#wave2)" stroke-width="2" opacity="0.66">
+    <path d="M-100 930C250 760 470 1110 800 900s490-170 760 5 350 120 520 40"/>
+    <path d="M-100 960C250 790 490 1140 820 930s490-160 760 0 350 115 520 35"/>
+    <path d="M-100 990C250 820 510 1170 840 960s490-150 760-5 350 110 520 30"/>
+  </g>
+</svg>

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="hu">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>M2M XML EDITOR – Első beállítás</title>
+    <script src="/js/core/theme-mode.js"></script>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles/nav-application-theme.css">
+    <link rel="stylesheet" href="/styles/setup.css">
+</head>
+<body class="nav-application-theme setup-page">
+<main class="setup-shell">
+    <section class="panel-card modern-card setup-card">
+        <div class="setup-heading">
+            <p class="eyebrow">ELSŐ INDÍTÁS</p>
+            <h1>M2M XML EDITOR beállítása</h1>
+            <p>Az alapértelmezett H2 adatbázis automatikusan létrejön. A kötelező alapbeállítások után opcionálisan megadhatók a GitHub- és NAV M2M-hozzáférési adatok is.</p>
+        </div>
+        <div id="setupMessage" class="setup-message" hidden></div>
+        <form id="setupForm" novalidate autocomplete="off" hidden>
+            <div class="setup-tabs">
+                <button type="button" class="active" data-step="base">Alapbeállítások</button>
+                <button type="button" data-step="admin">Kezdő admin</button>
+                <button type="button" data-step="integrations">Integrációk</button>
+                <button type="button" data-step="review">Ellenőrzés</button>
+            </div>
+            <section class="setup-step active" data-panel="base">
+                <label>Adatkönyvtár
+                    <input id="dataDirectory" name="dataDirectory" required autocomplete="off">
+                </label>
+                <label>Adatbázis típusa
+                    <select id="databaseType" name="databaseType">
+                        <option value="H2">H2 (alapértelmezett)</option>
+                        <option value="MYSQL">MySQL</option>
+                        <option value="POSTGRESQL">PostgreSQL</option>
+                        <option value="ORACLE">Oracle</option>
+                    </select>
+                </label>
+                <div id="externalDatabaseFields" class="admin-fields" hidden>
+                    <label>Host<input id="databaseHost" value="localhost" autocomplete="off"></label>
+                    <label>Port<input id="databasePort" inputmode="numeric" autocomplete="off"></label>
+                    <label>Adatbázis / service<input id="databaseName" value="nav_xsd_parser_tool" autocomplete="off"></label>
+                    <label>Séma<input id="databaseSchema" autocomplete="off"></label>
+                    <label>DB felhasználó<input id="databaseUsername" value="nav_user" autocomplete="off"></label>
+                    <label>DB jelszó<input id="databasePassword" type="password" autocomplete="new-password"></label>
+                </div>
+                <div class="setup-database-test-row">
+                    <button type="button" id="databaseTestButton" class="secondary">Adatbázis-kapcsolat tesztelése</button>
+                    <span id="databaseTestStatus" class="setup-database-test-status" aria-live="polite">A továbblépéshez sikeres kapcsolati teszt szükséges.</span>
+                </div>
+                <p class="hint">H2 esetén a felhasználónév alapértelmezetten <code>sa</code>. Külső adatbázisnál a rendszer a szükséges JDBC driver- és Flyway-beállításokat automatikusan generálja.</p>
+                <p class="hint">A rendszer létrehozza a config, database, logs, certificates, backup és data alkönyvtárakat.</p>
+            </section>
+            <section class="setup-step" data-panel="admin">
+                <div class="admin-fields">
+                    <label>Felhasználónév
+                        <input id="adminUsername" name="username" value="admin" required autocomplete="username">
+                    </label>
+                    <label>Megjelenített név
+                        <input id="adminDisplayName" name="displayName" value="Rendszeradminisztrátor" required autocomplete="name">
+                    </label>
+                    <label>E-mail
+                        <input id="adminEmail" name="email" type="email" autocomplete="email">
+                    </label>
+                    <label>Jelszó
+                        <input id="adminPassword" name="setupAdminPassword" type="password" required autocomplete="new-password">
+                    </label>
+                    <label>Jelszó megerősítése
+                        <input id="adminPasswordConfirmation" name="setupAdminPasswordConfirmation" type="password" required autocomplete="new-password">
+                    </label>
+                </div>
+                <p class="hint">A kezdő admin jelszava legalább 8 karakteres legyen, és tartalmazzon kisbetűt, nagybetűt, számot és speciális karaktert.</p>
+            </section>
+            <section class="setup-step" data-panel="integrations">
+                <div class="setup-integration-section">
+                    <h2>GitHub hozzáférés</h2>
+                    <label>GitHub token <span class="optional-label">(opcionális)</span>
+                        <input id="githubToken" name="githubToken" type="password" autocomplete="off">
+                    </label>
+                    <p class="hint">A token a GitHub sablonkatalógus és a release-ek eléréséhez használható. Üresen hagyható.</p>
+                </div>
+
+                <div class="setup-integration-section">
+                    <h2>NAV M2M felhasználói regisztráció</h2>
+                    <label>M2M API-kulcs <span class="optional-label">(opcionális)</span>
+                        <input id="m2mApiKey" name="m2mApiKey" type="password" autocomplete="off"
+                               placeholder="userId-password-aláírókulcsElsőFele-nonce">
+                    </label>
+                    <p class="hint">A NAV-tól kapott teljes API-kulcsot egy mezőben adja meg. A rendszer a kötőjelek alapján automatikusan szétbontja és a részeket a megfelelő helyen menti.</p>
+                </div>
+
+                <div class="setup-integration-section">
+                    <h2>NAV M2M kliensregisztráció</h2>
+                    <div class="integration-fields">
+                        <label>Client ID <span class="optional-label">(opcionális)</span>
+                            <input id="m2mClientId" name="m2mClientId" autocomplete="off">
+                        </label>
+                        <label>Client Secret <span class="optional-label">(opcionális)</span>
+                            <input id="m2mClientSecret" name="m2mClientSecret" type="password" autocomplete="off">
+                        </label>
+                    </div>
+                    <p class="hint">A Client ID és a Client Secret csak együtt adható meg. Mindkét mező üresen hagyható.</p>
+                </div>
+            </section>
+            <section class="setup-step" data-panel="review">
+                <div id="setupReview" class="setup-review"></div>
+                <p class="setup-warning">A mentés után a telepített asztali alkalmazás automatikusan újraindul.</p>
+            </section>
+            <div class="setup-actions">
+                <button type="button" id="setupBack" class="secondary">Vissza</button>
+                <button type="button" id="setupNext" class="primary" disabled>Tovább</button>
+                <button type="button" id="setupSave" class="primary" hidden>Beállítás és mentés</button>
+            </div>
+        </form>
+    </section>
+</main>
+<script src="/js/pages/setup.js"></script>
+</body>
+</html>

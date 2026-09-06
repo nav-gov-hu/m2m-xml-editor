@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Partner-nyilvántartás</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/partners.css?v=@build.asset.version@">
+</head>
+<body data-initial-tab="partnersTab" class="nav-application-theme partners-list-page-body">
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-header-left">
+      <div class="site-brand"><img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó"></div>
+      <nav class="header-nav classic-nav" aria-label="Fő navigáció">
+        <a class="tab-button" data-tab="xmlFilesTab" href="/xml-files.html">Űrlapállományok</a>
+        
+        <a class="tab-button" data-tab="formTab" href="/form.html">Űrlapmegtekintő</a>
+        <a class="tab-button active" data-tab="partnersTab" href="/partners.html">Partnerek</a><a class="tab-button" data-tab="githubTemplatesTab" href="/github-templates.html">Űrlapsablonok</a>
+        <details class="system-menu">
+          <summary class="tab-button">Rendszer</summary>
+          <div class="system-menu-panel">
+            <a href="/m2m-submitter.html">M2M beküldés</a>
+            <a href="/xml-index-config.html">XML index konfiguráció</a>
+            <a data-tab="adminTab" id="adminTabButton" href="/admin.html">Beállítások</a>
+          </div>
+        </details>
+      </nav>
+    </div>
+    <div class="security-header-area" id="securityHeaderArea" hidden>
+      <span class="security-user-label">Felhasználó:</span><strong id="securityHeaderUsername">-</strong>
+      <form method="post" action="/logout" class="logout-form"><button type="submit" class="secondary mini-button">Kijelentkezés</button></form>
+    </div>
+  </div>
+</header>
+<div class="app-shell">
+  <main class="layout-stack xml-files-page xml-files-modern-page partners-page">
+    <section class="panel-card modern-card xml-files-registry-panel partners-registry-panel">
+      <div class="xml-files-toolbar partners-toolbar" role="toolbar" aria-label="Partner műveletek és szűrés">
+        <div class="xml-files-toolbar-left">
+          <button id="newPartner" type="button" class="primary partners-new-button">Új partner</button>
+        </div>
+        <div class="xml-files-filterbar partners-filterbar">
+          <input id="partnerSearch" type="search" placeholder="Keresés adószám vagy partnernév alapján">
+          <span class="template-page-size-control partners-page-size-control">
+            <label class="xml-files-page-size-label" for="partnerPageSize">Sorok</label>
+            <select id="partnerPageSize"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option><option value="100">100</option></select>
+          </span>
+        </div>
+      </div>
+      <div class="table-wrap xml-files-table-wrap">
+        <table class="data-table xml-files-table partners-table">
+          <thead><tr><th>Adószám</th><th>Partner neve</th><th>E-mail</th><th>Telefon</th><th>Aktív</th><th>Művelet</th></tr></thead>
+          <tbody id="partnerRows"><tr><td colspan="6">Betöltés...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="xml-files-pagination">
+        <div id="partnerPaginationInfo" class="xml-files-pagination-info">-</div>
+        <div class="xml-files-pagination-actions">
+          <button type="button" class="secondary mini-button" id="partnerFirstPage">«</button>
+          <button type="button" class="secondary mini-button" id="partnerPrevPage">‹</button>
+          <span id="partnerPageIndicator" class="xml-files-page-indicator">1 / 1</span>
+          <button type="button" class="secondary mini-button" id="partnerNextPage">›</button>
+          <button type="button" class="secondary mini-button" id="partnerLastPage">»</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
+<script src="/js/core/app.js?v=@build.asset.version@"></script>
+<script src="/js/pages/partners.js?v=@build.asset.version@"></script>
+</body></html>

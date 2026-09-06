@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NAV M2M beküldés</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles/base.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/shell.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/layout.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/validation.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-viewer.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/processing.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/dialogs.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files-advanced.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/home.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/admin.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/multiform.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/m2m.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/compact-ui.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/form-toolbar.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+</head>
+<body data-initial-tab="m2mSubmitterTab" class="m2m-submitter-page nav-application-theme">
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-header-left">
+      <div class="site-brand"><img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó"></div>
+      <nav class="header-nav classic-nav" aria-label="Fő navigáció">
+        <a class="tab-button" data-tab="xmlFilesTab" href="/xml-files.html">Űrlapállományok</a>
+        
+        <a class="tab-button" data-tab="formTab" id="formTabButton" href="/form.html">Űrlapmegtekintő</a>
+                <a class="tab-button" data-tab="partnersTab" href="/partners.html">Partnerek</a><a class="tab-button" data-tab="githubTemplatesTab" href="/github-templates.html">Űrlapsablonok</a>
+        <details class="system-menu"><summary class="tab-button">Rendszer</summary><div class="system-menu-panel"><a href="/m2m-submitter.html">M2M beküldés</a><a href="/xml-index-config.html">XML index konfiguráció</a><a data-tab="adminTab" id="adminTabButton" href="/admin.html">Beállítások</a></div></details>
+</nav>
+    </div>
+    <div class="security-header-area" id="securityHeaderArea" hidden></div>
+  </div>
+</header>
+
+<div class="app-shell">
+  <main class="layout-stack m2m-layout-stack">
+    <section class="panel-card modern-card m2m-card">
+      <div class="home-section-header m2m-card-header">
+        <div>
+          <p class="eyebrow">NAV M2M</p>
+          <h2>Beküldő modul</h2>
+          <p class="hint">Common Filestore és Bizonylat API műveletek a Schema Explorer Tool adatbázisával és proxy/TLS beállításaival.</p>
+        </div>
+        <div class="button-row m2m-header-actions">
+          <button type="button" class="secondary mini-button" id="m2mRefreshButton">Lista frissítése</button>
+          <button type="button" class="secondary mini-button" id="m2mProxySettingsToggleButton">Proxy/TLS beállítások</button>
+          <button type="button" class="secondary mini-button" id="m2mProxyTestButton">Proxy/TLS teszt</button>
+        </div>
+      </div>
+
+      <form id="m2mCreateForm" class="run-form-grid m2m-form-grid">
+        <div class="form-block">
+          <label for="m2mInterfaceType">Csomagtípus</label>
+          <select id="m2mInterfaceType">
+            <option value="BIZONYLAT_API">Bizonylat API XML</option>
+            <option value="COMMON_FILESTORE">Önálló Common Filestore fájlcsomag</option>
+          </select>
+        </div>
+        <div class="form-block">
+          <label for="m2mGatewayMode">Gateway mód</label>
+          <select id="m2mGatewayMode">
+            <option value="MOCK">MOCK</option>
+            <option value="REAL">REAL</option>
+          </select>
+        </div>
+        <div class="form-block">
+          <label for="m2mCompression">Tömörítés</label>
+          <select id="m2mCompression">
+            <option value="NONE">Nincs</option>
+            <option value="GZIP">GZIP</option>
+          </select>
+        </div>
+        <div class="form-block">
+          <label for="m2mSubmitNow">Azonnali beküldés</label>
+          <select id="m2mSubmitNow">
+            <option value="false">Nem, csak megjelölés / csomag létrehozás</option>
+            <option value="true">Igen</option>
+          </select>
+        </div>
+        <div class="form-block form-block-span-2" id="m2mXmlBlock">
+          <label for="m2mXmlFile">XML bizonylat</label>
+          <input id="m2mXmlFile" type="file" accept=".xml,application/xml,text/xml">
+          <p class="hint">Bizonylat API csomag létrehozásakor szükséges. A típus és a verzió a űrlap metaadataiból automatikusan felismerhető.</p>
+        </div>
+        <div class="form-block form-block-span-2">
+          <label for="m2mAttachmentFiles">Csatolmányok / Common Filestore fájlok</label>
+          <input id="m2mAttachmentFiles" type="file" multiple>
+        </div>
+        <div class="form-block form-block-span-2 action-row-wrap">
+          <div class="button-row action-row-horizontal">
+            <button type="submit" class="primary" id="m2mCreateButton">Csomag létrehozása</button>
+            <button type="button" class="secondary" id="m2mMarkForSubmitButton" disabled>Megjelölés beküldésre</button>
+            <button type="button" class="secondary" id="m2mWithdrawSubmitMarkButton" disabled>Jelölés visszavonása</button>
+            <button type="button" class="secondary" id="m2mUploadAttachmentsButton" disabled>Csatolmányok feltöltése</button>
+            <button type="button" class="secondary" id="m2mCreateBizonylatButton" disabled>Bizonylat beküldés</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel-card modern-card m2m-card m2m-proxy-card" id="m2mProxySettingsPanel" hidden>
+      <div class="section-header result-header m2m-section-header">
+        <div>
+          <h2>Proxy/TLS beállítások</h2>
+          <p class="hint">A mentett beállítások az adatbázisba kerülnek, és a NAV M2M hívásokhoz, valamint a GitHub repo frissítéshez használhatók.</p>
+        </div>
+        <span id="m2mProxyUpdatedAt" class="status-pill">Nincs mentett adat</span>
+      </div>
+      <form id="m2mProxySettingsForm" class="run-form-grid m2m-form-grid">
+        <div class="form-block form-block-span-2 m2m-checkbox-panel">
+          <label class="m2m-checkbox-row" for="m2mProxyEnabled"><input id="m2mProxyEnabled" type="checkbox"> Proxy használata</label>
+          <span class="hint">A TLS tanúsítvány-ellenőrzés biztonsági okból mindig aktív.</span>
+        </div>
+        <div class="form-block">
+          <label for="m2mProxyUrl">Proxy host / URL</label>
+          <input id="m2mProxyUrl" type="text" placeholder="proxy.ceg.hu vagy http://proxy.ceg.hu">
+        </div>
+        <div class="form-block">
+          <label for="m2mProxyPort">Proxy port</label>
+          <input id="m2mProxyPort" type="number" min="1" max="65535" placeholder="8080">
+        </div>
+        <div class="form-block">
+          <label for="m2mProxyUsername">Proxy felhasználó</label>
+          <input id="m2mProxyUsername" type="text" autocomplete="username">
+        </div>
+        <div class="form-block">
+          <label for="m2mProxyPassword">Proxy jelszó</label>
+          <input id="m2mProxyPassword" type="password" autocomplete="current-password" placeholder="Üresen hagyva megtartja a mentett jelszót">
+          <label class="m2m-checkbox-row m2m-inline-check" for="m2mProxyClearPassword"><input id="m2mProxyClearPassword" type="checkbox"> Mentett proxy jelszó törlése</label>
+          <p class="hint" id="m2mProxyPasswordHint"></p>
+        </div>
+        <div class="form-block">
+          <label for="m2mTrustStorePath">Truststore útvonal</label>
+          <input id="m2mTrustStorePath" type="text" placeholder="C:/cert/nav-truststore.jks">
+        </div>
+        <div class="form-block">
+          <label for="m2mTrustStoreType">Truststore típus</label>
+          <select id="m2mTrustStoreType">
+            <option value="JKS">JKS</option>
+            <option value="PKCS12">PKCS12</option>
+          </select>
+        </div>
+        <div class="form-block">
+          <label for="m2mTrustStorePassword">Truststore jelszó</label>
+          <input id="m2mTrustStorePassword" type="password" placeholder="Üresen hagyva megtartja a mentett jelszót">
+          <label class="m2m-checkbox-row m2m-inline-check" for="m2mTrustStoreClearPassword"><input id="m2mTrustStoreClearPassword" type="checkbox"> Mentett truststore jelszó törlése</label>
+          <p class="hint" id="m2mTrustStorePasswordHint"></p>
+        </div>
+        <div class="form-block">
+          <div class="form-hint">A proxyteszt a konfigurált M2M common endpointot használja.</div>
+        </div>
+        <div class="form-block form-block-span-2 action-row-wrap">
+          <div class="button-row action-row-horizontal">
+            <button type="submit" class="primary" id="m2mProxySaveButton">Proxy/TLS mentése</button>
+            <button type="button" class="secondary" id="m2mProxyTestFromPanelButton">Proxy/TLS teszt</button>
+            <button type="button" class="secondary" id="m2mProxyReloadButton">Visszatöltés</button>
+          </div>
+        </div>
+      </form>
+      <pre id="m2mProxyTestResult" class="m2m-test-result">Nincs futtatott proxy/TLS teszt.</pre>
+    </section>
+
+    <section class="panel-card modern-card m2m-card">
+      <div class="section-header result-header m2m-section-header">
+        <h2>Beküldési csomagok</h2>
+        <span id="m2mStatusPill" class="status-pill">Nincs kijelölt csomag</span>
+      </div>
+      <div id="m2mMessages"></div>
+      <div class="m2m-table-toolbar">
+        <div class="m2m-table-summary" id="m2mTableSummary">Nincs betöltött csomag.</div>
+        <div class="m2m-pagination-controls">
+          <label for="m2mPageSize">Megjelenítendő rekordok</label>
+          <select id="m2mPageSize">
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+          <button type="button" class="secondary mini-button" id="m2mPrevPageButton">Előző</button>
+          <span id="m2mPageInfo" class="m2m-page-info">1 / 1</span>
+          <button type="button" class="secondary mini-button" id="m2mNextPageButton">Következő</button>
+        </div>
+      </div>
+      <div class="table-wrapper m2m-table-wrapper">
+        <table class="data-table" id="m2mSubmissionsTable">
+          <thead><tr><th>Létrehozva</th><th>Interfész</th><th>XML</th><th>NAV azonosító</th><th>Státusz</th><th>Művelet</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel-card modern-card m2m-card">
+      <div class="section-header result-header m2m-section-header"><h2>Kommunikációs napló</h2></div>
+      <pre id="m2mEventLog" class="log-viewer">Nincs kiválasztott beküldés.</pre>
+    </section>
+  </main>
+</div>
+
+<footer class="app-footer"><span id="appVersionFooter">XML EDITOR MINTA</span></footer>
+<script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
+<script type="module" src="/js/m2m/m2m-submitter-page.js?v=@build.asset.version@"></script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>hu.gov.nav.xsdparsertool</groupId>
+    <artifactId>nav-xsd-parser-tool</artifactId>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
+    <name>nav-xsd-parser-tool</name>
+    <description>NAV XSD parser and processing tool</description>
+
+    <modules>
+        <module>nav-xsd-parser-tool-versioning</module>
+        <module>nav-xsd-parser-tool-core</module>
+        <module>nav-xsd-parser-tool-schema-registry</module>
+        <module>nav-xsd-parser-tool-xsd</module>
+        <module>nav-xsd-parser-tool-uimodel</module>
+        <module>nav-xsd-parser-tool-page-schema</module>
+        <module>nav-xsd-parser-tool-processing</module>
+        <module>nav-xsd-parser-tool-print</module>
+        <module>nav-xsd-parser-tool-cli</module>
+        <module>nav-xsd-parser-tool-xpath-cli</module>
+        <module>nav-xsd-parser-tool-m2m-submitter</module>
+        <module>nav-xsd-parser-tool-github-updater</module>
+        <module>nav-xsd-parser-tool-web</module>
+        <module>nav-xsd-parser-tool-multiform</module>
+		<module>nav-xsd-parser-tool-coverage</module>
+		
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.build.timestamp.format>yyyyMMdd-HHmmss</maven.build.timestamp.format>
+        <!-- CI-friendly Maven version. Versioned build wrappers override this with -Drevision. -->
+        <revision>1.11.40-SNAPSHOT</revision>
+        <app.release.version>${revision}</app.release.version>
+        <app.build.timestamp>${maven.build.timestamp}</app.build.timestamp>
+        <app.display.version>${app.release.version} - build ${app.build.timestamp}</app.display.version>
+        <build.asset.version>${app.release.version}-${app.build.timestamp}</build.asset.version>
+        <maven.compiler.release>17</maven.compiler.release>
+        <slf4j.version>2.0.17</slf4j.version>
+        <logback.version>1.5.18</logback.version>
+        <picocli.version>4.7.7</picocli.version>
+        <spring.boot.version>3.4.4</spring.boot.version>
+        <flyway.version>10.21.0</flyway.version>
+        <junit.jupiter.version>5.12.2</junit.jupiter.version>
+        <jacoco.version>0.8.15</jacoco.version>
+        <flatten.maven.plugin.version>1.6.0</flatten.maven.plugin.version>
+        <argLine></argLine>
+
+        <!-- Javadoc plugin konfigurációs tulajdonságok. A Javadoc kimenet a
+             gyökér modul target/docs/javadoc mappájába kerül, hogy külön
+             megkülönböztethető legyen a szokásos Maven site kimenetétől. -->
+        <javadoc.plugin.version>3.6.3</javadoc.plugin.version>
+        <javadoc.output.dir>${project.basedir}/target/docs/javadoc</javadoc.output.dir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <release>${maven.compiler.release}</release>
+                        <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.5.2</version>
+                    <configuration>
+                        <argLine>@{argLine} -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8</argLine>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring.boot.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.6.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${javadoc.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <!-- Resolve CI-friendly ${revision} placeholders before install/deploy. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten.maven.plugin.version}</version>
+                <configuration>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                    <updatePomFile>true</updatePomFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten-clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- P1/10: coverage measurement only. No minimum threshold is enforced yet. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-module-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+
+    </build>
+
+
+    <!-- A Javadoc szándékosan nincs a normál Maven életciklushoz kötve.
+         Normál build: mvn clean verify / mvn clean install
+         Javadoc külön: mvn -Pjavadoc-only
+         vagy explicit: mvn -Pjavadoc-only javadoc:aggregate -->
+    <profiles>
+        <profile>
+            <id>javadoc-only</id>
+            <build>
+                <defaultGoal>javadoc:aggregate</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${javadoc.plugin.version}</version>
+                        <configuration>
+                            <encoding>UTF-8</encoding>
+                            <charset>UTF-8</charset>
+                            <docencoding>UTF-8</docencoding>
+                            <locale>hu</locale>
+                            <windowtitle>NAV XSD Parser Tool – Fejlesztői Javadoc</windowtitle>
+                            <doctitle>NAV XSD Parser Tool – Fejlesztői dokumentáció</doctitle>
+                            <header>NAV XSD Parser Tool ${project.version}</header>
+                            <footer>NAV XSD Parser Tool ${project.version} – Fejlesztői Javadoc</footer>
+                            <bottom>Copyright © NAV. Minden jog fenntartva.</bottom>
+                            <source>${maven.compiler.release}</source>
+                            <failOnError>false</failOnError>
+                            <failOnWarnings>false</failOnWarnings>
+                            <quiet>false</quiet>
+                            <show>protected</show>
+                            <splitindex>true</splitindex>
+                            <use>true</use>
+                            <version>true</version>
+                            <author>true</author>
+                            <links>
+                                <link>https://docs.oracle.com/en/java/javase/17/docs/api/</link>
+                            </links>
+                            <reportOutputDirectory>${javadoc.output.dir}</reportOutputDirectory>
+                            <destDir>.</destDir>
+                            <excludePackageNames>*.internal.*</excludePackageNames>
+                            <additionalOptions>
+                                <additionalOption>-Xdoclint:none</additionalOption>
+                            </additionalOptions>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

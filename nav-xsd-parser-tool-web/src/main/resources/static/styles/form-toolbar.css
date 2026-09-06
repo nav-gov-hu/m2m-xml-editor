@@ -1,0 +1,299 @@
+/* Form viewer: one compact action bar below the form header. */
+body[data-initial-tab="formTab"] .form-unified-toolbar{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:6px 8px;
+  margin:0 0 8px 0;
+  background:#f8fafc;
+  border:1px solid var(--border);
+  border-radius:var(--ui-radius-lg);
+  box-shadow:0 4px 12px rgba(15,23,42,.045);
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar-section{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  min-width:0;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar-section-form{
+  padding-right:8px;
+  border-right:1px solid var(--border);
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .pane-header-actions,
+body[data-initial-tab="formTab"] .form-unified-toolbar .xml-toolbar-buttons-inline{
+  display:inline-flex !important;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  margin:0;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .mini-button,
+body[data-initial-tab="formTab"] .form-unified-toolbar .xml-icon-button,
+body[data-initial-tab="formTab"] .form-unified-toolbar .form-icon-button,
+body[data-initial-tab="formTab"] .form-unified-toolbar .xpath-current-validation-button{
+  min-width:30px;
+  width:auto;
+  height:30px;
+  padding:4px 7px !important;
+  border-radius:var(--ui-radius-md) !important;
+  font-size:12px;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .xml-icon-button,
+body[data-initial-tab="formTab"] .form-unified-toolbar .form-icon-button,
+body[data-initial-tab="formTab"] .form-unified-toolbar .xpath-current-validation-button{
+  width:30px;
+  min-width:30px;
+  padding:0 !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .toolbar-icon{
+  width:15px !important;
+  height:15px !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .toolbar-icon-text{
+  font-size:11px;
+  line-height:1;
+}
+
+/* The old XML tree/source switch is removed from the form viewer. */
+body[data-initial-tab="formTab"] .xml-view-tabs{
+  display:none !important;
+}
+body[data-initial-tab="formTab"] .xml-pane-header{
+  padding:8px 10px 0 10px !important;
+}
+body[data-initial-tab="formTab"] .xml-pane-toolbar{
+  padding:6px 10px !important;
+}
+body[data-initial-tab="formTab"] .pane-header{
+  padding:8px 10px 0 10px !important;
+}
+
+/* Make form viewer fill the available height without a bottom gap. */
+body[data-initial-tab="formTab"]{
+  height:100dvh;
+  min-height:0;
+  overflow:hidden;
+}
+body[data-initial-tab="formTab"] .app-shell{
+  flex:1 1 auto;
+  min-height:0;
+  height:auto;
+  overflow:hidden;
+  padding:8px 25px 0 !important;
+  gap:8px !important;
+}
+body[data-initial-tab="formTab"] #formTab.tab-panel.active{
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+body[data-initial-tab="formTab"] #formTab .split-card{
+  flex:1 1 auto;
+  min-height:0 !important;
+  height:100% !important;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  padding:10px !important;
+}
+body[data-initial-tab="formTab"] #formTab .form-layout-header{
+  margin-bottom:6px !important;
+}
+body[data-initial-tab="formTab"] #formTab .split-container{
+  flex:1 1 auto;
+  min-height:0 !important;
+  height:0 !important;
+  overflow:hidden;
+}
+body[data-initial-tab="formTab"] #formTab .form-pane,
+body[data-initial-tab="formTab"] #formTab .xml-pane{
+  min-height:0;
+  overflow:hidden;
+}
+body[data-initial-tab="formTab"] #formTab .form-pane-scroll,
+body[data-initial-tab="formTab"] #formTab .xml-pane-scroll{
+  flex:1 1 auto;
+  min-height:0;
+  height:auto;
+  overflow:auto;
+}
+
+@media (max-width: 900px){
+  body[data-initial-tab="formTab"] .form-unified-toolbar{
+    align-items:flex-start;
+  }
+  body[data-initial-tab="formTab"] .form-unified-toolbar-section-form{
+    border-right:0;
+    padding-right:0;
+  }
+  .site-header{
+    padding:0 12px 0 !important;
+  }
+  .app-shell,
+  body[data-initial-tab="formTab"] .app-shell{
+    padding-left:12px !important;
+    padding-right:12px !important;
+  }
+}
+
+/* Form viewer toolbar fit fix: let the toolbar height follow wrapped buttons. */
+body[data-initial-tab="formTab"] .form-unified-toolbar{
+  box-sizing:border-box;
+  width:100%;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  align-items:flex-start !important;
+  align-content:flex-start !important;
+  overflow:visible !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar-section{
+  box-sizing:border-box;
+  height:auto !important;
+  min-height:30px;
+  max-height:none !important;
+  max-width:100%;
+  align-items:flex-start !important;
+  align-content:flex-start !important;
+  overflow:visible !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar-section-form{
+  flex:0 1 auto;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar-section-xml{
+  flex:1 1 420px;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .pane-header-actions,
+body[data-initial-tab="formTab"] .form-unified-toolbar .xml-toolbar-buttons-inline{
+  box-sizing:border-box;
+  width:auto;
+  max-width:100%;
+  height:auto !important;
+  min-height:30px;
+  max-height:none !important;
+  align-items:flex-start !important;
+  align-content:flex-start !important;
+  overflow:visible !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .xml-toolbar-buttons-inline{
+  flex:1 1 auto;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .xml-save-dropdown,
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-submit-dropdown{
+  flex:0 0 auto;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .xml-save-menu{
+  z-index:1200;
+}
+
+/* Unified toolbar size corrections: all icon actions use 30x30; M2M text gets enough horizontal room. */
+body[data-initial-tab="formTab"] .form-unified-toolbar .xpath-current-validation-button{
+  width:30px !important;
+  min-width:30px !important;
+  height:30px !important;
+  padding:0 !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-submit-menu-button{
+  width:44px !important;
+  min-width:44px !important;
+  height:30px !important;
+  padding:0 4px !important;
+  gap:2px !important;
+  overflow:hidden;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-submit-menu-button .toolbar-icon-text{
+  display:inline-block;
+  min-width:0;
+  font-size:9px;
+  line-height:1;
+  letter-spacing:0;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-submit-menu-button .xml-save-caret{
+  flex:0 0 auto;
+  font-size:8px;
+}
+
+/* A Mentés és M2M menü a bal oldali XPath/XSD drawer tabsín fölött marad. */
+body[data-initial-tab="formTab"] .form-unified-toolbar .xml-save-menu,
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-submit-menu,
+body.validation-drawer-side-left[data-initial-tab="formTab"] .form-unified-toolbar .xml-save-menu,
+body.validation-drawer-side-left[data-initial-tab="formTab"] .form-unified-toolbar .m2m-submit-menu{
+  position:fixed!important;
+  z-index:13050!important;
+}
+
+/* 2026-07-27: compact toolbar labels, separators and dropdown width corrections. */
+body[data-initial-tab="formTab"] .form-unified-toolbar .form-toolbar-separator{
+  display:inline-block;
+  flex:0 0 1px;
+  align-self:stretch;
+  width:1px;
+  min-height:22px;
+  margin:2px 3px;
+  background:var(--border);
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .toolbar-text-action,
+body[data-initial-tab="formTab"] .form-unified-toolbar .xpath-current-validation-button{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:auto !important;
+  min-width:max-content !important;
+  height:30px !important;
+  padding:0 9px !important;
+  gap:5px !important;
+  white-space:nowrap !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .toolbar-text-action span,
+body[data-initial-tab="formTab"] .form-unified-toolbar .xpath-current-validation-button span{
+  display:inline-block !important;
+  white-space:nowrap !important;
+  line-height:1 !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar #m2mSubmitMenuButton{
+  width:74px !important;
+  min-width:74px !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar #m2mValidationMenuButton{
+  width:96px !important;
+  min-width:96px !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar #m2mCalculationMenuButton{
+  width:100px !important;
+  min-width:100px !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-submit-menu-button{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  flex-wrap:nowrap !important;
+  white-space:nowrap !important;
+  overflow:visible !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-submit-menu-button .toolbar-icon-text,
+body[data-initial-tab="formTab"] .form-unified-toolbar .m2m-submit-menu-button .xml-save-caret{
+  display:inline-block !important;
+  flex:0 0 auto !important;
+  line-height:1 !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar #saveXmlFileButton{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  position:relative;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar #saveXmlFileButton .toolbar-icon{
+  margin:0 auto !important;
+}
+body[data-initial-tab="formTab"] .form-unified-toolbar #saveXmlFileButton .xml-save-caret{
+  position:absolute;
+  right:2px;
+  bottom:1px;
+  font-size:7px;
+}

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitHub űrlapsablonok</title>
+  <script src="/js/core/theme-mode.js?v=@build.asset.version@"></script>
+  <link rel="stylesheet" href="/styles.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/header.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/xml-files.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/dialogs.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/nav-application-theme.css?v=@build.asset.version@">
+  <link rel="stylesheet" href="/styles/github-templates.css?v=@build.asset.version@">
+</head>
+<body data-initial-tab="githubTemplatesTab" class="nav-application-theme">
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-header-left">
+      <div class="site-brand"><img class="toolbar-logo" src="/images/SET_logo.png" alt="SET logó"></div>
+      <nav class="header-nav classic-nav" aria-label="Fő navigáció">
+        <a class="tab-button" data-tab="xmlFilesTab" href="/xml-files.html">Űrlapállományok</a>
+        
+        <a class="tab-button" data-tab="formTab" href="/form.html">Űrlapmegtekintő</a>
+                <a class="tab-button" data-tab="partnersTab" href="/partners.html">Partnerek</a><a class="tab-button active" data-tab="githubTemplatesTab" href="/github-templates.html">Űrlapsablonok</a>
+        <details class="system-menu"><summary class="tab-button">Rendszer</summary><div class="system-menu-panel"><a href="/m2m-submitter.html">M2M beküldés</a><a href="/xml-index-config.html">XML index konfiguráció</a><a data-tab="adminTab" id="adminTabButton" href="/admin.html">Beállítások</a></div></details>
+</nav>
+    </div>
+    <div class="security-header-area" id="securityHeaderArea" hidden>
+      <span class="security-user-label">Felhasználó:</span><strong id="securityHeaderUsername">-</strong>
+      <form method="post" action="/logout" class="logout-form"><button type="submit" class="secondary mini-button">Kijelentkezés</button></form>
+    </div>
+  </div>
+</header>
+<div class="app-shell">
+  <main class="layout-stack xml-files-page xml-files-modern-page">
+    <section class="panel-card modern-card xml-files-registry-panel">
+      <div id="templateSourceState" class="template-source-state" hidden aria-hidden="true"></div>
+      <div class="xml-files-toolbar" role="toolbar" aria-label="Űrlapsablon műveletek">
+        <div class="xml-files-toolbar-left">
+          <button type="button" class="xml-files-toolbar-button template-download-selected" id="downloadSelectedTemplatesButton" disabled title="Kijelölt release tagek letöltése">⇩</button>
+          <button type="button" class="xml-files-toolbar-button danger" id="deleteSelectedLocalTemplatesButton" disabled hidden title="Kijelölt lokális release-ek törlése">🗑</button>
+          <button type="button" class="xml-files-toolbar-button refresh" id="refreshTemplatesButton" title="Helyi lista újratöltése">↻</button>
+          <button type="button" class="xml-files-toolbar-button github-manual-refresh" id="manualGithubRefreshButton" title="Kézi GitHub frissítésellenőrzés">GitHub ↻</button>
+        </div>
+        <div class="xml-files-filterbar">
+          <input id="templateSearchInput" type="search" placeholder="Keresés a táblázat adatai között">
+          <select id="templateTypeFilter"><option value="">Minden űrlap</option></select>
+          <select id="templateVersionFilter" disabled><option value="">Előbb válassz űrlapt</option></select>
+          <label class="template-known-toggle"><input id="localOnlyCheckbox" type="checkbox"> Csak a lokálisan letöltött verziók</label>
+          <label class="template-known-toggle"><input id="forceDownloadCheckbox" type="checkbox"> Force kicsomagolás és felülírás</label>
+          <span class="template-page-size-control">
+            <label class="xml-files-page-size-label" for="templatePageSizeSelect">Sorok</label>
+            <select id="templatePageSizeSelect"><option>10</option><option selected>20</option><option>50</option><option>100</option></select>
+          </span>
+        </div>
+      </div>
+      <div class="table-wrap xml-files-table-wrap">
+        <table class="data-table xml-files-table github-templates-table">
+          <thead><tr>
+            <th class="template-check-column"><input id="selectAllTemplatesCheckbox" type="checkbox" aria-label="Összes kijelölése"></th>
+            <th>Űrlap neve</th><th>Verzió</th><th>Release tag</th>
+            <th>Repo frissítése</th><th>Űrlap címe / README</th><th>Érvényesség kezdete</th><th>Érvényesség vége</th><th>Művelet</th>
+          </tr></thead>
+          <tbody id="templateTableBody"><tr><td colspan="9">Betöltés...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="xml-files-pagination">
+        <div id="templatePaginationInfo" class="xml-files-pagination-info">-</div>
+        <div class="xml-files-pagination-actions">
+          <button type="button" class="secondary mini-button" id="templateFirstPageButton">«</button>
+          <button type="button" class="secondary mini-button" id="templatePrevPageButton">‹</button>
+          <span id="templatePageIndicator" class="xml-files-page-indicator">1</span>
+          <button type="button" class="secondary mini-button" id="templateNextPageButton">›</button>
+          <button type="button" class="secondary mini-button" id="templateLastPageButton">»</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="githubTokenMissingDialog" class="template-confirm" hidden>
+  <div class="template-processing-backdrop"></div>
+  <section class="template-confirm-card" role="dialog" aria-modal="true" aria-labelledby="githubTokenMissingTitle">
+    <h2 id="githubTokenMissingTitle">GitHub token nincs beállítva</h2>
+    <p>A helyi űrlapsablon-katalógus használható, de GitHub-ellenőrzés és release-letöltés csak hozzáférési token megadása után indítható.</p>
+    <div class="github-token-quick-config">
+      <label for="githubTokenQuickInput">GitHub Personal Access Token</label>
+      <input id="githubTokenQuickInput" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder="Token megadása">
+      <p id="githubTokenQuickStatus" class="hint" role="status" aria-live="polite">A token titkosítva kerül tárolásra. Az értéket mentés után nem jelenítjük meg újra.</p>
+    </div>
+    <p class="hint">A részletes GitHub beállítások továbbra is elérhetők a Rendszer → Konfiguráció → GitHub oldalon.</p>
+    <div class="template-confirm-actions">
+      <button type="button" class="secondary" id="closeGithubTokenMissingButton">Később</button>
+      <a class="secondary button-link" id="openGithubTokenConfigurationButton" href="/configuration.html?category=GITHUB&mode=advanced">Részletes beállítások</a>
+      <button type="button" id="saveGithubTokenQuickButton" disabled>Token mentése</button>
+    </div>
+  </section>
+</div>
+
+<div id="templateLocalDeleteConfirmDialog" class="template-confirm" hidden>
+  <div class="template-processing-backdrop"></div>
+  <section class="template-confirm-card" role="dialog" aria-modal="true" aria-labelledby="templateLocalDeleteConfirmTitle">
+    <h2 id="templateLocalDeleteConfirmTitle">Lokális GitHub release törlése</h2>
+    <p id="templateLocalDeleteConfirmMessage">A kijelölt release-ek törlődnek a lokális katalógusból és a telepített XSD, XPath és UIModel könyvtárakból.</p>
+    <p class="hint">A következő GitHub katalógusfrissítés után a repository ismét megjelenik és újra letölthető lesz.</p>
+    <div class="template-confirm-actions">
+      <button type="button" class="secondary" id="cancelTemplateLocalDeleteButton">Mégse</button>
+      <button type="button" class="danger" id="confirmTemplateLocalDeleteButton">Lokális törlés</button>
+    </div>
+  </section>
+</div>
+
+<div id="templateProcessingDialog" class="template-processing" hidden>
+  <div class="template-processing-backdrop"></div>
+  <section class="template-processing-card" role="dialog" aria-modal="true" aria-labelledby="templateProcessingTitle">
+    <div class="template-spinner"></div><h2 id="templateProcessingTitle">Feldolgozás</h2>
+    <p id="templateProcessingMessage">A GitHub-adatok feldolgozása folyamatban...</p>
+    <div class="template-progress-track"><div id="templateProgressBar"></div></div>
+    <div id="templateProcessingCounter" class="template-processing-counter">-</div>
+  </section>
+</div>
+<div id="templateRefreshConfirmDialog" class="template-confirm" hidden>
+  <div class="template-processing-backdrop"></div>
+  <section class="template-confirm-card" role="dialog" aria-modal="true" aria-labelledby="templateRefreshConfirmTitle">
+    <h2 id="templateRefreshConfirmTitle">Katalógusfrissítés érhető el</h2>
+    <p id="templateRefreshConfirmMessage">A GitHub szervezetben változás történt.</p>
+    <div class="template-confirm-actions">
+      <button type="button" class="secondary" id="cancelTemplateRefreshButton">Most nem</button>
+      <button type="button" id="confirmTemplateRefreshButton">Lista frissítése</button>
+    </div>
+  </section>
+</div>
+
+<div id="templateRefreshResultDialog" class="template-confirm" hidden>
+  <div class="template-processing-backdrop"></div>
+  <section class="template-confirm-card" role="dialog" aria-modal="true" aria-labelledby="templateRefreshResultTitle">
+    <h2 id="templateRefreshResultTitle">Katalógusfrissítés eredménye</h2>
+    <p id="templateRefreshResultSummary">-</p>
+    <p id="templateRefreshResultDownloadHint" class="hint">-</p>
+    <div class="template-confirm-actions">
+      <button type="button" id="closeTemplateRefreshResultButton">Bezárás</button>
+    </div>
+  </section>
+</div>
+
+<div id="templateRefreshDownloadOfferDialog" class="template-confirm" hidden>
+  <div class="template-processing-backdrop"></div>
+  <section class="template-confirm-card" role="dialog" aria-modal="true" aria-labelledby="templateRefreshDownloadOfferTitle">
+    <h2 id="templateRefreshDownloadOfferTitle">Friss release-ek letöltése</h2>
+    <p id="templateRefreshDownloadOfferMessage">A letöltött katalógus file alapján letölthető űrlapsablonok találhatók.</p>
+    <p class="hint">A letöltés a katalógusban szereplő, még nem lokálisan elérhető űrlapsablonokra indul el.</p>
+    <div class="template-confirm-actions">
+      <button type="button" class="secondary" id="cancelTemplateRefreshDownloadOfferButton">Most nem</button>
+      <button type="button" id="confirmTemplateRefreshDownloadOfferButton">Letöltés indítása</button>
+    </div>
+  </section>
+</div>
+
+<div id="templateNoChangesDialog" class="template-confirm" hidden>
+  <div class="template-processing-backdrop"></div>
+  <section class="template-confirm-card" role="dialog" aria-modal="true" aria-labelledby="templateNoChangesTitle">
+    <h2 id="templateNoChangesTitle">Nincs elérhető frissítés</h2>
+    <p>Nem talált új vagy módosult repositoryt.</p>
+    <div class="template-confirm-actions">
+      <button type="button" id="closeTemplateNoChangesButton">Bezárás</button>
+    </div>
+  </section>
+</div>
+
+<div id="templateDownloadResultDialog" class="template-confirm template-download-result" hidden>
+  <div class="template-processing-backdrop"></div>
+  <section class="template-confirm-card template-download-result-card" role="dialog" aria-modal="true" aria-labelledby="templateDownloadResultTitle">
+    <h2 id="templateDownloadResultTitle">Letöltés eredménye</h2>
+    <p id="templateDownloadResultSummary">-</p>
+    <div id="templateDownloadResultBody" class="template-download-result-body"></div>
+    <div class="template-confirm-actions">
+      <button type="button" id="closeTemplateDownloadResultButton">Bezárás</button>
+    </div>
+  </section>
+</div>
+<script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
+<script src="/js/core/app.js?v=@build.asset.version@"></script>
+<script type="module" src="/js/github-templates.js?v=@build.asset.version@"></script>
+</body>
+</html>

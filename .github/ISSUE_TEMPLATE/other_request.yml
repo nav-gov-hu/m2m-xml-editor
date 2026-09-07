@@ -1,0 +1,77 @@
+name: Egyéb bejelentés
+description: Dokumentációs, konfigurációs, használati vagy más jellegű bejelentés
+title: "[OTHER] "
+labels:
+  - question
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Bejelentés típusa
+      options:
+        - Dokumentáció
+        - Konfiguráció
+        - Telepítés
+        - Használati kérdés
+        - Kompatibilitás
+        - Biztonság
+        - Teljesítmény
+        - Adatminőség / séma
+        - Egyéb
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Érintett terület
+      options:
+        - XML szerkesztés
+        - Nagy XML / szerveroldali import
+        - XSD / séma kezelés
+        - UIModel / űrlap
+        - XPath / online validáció
+        - M2M
+        - Csatolmánykezelés
+        - Nyomtatás
+        - GitHub / sémafrissítés
+        - Admin / konfiguráció
+        - Autentikáció / jogosultság
+        - Telepítő
+        - Adatbázis
+        - Konténer
+        - Egyéb
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bejelentés leírása
+      description: Írd le részletesen a kérdést, észrevételt vagy problémát.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Kapcsolódó környezet / kontextus
+      description: Verzió, operációs rendszer, modul, adatbázis vagy más releváns adat.
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Várt eredmény vagy válasz
+      description: Mit szeretnél elérni vagy megtudni?
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Mellékletek
+      description: Képernyőkép, log vagy egyéb fájl csatolható ide.
+
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Adatbiztonság
+      options:
+        - label: A bejelentés nem tartalmaz jelszót, tokent, API-kulcsot, client secretet vagy más titkos adatot.
+          required: true

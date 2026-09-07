@@ -1,0 +1,84 @@
+name: Funkcióigény
+description: Új funkció vagy meglévő funkció továbbfejlesztésének javaslata
+title: "[FEATURE] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Igény rövid leírása
+      description: Milyen új vagy módosított működésre van szükség?
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Milyen problémát oldana meg?
+      description: Írd le a jelenlegi problémát vagy korlátozást.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Érintett terület
+      options:
+        - XML szerkesztés
+        - Nagy XML / szerveroldali import
+        - XSD / séma kezelés
+        - UIModel / űrlap
+        - XPath / online validáció
+        - M2M
+        - Csatolmánykezelés
+        - Nyomtatás
+        - GitHub / sémafrissítés
+        - Admin / konfiguráció
+        - Autentikáció / jogosultság
+        - Telepítő
+        - Adatbázis
+        - Konténer
+        - Egyéb
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Javasolt működés
+      description: Hogyan kellene működnie az új funkciónak?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Elfogadási feltételek
+      description: Mikor tekinthető késznek a funkció?
+      placeholder: |
+        - ...
+        - ...
+        - ...
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatívák / megjegyzések
+      description: Van-e más lehetséges megoldás vagy fontos technikai szempont?
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Mellékletek
+      description: Képernyőkép, példa XML, log vagy más releváns fájl csatolható ide.
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Ellenőrzés
+      options:
+        - label: Ellenőriztem, hogy nincs-e már hasonló funkcióigény.
+          required: true
+        - label: A bejelentés nem tartalmaz jelszót, tokent, API-kulcsot, client secretet vagy egyéb titkos adatot.
+          required: true

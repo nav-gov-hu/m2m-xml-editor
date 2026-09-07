@@ -1,0 +1,128 @@
+name: Hibabejelentés
+description: Hiba vagy hibás működés bejelentése
+title: "[BUG] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Kérjük, töltsd ki az alábbi adatokat a hiba reprodukálhatósága és gyorsabb kivizsgálása érdekében.
+
+  - type: input
+    id: version
+    attributes:
+      label: Alkalmazás verziója
+      description: Az M2M XML Editor / Schema Explorer verziója.
+      placeholder: pl. 1.13.2-20260907-102000
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Futtatási környezet
+      options:
+        - Windows telepített alkalmazás
+        - Windows fejlesztői környezet
+        - Linux
+        - Docker / OCI konténer
+        - Egyéb
+    validations:
+      required: true
+
+  - type: dropdown
+    id: database
+    attributes:
+      label: Adatbázis
+      options:
+        - H2
+        - MySQL
+        - PostgreSQL
+        - Oracle
+        - Nem releváns / nem ismert
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Érintett terület
+      options:
+        - XML szerkesztés
+        - Nagy XML / szerveroldali import
+        - XSD / séma kezelés
+        - UIModel / űrlap
+        - XPath / online validáció
+        - M2M
+        - Csatolmánykezelés
+        - Nyomtatás
+        - GitHub / sémafrissítés
+        - Admin / konfiguráció
+        - Autentikáció / jogosultság
+        - Telepítő
+        - Adatbázis
+        - Konténer
+        - Egyéb
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: A hiba leírása
+      description: Pontosan mi történt?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reprodukció lépései
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Elvárt működés
+      description: Mi lett volna a helyes eredmény?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Tényleges működés
+      description: Mi történt az elvárt működés helyett?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Hibaüzenet / log
+      description: |
+        Másold ide a releváns hibaüzenetet vagy logrészletet.
+        Jelszót, tokent, API-kulcsot, client secretet és más titkos adatot ne adj meg.
+      render: shell
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Képernyőkép vagy egyéb melléklet
+      description: Ide húzható képernyőkép vagy más releváns fájl.
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Ellenőrzés
+      options:
+        - label: Ellenőriztem, hogy nincs-e már azonos vagy nagyon hasonló nyitott issue.
+          required: true
+        - label: A bejelentés nem tartalmaz jelszót, tokent, API-kulcsot, client secretet vagy egyéb titkos adatot.
+          required: true

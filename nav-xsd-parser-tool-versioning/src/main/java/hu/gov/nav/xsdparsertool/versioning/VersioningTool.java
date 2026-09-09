@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -20,9 +21,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 /**
- * Local Git based semantic version analyzer and build metadata generator.
- * The implementation intentionally has no external dependencies so the build wrappers
- * can compile and run it with the JDK before Maven starts.
+ * Helyi Git-adatok alapján működő szemantikus verzióelemző és build-metaadat generátor.
+ *
+ * <p>A megvalósítás szándékosan nem használ külső függőségeket, így a buildet indító
+ * segédprogramok a Maven futása előtt, közvetlenül a JDK-val is le tudják fordítani és
+ * futtatni.</p>
  */
 public final class VersioningTool {
 
@@ -32,14 +35,16 @@ public final class VersioningTool {
     private static final Pattern PUBLIC_TYPE = Pattern.compile("\\bpublic\\s+(?:final\\s+|sealed\\s+|abstract\\s+)?(?:class|interface|enum|record)\\b");
     private static final Pattern CONFIG_LINE = Pattern.compile("^[+-]([A-Za-z0-9_.-]+)\\s*[=:].*$");
     private static final DateTimeFormatter BUILD_STAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final String VERSIONING_IGNORE_FILE = ".versioningignore";
 
     private VersioningTool() {
     }
 
-    /** Entry point. */
+    /** A program belépési pontja. */
     public static void main(String[] args) throws Exception {
         Options options = Options.parse(args);
         Path repo = options.repo().toAbsolutePath().normalize();
+        List<PathMatcher> versioningIgnoreMatchers = loadVersioningIgnoreMatchers(repo);
         boolean gitAvailable = Files.exists(repo.resolve(".git"));
 
         Baseline baseline;
@@ -51,7 +56,7 @@ public final class VersioningTool {
         if (gitAvailable) {
             ensureGitRepository(repo);
             baseline = resolveBaseline(repo, options);
-            changes = collectChanges(repo, baseline.ref());
+            changes = collectChanges(repo, baseline.ref(), versioningIgnoreMatchers);
             detected = classify(repo, baseline, changes, reasons);
             commit = git(repo, "rev-parse", "--short=12", "HEAD").trim();
             dirty = !git(repo, "status", "--porcelain").isBlank();
@@ -60,7 +65,7 @@ public final class VersioningTool {
             baseline = new Baseline("NO_GIT", SemVer.parse(fallback));
             changes = List.of();
             detected = Bump.PATCH;
-            reasons.add(new Reason(Bump.PATCH, "Git metadata is unavailable; conservative PATCH fallback is used."));
+            reasons.add(new Reason(Bump.PATCH, "A Git metaadatai nem érhetők el; biztonsági tartalékként PATCH verzióemelést használunk."));
             commit = "NO_GIT";
             dirty = true;
         }
@@ -80,7 +85,7 @@ public final class VersioningTool {
     private static void ensureGitRepository(Path repo) throws IOException, InterruptedException {
         String inside = git(repo, "rev-parse", "--is-inside-work-tree").trim();
         if (!"true".equalsIgnoreCase(inside)) {
-            throw new IllegalStateException("The selected directory is not a Git work tree: " + repo);
+            throw new IllegalStateException("A megadott könyvtár nem Git munkakönyvtár: " + repo);
         }
     }
 
@@ -114,7 +119,7 @@ public final class VersioningTool {
     private static SemVer versionFromRef(String ref) {
         Matcher matcher = SEMVER_TAG.matcher(ref.trim());
         if (!matcher.matches()) {
-            throw new IllegalArgumentException("--base-ref is not a SemVer tag; specify --base-version as well: " + ref);
+            throw new IllegalArgumentException("A --base-ref nem szemantikus verziót tartalmazó Git tag; add meg a --base-version értékét is: " + ref);
         }
         return SemVer.fromMatcher(matcher);
     }
@@ -135,33 +140,118 @@ public final class VersioningTool {
         }
         String value = properties.getProperty(key);
         if (value == null || value.isBlank()) {
-            throw new IllegalStateException("Missing " + key + " in " + config);
+            throw new IllegalStateException("Hiányzik a " + key + " érték ebből az állományból: " + config);
         }
         return value.trim();
     }
 
-    private static List<Change> collectChanges(Path repo, String baseRef) throws IOException, InterruptedException {
+    private static List<Change> collectChanges(
+            Path repo,
+            String baseRef,
+            List<PathMatcher> versioningIgnoreMatchers) throws IOException, InterruptedException {
+
         Map<String, Change> result = new LinkedHashMap<>();
-        String statuses = git(repo, "diff", "--name-status", "--find-renames", baseRef, "--");
+
+        String statuses = git(
+                repo,
+                "-c",
+                "core.quotepath=false",
+                "diff",
+                "--name-status",
+                "--find-renames",
+                baseRef,
+                "--");
+
         for (String line : statuses.lines().toList()) {
             if (line.isBlank()) {
                 continue;
             }
+
             String[] parts = line.split("\\t");
             String status = parts[0];
             String path = parts[parts.length - 1];
-            if (!isGeneratedPath(path)) {
+
+            if (!isGeneratedPath(path) && !isVersioningIgnored(path, versioningIgnoreMatchers)) {
                 result.put(path, new Change(status, path, false));
             }
         }
 
-        String untracked = git(repo, "ls-files", "--others", "--exclude-standard");
+        String untracked = git(
+                repo,
+                "-c",
+                "core.quotepath=false",
+                "ls-files",
+                "--others",
+                "--exclude-standard");
+
         for (String path : untracked.lines().toList()) {
-            if (!path.isBlank() && !isGeneratedPath(path)) {
+            if (!path.isBlank()
+                    && !isGeneratedPath(path)
+                    && !isVersioningIgnored(path, versioningIgnoreMatchers)) {
                 result.put(path, new Change("A", path, true));
             }
         }
+
         return new ArrayList<>(result.values());
+    }
+
+    /**
+     * Betölti a repository gyökerében található .versioningignore állomány
+     * glob mintáit.
+     *
+     * <p>Az üres sorok és a # karakterrel kezdődő megjegyzések
+     * figyelmen kívül maradnak. A minták repository-relatív útvonalakra
+     * vonatkoznak.</p>
+     *
+     * @param repo a Git repository gyökérkönyvtára
+     * @return a betöltött útvonalminták
+     */
+    private static List<PathMatcher> loadVersioningIgnoreMatchers(Path repo) {
+        Path ignoreFile = repo.resolve(VERSIONING_IGNORE_FILE);
+
+        if (!Files.isRegularFile(ignoreFile)) {
+            return List.of();
+        }
+
+        try {
+            List<PathMatcher> matchers = new ArrayList<>();
+
+            for (String line : Files.readAllLines(ignoreFile, StandardCharsets.UTF_8)) {
+                String pattern = line.trim();
+
+                if (pattern.isEmpty() || pattern.startsWith("#")) {
+                    continue;
+                }
+
+                String normalizedPattern = pattern.replace('\\', '/');
+                matchers.add(repo.getFileSystem().getPathMatcher("glob:" + normalizedPattern));
+            }
+
+            return List.copyOf(matchers);
+        } catch (IOException ex) {
+            throw new IllegalStateException(
+                    "Nem sikerült beolvasni a " + VERSIONING_IGNORE_FILE + " állományt: " + ignoreFile,
+                    ex);
+        }
+    }
+
+    /**
+     * Megállapítja, hogy az adott repository-relatív útvonalat figyelmen
+     * kívül kell-e hagyni a verziószámítás során.
+     *
+     * @param path repository-relatív útvonal
+     * @param matchers ignore minták
+     * @return true, ha az útvonal kizárt
+     */
+    private static boolean isVersioningIgnored(String path, List<PathMatcher> matchers) {
+        if (path == null || path.isBlank() || matchers.isEmpty()) {
+            return false;
+        }
+
+        String normalized = path.replace('\\', '/');
+        Path relativePath = Path.of(normalized);
+
+        return matchers.stream().anyMatch(matcher -> matcher.matches(relativePath));
     }
 
     private static Bump classify(Path repo, Baseline baseline, List<Change> changes, List<Reason> reasons)
@@ -172,11 +262,11 @@ public final class VersioningTool {
             String messages = git(repo, "log", "--format=%s%n%b", baseline.ref() + "..HEAD");
             String lower = messages.toLowerCase(Locale.ROOT);
             if (lower.contains("breaking change") || Pattern.compile("(?m)^[a-z]+(?:\\([^)]*\\))?!:").matcher(lower).find()) {
-                result = raise(result, Bump.MAJOR, reasons, "Git commit marks a BREAKING CHANGE.");
+                result = raise(result, Bump.MAJOR, reasons, "A Git commit BREAKING CHANGE jelölést tartalmaz.");
             } else if (Pattern.compile("(?m)^feat(?:\\([^)]*\\))?:").matcher(lower).find()) {
-                result = raise(result, Bump.MINOR, reasons, "Conventional Commit 'feat' detected.");
+                result = raise(result, Bump.MINOR, reasons, "Conventional Commit 'feat' bejegyzés észlelve.");
             } else if (Pattern.compile("(?m)^fix(?:\\([^)]*\\))?:").matcher(lower).find()) {
-                result = raise(result, Bump.PATCH, reasons, "Conventional Commit 'fix' detected.");
+                result = raise(result, Bump.PATCH, reasons, "Conventional Commit 'fix' bejegyzés észlelve.");
             }
         }
 
@@ -193,80 +283,80 @@ public final class VersioningTool {
 
             if (normalized.equals("pom.xml")) {
                 if (hasAddedModule(diff)) {
-                    result = raise(result, Bump.MINOR, reasons, "New Maven module added in root pom.xml.");
+                    result = raise(result, Bump.MINOR, reasons, "Új Maven modul került a gyökér pom.xml állományba.");
                 } else {
-                    result = raise(result, Bump.PATCH, reasons, "Build configuration changed in root pom.xml.");
+                    result = raise(result, Bump.PATCH, reasons, "Módosult a build konfiguráció a gyökér pom.xml állományban.");
                 }
             }
 
             if (isFlyway(normalized)) {
                 String upper = diff.toUpperCase(Locale.ROOT);
                 if (upper.contains("DROP TABLE") || upper.contains("DROP COLUMN") || upper.contains("TRUNCATE TABLE")) {
-                    result = raise(result, Bump.MAJOR, reasons, "Destructive Flyway database migration: " + normalized);
+                    result = raise(result, Bump.MAJOR, reasons, "Destruktív Flyway adatbázis-migráció: " + normalized);
                 } else if (added) {
-                    result = raise(result, Bump.MINOR, reasons, "New compatible Flyway migration: " + normalized);
+                    result = raise(result, Bump.MINOR, reasons, "Új kompatibilis Flyway migráció: " + normalized);
                 } else {
-                    result = raise(result, Bump.PATCH, reasons, "Existing migration/build SQL changed: " + normalized);
+                    result = raise(result, Bump.PATCH, reasons, "Meglévő migrációs/build SQL módosult: " + normalized);
                 }
                 continue;
             }
 
             if (isProductionJava(normalized)) {
                 if (deleted && oldFileContainsPublicApi(repo, baseline.ref(), normalized)) {
-                    result = raise(result, Bump.MAJOR, reasons, "Production Java API/type removed: " + normalized);
+                    result = raise(result, Bump.MAJOR, reasons, "Éles Java API vagy típus eltávolítva: " + normalized);
                     continue;
                 }
                 if (containsRemovedRestMapping(diff)) {
-                    result = raise(result, Bump.MAJOR, reasons, "REST endpoint mapping removed: " + normalized);
+                    result = raise(result, Bump.MAJOR, reasons, "REST végpont-hozzárendelés eltávolítva: " + normalized);
                     continue;
                 }
                 if (containsRemovedPublicApi(diff)) {
-                    result = raise(result, Bump.MAJOR, reasons, "Public/protected Java API signature removed: " + normalized);
+                    result = raise(result, Bump.MAJOR, reasons, "Publikus vagy protected Java API-szignatúra eltávolítva: " + normalized);
                     continue;
                 }
                 if (containsAddedRestMapping(diff)) {
-                    result = raise(result, Bump.MINOR, reasons, "New REST endpoint mapping: " + normalized);
+                    result = raise(result, Bump.MINOR, reasons, "Új REST végpont-hozzárendelés: " + normalized);
                     continue;
                 }
                 if (added) {
-                    result = raise(result, Bump.MINOR, reasons, "New production Java source: " + normalized);
+                    result = raise(result, Bump.MINOR, reasons, "Új éles Java forrásfájl: " + normalized);
                     continue;
                 }
-                result = raise(result, Bump.PATCH, reasons, "Production Java implementation changed: " + normalized);
+                result = raise(result, Bump.PATCH, reasons, "Éles Java implementáció módosult: " + normalized);
                 continue;
             }
 
             if (isConfig(normalized)) {
                 if (added) {
-                    result = raise(result, Bump.MINOR, reasons, "New configuration file introduced: " + normalized);
+                    result = raise(result, Bump.MINOR, reasons, "Új konfigurációs állomány került bevezetésre: " + normalized);
                     continue;
                 }
                 ConfigDelta delta = analyzeConfigDiff(diff);
                 if (delta.removed()) {
-                    result = raise(result, Bump.MAJOR, reasons, "Configuration key removed or renamed: " + normalized);
+                    result = raise(result, Bump.MAJOR, reasons, "Konfigurációs kulcs eltávolítva vagy átnevezve: " + normalized);
                 } else if (delta.added()) {
-                    result = raise(result, Bump.MINOR, reasons, "New configuration key introduced: " + normalized);
+                    result = raise(result, Bump.MINOR, reasons, "Új konfigurációs kulcs került bevezetésre: " + normalized);
                 } else {
-                    result = raise(result, Bump.PATCH, reasons, "Configuration value/default changed: " + normalized);
+                    result = raise(result, Bump.PATCH, reasons, "Konfigurációs érték vagy alapértelmezés módosult: " + normalized);
                 }
                 continue;
             }
 
             if (isTestOrDocs(normalized)) {
-                result = raise(result, Bump.PATCH, reasons, "Test or documentation change: " + normalized);
+                result = raise(result, Bump.PATCH, reasons, "Teszt- vagy dokumentációs módosítás: " + normalized);
                 continue;
             }
 
             if (normalized.endsWith(".iss") || normalized.endsWith(".bat") || normalized.endsWith(".cmd")
                     || normalized.endsWith(".ps1") || normalized.endsWith(".sh")) {
-                result = raise(result, Bump.PATCH, reasons, "Build/installer script change: " + normalized);
+                result = raise(result, Bump.PATCH, reasons, "Build- vagy telepítőscript módosult: " + normalized);
                 continue;
             }
 
             if (added && normalized.contains("/src/main/")) {
-                result = raise(result, Bump.MINOR, reasons, "New production resource/source: " + normalized);
+                result = raise(result, Bump.MINOR, reasons, "Új éles erőforrás vagy forrás került hozzáadásra: " + normalized);
             } else {
-                result = raise(result, Bump.PATCH, reasons, "Project file changed: " + normalized);
+                result = raise(result, Bump.PATCH, reasons, "Projektállomány módosult: " + normalized);
             }
         }
         return result;
@@ -395,7 +485,7 @@ public final class VersioningTool {
         properties.setProperty("version.dirty", Boolean.toString(info.dirty()));
         properties.setProperty("version.changedFiles", Integer.toString(info.changes().size()));
         try (var writer = Files.newBufferedWriter(outputDir.resolve("build-version.properties"), StandardCharsets.UTF_8)) {
-            properties.store(writer, "Generated by nav-xsd-parser-tool-versioning");
+            properties.store(writer, "A nav-xsd-parser-tool-versioning által generálva");
         }
 
         String env = "VERSION_BASE=" + info.base() + "\n"
@@ -414,25 +504,25 @@ public final class VersioningTool {
 
     private static String report(BuildInfo info) {
         StringBuilder out = new StringBuilder();
-        out.append("Previous version: ").append(info.base()).append("\n");
-        out.append("Baseline ref: ").append(info.baseRef()).append("\n");
-        out.append("Changed files: ").append(info.changes().size()).append("\n\n");
+        out.append("Előző verzió: ").append(info.base()).append("\n");
+        out.append("Bázis referencia: ").append(info.baseRef()).append("\n");
+        out.append("Módosult fájlok: ").append(info.changes().size()).append("\n\n");
         if (info.reasons().isEmpty()) {
-            out.append("Detected changes: none\n");
+            out.append("Észlelt változások: nincs\n");
         } else {
-            out.append("Detected changes:\n");
+            out.append("Észlelt változások:\n");
             info.reasons().stream()
                     .sorted(Comparator.comparingInt((Reason r) -> r.bump().rank).reversed())
                     .limit(40)
                     .forEach(reason -> out.append("  ").append(String.format("%-5s", reason.bump())).append("  ").append(reason.text()).append("\n"));
         }
-        out.append("\nDecision: ").append(info.effective());
+        out.append("\nDöntés: ").append(info.effective());
         if (info.detected() != info.effective()) {
-            out.append(" (automatic decision was ").append(info.detected()).append(")");
+            out.append(" (az automatikus döntés: ").append(info.detected()).append(")");
         }
-        out.append("\nNext version: ").append(info.next()).append("\n");
-        out.append("Build id: ").append(info.next()).append('+').append(info.timestamp().replace("-", ".")).append("\n");
-        out.append("Commit: ").append(info.commit()).append(info.dirty() ? " (dirty)" : "").append("\n");
+        out.append("\nKövetkező verzió: ").append(info.next()).append("\n");
+        out.append("Build azonosító: ").append(info.next()).append('+').append(info.timestamp().replace("-", ".")).append("\n");
+        out.append("Commit: ").append(info.commit()).append(info.dirty() ? " (nem tiszta munkakönyvtár)" : "").append("\n");
         return out.toString();
     }
 
@@ -452,7 +542,7 @@ public final class VersioningTool {
         String stderr = decodeProcessStream(stderrFuture);
         if (exit != 0) {
             String details = stderr.isBlank() ? stdout : stderr + (stdout.isBlank() ? "" : "\n" + stdout);
-            throw new IllegalStateException("Git command failed (" + String.join(" ", command) + "):\n" + details);
+            throw new IllegalStateException("A Git parancs sikertelen (" + String.join(" ", command) + "):\n" + details);
         }
         if (!stderr.isBlank()) {
             System.err.print(stderr);
@@ -494,7 +584,7 @@ public final class VersioningTool {
         static SemVer parse(String value) {
             Matcher matcher = SEMVER_TAG.matcher(value.trim());
             if (!matcher.matches()) {
-                throw new IllegalArgumentException("Invalid semantic version: " + value);
+                throw new IllegalArgumentException("Érvénytelen szemantikus verzió: " + value);
             }
             return fromMatcher(matcher);
         }
@@ -542,10 +632,10 @@ public final class VersioningTool {
                 else if (arg.startsWith("--override=")) override = Bump.valueOf(arg.substring("--override=".length()).toUpperCase(Locale.ROOT));
                 else if (arg.startsWith("--output-dir=")) outputDir = Path.of(arg.substring("--output-dir=".length()));
                 else if (arg.equals("--help") || arg.equals("-h")) {
-                    System.out.println("Usage: VersioningTool [--repo=.] [--base-ref=v1.2.3] [--base-version=1.2.3] [--override=auto|major|minor|patch|none] [--output-dir=target/generated-version]");
+                    System.out.println("Használat: VersioningTool [--repo=.] [--base-ref=v1.2.3] [--base-version=1.2.3] [--override=auto|major|minor|patch|none] [--output-dir=target/generated-version]");
                     System.exit(0);
                 } else {
-                    throw new IllegalArgumentException("Unknown argument: " + arg);
+                    throw new IllegalArgumentException("Ismeretlen argumentum: " + arg);
                 }
             }
             return new Options(repo, baseRef, baseVersion, override, outputDir);

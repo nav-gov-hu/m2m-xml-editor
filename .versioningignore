@@ -1,0 +1,5 @@
+# Nem forráskód jellegű dokumentációkat tartalmazó könyvtár
+documentation/**
+
+# Maga az ignore fájl se okozzon verzióemelést
+.versioningignore

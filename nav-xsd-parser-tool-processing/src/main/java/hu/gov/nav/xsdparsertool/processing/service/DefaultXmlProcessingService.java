@@ -327,4 +327,101 @@ public class DefaultXmlProcessingService implements XmlProcessingService {
         result.setOutputFile(outputFile);
         return result;
     }
+
+    /**
+     * Megnyitásra alkalmas új XML-t generál pontos űrlaptípus és verzió alapján.
+     *
+     * <p>A generátor kizárólag az XML megnyitásához és a sémafeloldáshoz szükséges
+     * technikai fejlécet állítja elő. Üzleti mezőértékeket nem talál ki; a hiányzó
+     * kötelező mezőket az űrlapmegtekintőben lehet kitölteni.</p>
+     *
+     * @param documentType az űrlap technikai azonosítója
+     * @param documentVersion az űrlapverzió
+     * @param schemaRootDir az XSD-k gyökérkönyvtára
+     * @param outputFile a létrehozandó XML célfájlja
+     * @return az export eredménye
+     */
+    @Override
+    public ExportResult generateOpenableXml(String documentType,
+                                            String documentVersion,
+                                            Path schemaRootDir,
+                                            Path outputFile) {
+        var bundle = schemaRegistryService.resolveByDocumentTypeAndVersion(
+                documentType, documentVersion, schemaRootDir, null, null);
+        return writeOpenableXml(bundle, outputFile);
+    }
+
+    /**
+     * A feloldott séma-csomagból létrehozza a minimális, jól formált és erőforrás-feloldásra alkalmas XML-t.
+     */
+    private ExportResult writeOpenableXml(hu.gov.nav.xsdparsertool.core.model.bundle.SchemaBundle bundle, Path outputFile) {
+        if (outputFile == null) {
+            throw new IllegalArgumentException("A kimeneti XML fájl megadása kötelező.");
+        }
+        String rootName = bundle.getRootElementName() != null ? bundle.getRootElementName() : bundle.getDocumentType();
+        if (rootName == null || rootName.isBlank()) {
+            throw new IllegalStateException("A feloldott XSD nem tartalmaz generálható gyökérelemet.");
+        }
+
+        String namespace = bundle.getTargetNamespace();
+        String schemaFileName = bundle.getPrimaryXsd() != null && bundle.getPrimaryXsd().getFileName() != null
+                ? bundle.getPrimaryXsd().getFileName().toString()
+                : null;
+        String content = buildOpenableXmlContent(rootName, namespace, schemaFileName);
+
+        try {
+            Path parent = outputFile.getParent();
+            if (parent != null) {
+                ExceptionSafeOperations.createDirectories(parent);
+            }
+            SecureFileOperations.writePrivateString(outputFile, content, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("Az XML kimeneti fájl írása sikertelen: " + outputFile, e);
+        }
+
+        ExportResult result = new ExportResult();
+        result.setSuccess(true);
+        result.setOutputFile(outputFile);
+        return result;
+    }
+
+    /**
+     * Létrehozza a generált XML technikai fejlécét namespace-es és namespace nélküli XSD-khez.
+     */
+    private String buildOpenableXmlContent(String rootName, String namespace, String schemaFileName) {
+        String safeRootName = rootName.trim();
+        String safeSchemaFileName = xmlAttribute(schemaFileName);
+        if (namespace != null && !namespace.isBlank()) {
+            String safeNamespace = xmlAttribute(namespace.trim());
+            String schemaLocation = safeSchemaFileName == null
+                    ? ""
+                    : " xsi:schemaLocation=\"" + safeNamespace + " " + safeSchemaFileName + "\"";
+            return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                    + "<form:" + safeRootName
+                    + " xmlns:form=\"" + safeNamespace + "\""
+                    + " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
+                    + schemaLocation + "></form:" + safeRootName + ">\n";
+        }
+
+        String noNamespaceLocation = safeSchemaFileName == null
+                ? ""
+                : " xsi:noNamespaceSchemaLocation=\"" + safeSchemaFileName + "\"";
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                + "<" + safeRootName
+                + " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
+                + noNamespaceLocation + "></" + safeRootName + ">\n";
+    }
+
+    /**
+     * XML attribútumértéket kódol a generált technikai fejléc számára.
+     */
+    private String xmlAttribute(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.replace("&", "&amp;")
+                .replace("\"", "&quot;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+    }
 }

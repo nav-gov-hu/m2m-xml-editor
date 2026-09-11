@@ -4,6 +4,7 @@ import hu.gov.nav.xsdparsertool.core.support.ExceptionSafeOperations;
 
 import hu.gov.nav.xsdparsertool.core.model.bundle.SchemaBundle;
 import hu.gov.nav.xsdparsertool.schemaregistry.model.XmlProbeResult;
+import hu.gov.nav.xsdparsertool.schemaregistry.model.SchemaDocumentOption;
 import hu.gov.nav.xsdparsertool.schemaregistry.model.XsdFileDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,8 +23,11 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -296,6 +300,145 @@ public class FileSystemSchemaRegistryService implements SchemaRegistryService {
             throw new IllegalArgumentException("No matching XSD found for document type: " + documentType);
         }
         return fromDescriptor(best.descriptor(), best.reason(), descriptors, normalizedSchemaRoot, normalizedUiModelRoot);
+    }
+
+    /**
+     * Felsorolja az XSD repository alapján generálható űrlaptípusokat és verzióikat.
+     *
+     * <p>Csak olyan sémák kerülnek a listába, amelyek globális {@code Doc_...}
+     * gyökérelemet deklarálnak. A common és technikai segédsémák ezért nem jelennek
+     * meg az Új XML párbeszédablakban.</p>
+     *
+     * @param schemaRootDir az űrlapspecifikus XSD-k gyökérkönyvtára
+     * @return a generálható űrlapok dokumentumtípus szerint rendezett listája
+     */
+    public List<SchemaDocumentOption> listDocumentOptions(Path schemaRootDir) {
+        Path normalizedSchemaRoot = normalizeDir(schemaRootDir != null ? schemaRootDir : preloadedSchemaRootDir);
+        if (normalizedSchemaRoot == null || !Files.isDirectory(normalizedSchemaRoot)) {
+            return List.of();
+        }
+
+        Map<String, Set<String>> versionsByType = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        List<XsdFileDescriptor> descriptors = scanDescriptors(normalizedSchemaRoot, null);
+        for (XsdFileDescriptor descriptor : descriptors) {
+            String documentType = descriptor.getRootElementNames().stream()
+                    .filter(name -> name != null && name.startsWith("Doc_") && name.length() > 4)
+                    .map(this::extractDocumentCode)
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElse(null);
+            if (documentType == null || documentType.isBlank()) {
+                continue;
+            }
+            String version = deriveDocumentVersion(descriptor, documentType);
+            if (version == null || version.isBlank()) {
+                continue;
+            }
+            versionsByType.computeIfAbsent(documentType, ignored -> new TreeSet<>(this::compareVersionTokens))
+                    .add(version);
+        }
+
+        return versionsByType.entrySet().stream()
+                .map(entry -> new SchemaDocumentOption(entry.getKey(), List.copyOf(entry.getValue())))
+                .toList();
+    }
+
+    /**
+     * Verziótokeneket numerikus komponensek alapján, fallbackként szövegesen rendez.
+     */
+    private int compareVersionTokens(String left, String right) {
+        String[] leftParts = left.split("\\.");
+        String[] rightParts = right.split("\\.");
+        int length = Math.max(leftParts.length, rightParts.length);
+        for (int index = 0; index < length; index++) {
+            int leftValue = index < leftParts.length ? parseVersionPart(leftParts[index]) : 0;
+            int rightValue = index < rightParts.length ? parseVersionPart(rightParts[index]) : 0;
+            int compared = Integer.compare(leftValue, rightValue);
+            if (compared != 0) {
+                return compared;
+            }
+        }
+        return left.compareToIgnoreCase(right);
+    }
+
+    /**
+     * Egy verziókomponens vezető numerikus részét olvassa ki.
+     */
+    private int parseVersionPart(String value) {
+        if (value == null) {
+            return 0;
+        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("^(\\d+)").matcher(value);
+        if (!matcher.find()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(matcher.group(1));
+        } catch (NumberFormatException ignored) {
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    /**
+     * Dokumentumtípus és űrlapverzió alapján pontos séma-csomagot old fel.
+     *
+     * <p>A verzióegyezés a descriptorból levezetett dokumentumverzió alapján történik.
+     * Ha ugyanahhoz a fő űrlapverzióhoz több release-patch tartozik, a meglévő
+     * release-prioritási szabály választja a legfrissebb jelöltet.</p>
+     *
+     * @param documentType a keresett dokumentumtípus
+     * @param documentVersion a keresett űrlapverzió
+     * @param schemaRootDir a nyomtatványspecifikus XSD-k gyökérkönyvtára
+     * @param generalXsdDir a közös/general XSD-k könyvtára
+     * @param uiModelDir a UIModel keresési gyökérkönyvtára
+     * @return a pontos típus-verzió kombinációhoz tartozó séma-csomag
+     */
+    @Override
+    public SchemaBundle resolveByDocumentTypeAndVersion(String documentType,
+                                                        String documentVersion,
+                                                        Path schemaRootDir,
+                                                        Path generalXsdDir,
+                                                        Path uiModelDir) {
+        if (documentVersion == null || documentVersion.isBlank()) {
+            throw new IllegalArgumentException("Az űrlapverzió megadása kötelező.");
+        }
+
+        Path normalizedSchemaRoot = normalizeDir(schemaRootDir);
+        Path normalizedGeneralRoot = normalizeDir(generalXsdDir);
+        Path normalizedUiModelRoot = normalizeDir(uiModelDir);
+        String normalizedDocumentType = normalize(documentType);
+        String normalizedVersion = normalizeVersionToken(documentVersion);
+        if (normalizedVersion == null) {
+            throw new IllegalArgumentException("Nem támogatott űrlapverzió: " + documentVersion);
+        }
+
+        List<XsdFileDescriptor> descriptors = scanDescriptors(normalizedSchemaRoot, normalizedGeneralRoot);
+        ScoredDescriptor best = findBestByDocumentTypeAndVersion(descriptors, normalizedDocumentType, normalizedVersion);
+        if (best == null) {
+            descriptors = refreshDescriptors(normalizedSchemaRoot, normalizedGeneralRoot);
+            best = findBestByDocumentTypeAndVersion(descriptors, normalizedDocumentType, normalizedVersion);
+        }
+        if (best == null) {
+            throw new IllegalArgumentException(
+                    "Nem található XSD a megadott űrlaphoz és verzióhoz: " + documentType + " " + documentVersion);
+        }
+
+        return fromDescriptor(best.descriptor(), best.reason(), descriptors, normalizedSchemaRoot, normalizedUiModelRoot);
+    }
+
+    /**
+     * Megkeresi a dokumentumtípushoz és pontos űrlapverzióhoz tartozó legjobb XSD-leírót.
+     */
+    private ScoredDescriptor findBestByDocumentTypeAndVersion(List<XsdFileDescriptor> descriptors,
+                                                              String normalizedDocumentType,
+                                                              String normalizedVersion) {
+        return descriptors.stream()
+                .map(descriptor -> scoreByDocumentType(descriptor, normalizedDocumentType))
+                .filter(scored -> scored.score() > 0)
+                .filter(scored -> normalizedVersion.equals(
+                        normalizeVersionToken(deriveDocumentVersion(scored.descriptor(), deriveDocumentType(scored.descriptor())))))
+                .max(preferredDescriptorComparator())
+                .orElse(null);
     }
     
 

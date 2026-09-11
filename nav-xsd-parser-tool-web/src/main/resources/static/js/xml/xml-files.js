@@ -56,6 +56,30 @@
   const xmlCopyFileNameMessage = document.getElementById('xmlCopyFileNameMessage');
   const xmlCopyNote = document.getElementById('xmlCopyNote');
   const xmlCopySubmitButton = document.getElementById('xmlCopySubmitButton');
+  const xmlFilesTable = document.getElementById('xmlFilesTable');
+
+  const XML_FILE_COLUMN_WIDTHS_COOKIE = 'navXmlFilesColumnWidths';
+  const XML_FILE_COLUMN_COOKIE_MAX_AGE_SECONDS = 31536000;
+  const XML_FILE_COLUMN_KEYS = ['id', 'attachment', 'fileName', 'partner', 'createdAt', 'updatedAt', 'formType', 'formVersion', 'fileSize', 'note', 'status', 'actions'];
+  const XML_FILE_FIXED_COLUMN_KEYS = new Set(['id', 'attachment', 'formType', 'formVersion', 'fileSize', 'actions']);
+  const XML_FILE_COLUMN_LIMITS = {
+    id: { min: 46, max: 120, fallback: 58 },
+    attachment: { min: 22, max: 34, fallback: 24 },
+    fileName: { min: 150, max: 360, fallback: 240 },
+    partner: { min: 150, max: 360, fallback: 250 },
+    createdAt: { min: 150, max: 215, fallback: 178 },
+    updatedAt: { min: 150, max: 215, fallback: 178 },
+    formType: { min: 70, max: 190, fallback: 100 },
+    formVersion: { min: 68, max: 130, fallback: 82 },
+    fileSize: { min: 68, max: 125, fallback: 84 },
+    note: { min: 120, max: 420, fallback: 220 },
+    status: { min: 74, max: 130, fallback: 92 },
+    actions: { min: 48, max: 76, fallback: 54 }
+  };
+
+  let xmlFileColumnWidths = {};
+  let xmlFileColumnWidthsLoadedFromCookie = false;
+  let xmlFileColumnsAutoSized = false;
 
   let allXmlFiles = [];
   let currentXmlFileMap = new Map();
@@ -69,6 +93,200 @@
   let currentUserPermissions = { canUpload: false, canEdit: false, canAdmin: false, canPhysicallyArchive: false };
   const actionMenuOriginalParents = new WeakMap();
   let copyFileNameCheckTimer = null;
+
+    /**
+   * Visszaadja az Űrlapállományok táblázat egy oszlopához tartozó mérethatárokat.
+   *
+   * @param {string} key az oszlop technikai kulcsa
+   * @returns {{min:number,max:number,fallback:number}} az oszlop méretezési korlátai
+   */
+function xmlFileColumnLimits(key){
+    return XML_FILE_COLUMN_LIMITS[key] || { min: 60, max: 500, fallback: 120 };
+  }
+
+    /**
+   * A megadott szélességet az oszlop megengedett tartományára korlátozza.
+   *
+   * @param {string} key az oszlop technikai kulcsa
+   * @param {number} value a kért szélesség pixelben
+   * @returns {number} a használható szélesség pixelben
+   */
+function clampXmlFileColumnWidth(key, value){
+    const limits = xmlFileColumnLimits(key);
+    const numeric = Number(value);
+    const safe = Number.isFinite(numeric) ? numeric : limits.fallback;
+    return Math.round(Math.max(limits.min, Math.min(limits.max, safe)));
+  }
+
+    /**
+   * Beolvassa a korábban eltárolt oszlopszélességeket a böngésző sütijéből.
+   */
+function loadXmlFileColumnWidths(){
+    xmlFileColumnWidths = {};
+    const prefix = `${XML_FILE_COLUMN_WIDTHS_COOKIE}=`;
+    const entry = String(document.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith(prefix));
+    if(!entry){
+      xmlFileColumnWidthsLoadedFromCookie = false;
+      return;
+    }
+    try{
+      const parsed = JSON.parse(decodeURIComponent(entry.slice(prefix.length)));
+      XML_FILE_COLUMN_KEYS.forEach(key => {
+        if(parsed && Object.prototype.hasOwnProperty.call(parsed, key)){
+          xmlFileColumnWidths[key] = clampXmlFileColumnWidth(key, parsed[key]);
+        }
+      });
+      xmlFileColumnWidthsLoadedFromCookie = Object.keys(xmlFileColumnWidths).length > 0;
+    }catch(_ignored){
+      xmlFileColumnWidths = {};
+      xmlFileColumnWidthsLoadedFromCookie = false;
+    }
+  }
+
+    /**
+   * Elmenti az Űrlapállományok tábláz felhasználó által beállított oszlopszélességeit sütibe.
+   */
+function saveXmlFileColumnWidths(){
+    try{
+      const value = encodeURIComponent(JSON.stringify(xmlFileColumnWidths));
+      document.cookie = `${XML_FILE_COLUMN_WIDTHS_COOKIE}=${value}; Path=/; Max-Age=${XML_FILE_COLUMN_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
+    }catch(_ignored){
+      // A táblázat ettől még használható; a sütimentés hibája nem akadályozhatja a felületet.
+    }
+  }
+
+    /**
+   * Beállítja egy oszlop szélességét a colgroup elemén, így a fejléc és a törzs azonos méretet kap.
+   *
+   * @param {string} key az oszlop technikai kulcsa
+   * @param {number} width a szélesség pixelben
+   */
+function applyXmlFileColumnWidth(key, width){
+    if(!xmlFilesTable) return;
+    const safeWidth = clampXmlFileColumnWidth(key, width);
+    const col = xmlFilesTable.querySelector(`col[data-column-key="${CSS.escape(key)}"]`);
+    if(col) col.style.width = `${safeWidth}px`;
+    xmlFileColumnWidths[key] = safeWidth;
+  }
+
+    /**
+   * Alkalmazza az eltárolt, illetve alapértelmezett oszlopszélességeket.
+   */
+function applyStoredXmlFileColumnWidths(){
+    XML_FILE_COLUMN_KEYS.forEach(key => {
+      const limits = xmlFileColumnLimits(key);
+      applyXmlFileColumnWidth(key, xmlFileColumnWidths[key] ?? limits.fallback);
+    });
+  }
+
+    /**
+   * A látható tartalom alapján egyszer, első megnyitáskor kiszámítja a kompakt oszlopszélességeket.
+   * A hosszú szöveges oszlopokat felső korlát védi attól, hogy egyetlen érték széthúzza a táblázatot.
+   */
+function autoSizeXmlFileColumns(){
+    if(!xmlFilesTable || xmlFileColumnWidthsLoadedFromCookie || xmlFileColumnsAutoSized) return;
+    XML_FILE_COLUMN_KEYS.forEach(key => {
+      const header = xmlFilesTable.querySelector(`thead th[data-column-key="${CSS.escape(key)}"]`);
+      if(!header) return;
+      const index = Array.from(header.parentElement.children).indexOf(header) + 1;
+      let preferred = Math.max(header.scrollWidth + 18, xmlFileColumnLimits(key).min);
+      xmlFilesTable.querySelectorAll(`tbody tr[data-xml-file-row] > td:nth-child(${index})`).forEach(cell => {
+        preferred = Math.max(preferred, cell.scrollWidth + 18);
+      });
+      applyXmlFileColumnWidth(key, preferred);
+    });
+    xmlFileColumnsAutoSized = true;
+    fitXmlFileColumnsToContainer();
+  }
+
+    /**
+   * A rugalmas oszlopokat az aktuális táblázatszélességhez igazítja.
+   * A kompakt technikai oszlopok megtartják a beállított méretüket, a többi oszlop
+   * arányosan osztozik a fennmaradó helyen.
+   */
+function fitXmlFileColumnsToContainer(){
+    if(!xmlFilesTable) return;
+    const wrap = xmlFilesTable.closest('.xml-files-table-wrap');
+    const available = Math.max(0, wrap?.clientWidth || xmlFilesTable.clientWidth || 0);
+    if(available <= 0) return;
+
+    const fixedWidth = XML_FILE_COLUMN_KEYS
+      .filter(key => XML_FILE_FIXED_COLUMN_KEYS.has(key))
+      .reduce((sum, key) => sum + (xmlFileColumnWidths[key] ?? xmlFileColumnLimits(key).fallback), 0);
+    const flexibleKeys = XML_FILE_COLUMN_KEYS.filter(key => !XML_FILE_FIXED_COLUMN_KEYS.has(key));
+    const minimumFlexibleWidth = flexibleKeys.reduce((sum, key) => sum + xmlFileColumnLimits(key).min, 0);
+    const flexibleTarget = Math.max(minimumFlexibleWidth, available - fixedWidth);
+    const currentFlexibleWidth = flexibleKeys.reduce((sum, key) => sum + (xmlFileColumnWidths[key] ?? xmlFileColumnLimits(key).fallback), 0) || 1;
+
+    flexibleKeys.forEach(key => {
+      const current = xmlFileColumnWidths[key] ?? xmlFileColumnLimits(key).fallback;
+      applyXmlFileColumnWidth(key, current * flexibleTarget / currentFlexibleWidth);
+    });
+  }
+
+    /**
+   * Felveszi a fogópontokat a táblázat fejlécére, és kezeli az egérrel/tollal végzett oszlopátméretezést.
+   */
+function initXmlFileColumnResizing(){
+    if(!xmlFilesTable) return;
+    loadXmlFileColumnWidths();
+    applyStoredXmlFileColumnWidths();
+    xmlFilesTable.querySelectorAll('thead th[data-column-key]').forEach(header => {
+      if(header.querySelector('.xml-column-resizer')) return;
+      const key = header.dataset.columnKey;
+      const handle = document.createElement('span');
+      handle.className = 'xml-column-resizer';
+      handle.setAttribute('aria-hidden', 'true');
+      handle.addEventListener('pointerdown', event => {
+        if(event.button !== 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const col = xmlFilesTable.querySelector(`col[data-column-key="${CSS.escape(key)}"]`);
+        const startWidth = col?.getBoundingClientRect().width || header.getBoundingClientRect().width;
+        const startX = event.clientX;
+        handle.classList.add('is-resizing');
+        document.body.classList.add('xml-column-resize-active');
+        handle.setPointerCapture?.(event.pointerId);
+
+        const siblingKey = (() => {
+          const index = XML_FILE_COLUMN_KEYS.indexOf(key);
+          for(let i = index + 1; i < XML_FILE_COLUMN_KEYS.length; i += 1){
+            if(!XML_FILE_FIXED_COLUMN_KEYS.has(XML_FILE_COLUMN_KEYS[i])) return XML_FILE_COLUMN_KEYS[i];
+          }
+          for(let i = index - 1; i >= 0; i -= 1){
+            if(!XML_FILE_FIXED_COLUMN_KEYS.has(XML_FILE_COLUMN_KEYS[i])) return XML_FILE_COLUMN_KEYS[i];
+          }
+          return null;
+        })();
+        const siblingStartWidth = siblingKey
+          ? (xmlFileColumnWidths[siblingKey] ?? xmlFileColumnLimits(siblingKey).fallback)
+          : 0;
+        const move = moveEvent => {
+          const requestedDelta = moveEvent.clientX - startX;
+          const requestedWidth = clampXmlFileColumnWidth(key, startWidth + requestedDelta);
+          const actualDelta = requestedWidth - startWidth;
+          applyXmlFileColumnWidth(key, requestedWidth);
+          if(siblingKey){
+            applyXmlFileColumnWidth(siblingKey, siblingStartWidth - actualDelta);
+          }
+        };
+        const stop = () => {
+          handle.removeEventListener('pointermove', move);
+          handle.removeEventListener('pointerup', stop);
+          handle.removeEventListener('pointercancel', stop);
+          handle.classList.remove('is-resizing');
+          document.body.classList.remove('xml-column-resize-active');
+          xmlFileColumnWidthsLoadedFromCookie = true;
+          saveXmlFileColumnWidths();
+        };
+        handle.addEventListener('pointermove', move);
+        handle.addEventListener('pointerup', stop);
+        handle.addEventListener('pointercancel', stop);
+      });
+      header.appendChild(handle);
+    });
+    window.addEventListener('resize', fitXmlFileColumnsToContainer, { passive: true });
+  }
 
     /**
    * Szinkronizálja vagy frissíti a setup partner predictive által kezelt állapotot a megadott adatok alapján.
@@ -1637,20 +1855,21 @@ function renderXmlFiles(files, total){
     }
     tableBody.innerHTML = files.map(file => `
       <tr data-xml-file-row="${escapeText(file.id)}" class="${file.archived ? 'is-archived' : ''} ${file.locked ? 'is-locked' : ''} ${highlightXmlFileId && String(highlightXmlFileId) === String(file.id) ? 'is-highlighted' : ''}">
-        <td>${escapeText(file.id)}</td>
+        <td title="${escapeText(file.id)}">${escapeText(file.id)}</td>
         <td class="xml-attachment-toggle-cell"><button type="button" class="xml-attachment-toggle" hidden data-attachment-toggle="${escapeText(file.id)}" title="Csatolmányok megjelenítése" aria-label="Csatolmányok megjelenítése" aria-expanded="false">📎</button></td>
-        <td class="xml-file-name-cell"><strong>${escapeText(file.fileName)}</strong></td>
-        <td>${file.partnerTaxNumber && file.partnerName ? escapeText(`${file.partnerTaxNumber} - ${file.partnerName}`) : `<span class="xml-partner-import-error" title="${escapeText(file.partnerImportMessage || 'Nincs partner hozzárendelve')}">${escapeText(file.partnerImportStatus === 'ERROR' ? file.partnerImportMessage : 'Nincs partner')}</span>`}</td>
-        <td>${escapeText(formatDate(file.createdAt))}</td>
-        <td>${escapeText(formatDate(file.updatedAt))}</td>
-        <td>${escapeText(file.formType || '-')}</td>
-        <td>${escapeText(file.formVersion || '-')}</td>
-        <td>${escapeText(file.fileSizeDisplay || '-')}</td>
-        <td class="xml-file-note-cell">${escapeText(file.userNote || '-')}</td>
+        <td class="xml-file-name-cell" title="${escapeText(file.fileName)}"><strong>${escapeText(file.fileName)}</strong></td>
+        <td title="${escapeText(file.partnerTaxNumber && file.partnerName ? `${file.partnerTaxNumber} - ${file.partnerName}` : (file.partnerImportMessage || 'Nincs partner'))}">${file.partnerTaxNumber && file.partnerName ? escapeText(`${file.partnerTaxNumber} - ${file.partnerName}`) : `<span class="xml-partner-import-error" title="${escapeText(file.partnerImportMessage || 'Nincs partner hozzárendelve')}">${escapeText(file.partnerImportStatus === 'ERROR' ? file.partnerImportMessage : 'Nincs partner')}</span>`}</td>
+        <td title="${escapeText(formatDate(file.createdAt))}">${escapeText(formatDate(file.createdAt))}</td>
+        <td title="${escapeText(formatDate(file.updatedAt))}">${escapeText(formatDate(file.updatedAt))}</td>
+        <td title="${escapeText(file.formType || '-')}">${escapeText(file.formType || '-')}</td>
+        <td title="${escapeText(file.formVersion || '-')}">${escapeText(file.formVersion || '-')}</td>
+        <td title="${escapeText(file.fileSizeDisplay || '-')}">${escapeText(file.fileSizeDisplay || '-')}</td>
+        <td class="xml-file-note-cell" title="${escapeText(file.userNote || '-')}">${escapeText(file.userNote || '-')}</td>
         <td>${renderStatusCell(file)}</td>
         <td>${renderActions(file)}</td>
       </tr>
       <tr class="xml-attachment-detail-row" data-attachment-row="${escapeText(file.id)}" hidden><td colspan="12"><div class="xml-attachment-detail-content">Betöltés...</div></td></tr>`).join('');
+    autoSizeXmlFileColumns();
     const attachmentIds = files.map(file => file.id).filter(id => id != null);
     if(attachmentIds.length){
       fetch(`/api/submissions/xml-files/attachment-counts?${attachmentIds.map(id => `ids=${encodeURIComponent(id)}`).join('&')}`, { credentials:'same-origin', cache:'no-store' })
@@ -2475,6 +2694,7 @@ function gotoPage(page){
   (async function initXmlFilesPage(){
     setArchivedToggleState();
     updateSortIndicators();
+    initXmlFileColumnResizing();
     await loadCurrentUserForPermissions();
     await loadXmlFiles();
     showDeferredXmlFilesMessage();

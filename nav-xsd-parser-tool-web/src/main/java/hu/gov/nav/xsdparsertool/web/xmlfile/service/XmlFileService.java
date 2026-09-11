@@ -248,6 +248,51 @@ public class XmlFileService {
     }
 
     /**
+     * A generátor által létrehozott fizikai XML fájlt a normál állománykezelési folyamatba regisztrálja.
+     *
+     * <p>A fájlnév-, partner-, erőforrás-feloldási és automatikus XSD-validációs szabályok
+     * megegyeznek a feltöltött XML állományok szabályaival. A fizikai fájlnak a konfigurált
+     * XML állománytár alatt kell lennie.</p>
+     *
+     * @param file a generált fizikai XML fájl
+     * @param fileName a felhasználó által megadott logikai fájlnév
+     * @param userNote opcionális felhasználói megjegyzés
+     * @param partnerId a hozzárendelendő partner azonosítója
+     * @return a regisztrált XML állomány adatai
+     * @throws IOException ha a fizikai fájl ellenőrzése vagy feldolgozása sikertelen
+     */
+    @Transactional
+    public XmlFileDto registerGeneratedFile(Path file, String fileName, String userNote, Long partnerId) throws IOException {
+        if (file == null) {
+            throw new IllegalArgumentException("Hiányzó generált XML fájl.");
+        }
+        Path uploadDir = normalize(Path.of(properties.getUploadDir()));
+        Path target = normalize(file);
+        ensureInsideRoot(uploadDir, target, "A generált XML csak a konfigurált XML állománytárba írható.");
+        if (!ExceptionSafeOperations.isRegularFile(target)) {
+            throw new IllegalArgumentException("A generált XML fájl nem található: " + target);
+        }
+
+        String safeFileName = requireSafeXmlFileName(fileName);
+        ensureUniqueFileName(safeFileName);
+        if (partnerId == null) {
+            throw new IllegalArgumentException("Az új XML létrehozásához partner megadása kötelező.");
+        }
+
+        XmlFileEntity entity = createEntity(safeFileName, safeFileName, target, userNote, "GENERATED");
+        entity.setPartner(partnerService.require(partnerId));
+        entity.setPartnerImportStatus("ASSIGNED");
+        entity.setPartnerImportMessage(null);
+        XmlFileEntity saved = repository.save(entity);
+        auditLogService.log("XML_FILE_GENERATED", saved.getId(), null, null, currentUsername(), "SUCCESS",
+                "Új XML állomány létrehozva: " + saved.getFileName(),
+                "formType=" + saved.getFormType() + "; formVersion=" + saved.getFormVersion());
+        startAutomaticXsdValidationIfPossible(saved,
+                "Új XML létrehozása utáni automatikus XSD validáció előkészítése.");
+        return XmlFileDto.from(saved);
+    }
+
+    /**
      * A {@code registerServerFile} művelet létrehozza vagy tartósítja a kért állapotváltozást.
      *
      * <p>A fájl- és útvonalkezelést a konfigurált tárhely és a biztonsági korlátok figyelembevételével végzi; a hívó számára csak a feloldott eredményt adja tovább.</p>
@@ -624,6 +669,23 @@ public class XmlFileService {
             throw new IllegalStateException("A letöltendő XML állomány nem található a fájlrendszerben: " + path);
         }
         return path;
+    }
+
+    /**
+     * Visszaadja a letöltéskor felajánlandó eredeti fájlnevet.
+     *
+     * <p>Az állomány fizikai, UUID-alapú tárolási neve belső technikai részlet, ezért
+     * a kliens felé elsődlegesen az eredeti fájlnevet adjuk vissza.</p>
+     *
+     * @param id az XML állomány technikai azonosítója
+     * @return az eredeti fájlnév, ennek hiányában a nyilvántartott fájlnév
+     */
+    @Transactional(readOnly = true)
+    public String downloadFileName(Long id) {
+        XmlFileEntity entity = RepositoryAccess.findById(repository, id)
+                .orElseThrow(() -> new IllegalArgumentException("Nem található XML állomány ezzel az azonosítóval: " + id));
+        String originalFileName = blankToNull(entity.getOriginalFileName());
+        return originalFileName != null ? originalFileName : entity.getFileName();
     }
 
 

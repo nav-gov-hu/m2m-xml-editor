@@ -3,6 +3,7 @@ package hu.gov.nav.xsdparsertool.web.xmlfile.api;
 import hu.gov.nav.xsdparsertool.web.testsupport.TestSecurityConfiguration;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.ServerFileBrowserService;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlFileSaveService;
+import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlFileGenerationService;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlFileService;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlFileSessionService;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlMutationGuard;
@@ -28,6 +29,7 @@ class XmlFileControllerAuthorizationIntegrationTest {
 
     @Autowired MockMvc mockMvc;
     @MockBean XmlFileService xmlFileService;
+    @MockBean XmlFileGenerationService xmlFileGenerationService;
     @MockBean XmlFileSessionService xmlFileSessionService;
     @MockBean ServerFileBrowserService serverFileBrowserService;
     @MockBean XmlFileSaveService xmlFileSaveService;

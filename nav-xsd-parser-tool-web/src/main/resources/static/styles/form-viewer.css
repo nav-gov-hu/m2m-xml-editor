@@ -1063,3 +1063,93 @@ html:not([data-color-scheme="dark"]) .uimodel-label {
 .field-search-results{width:100%;min-width:280px;max-width:min(720px,calc(100vw - 32px));box-sizing:border-box}
 .field-search-result{box-sizing:border-box;overflow:hidden}
 .field-search-result-label,.field-search-result-meta{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;line-height:1.35}
+
+/* Ismétlődő XSD-csoportok (Chain_elem) */
+.repeat-container {
+  grid-column: 1 / -1;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--border-color, #d7dde5);
+  border-radius: 10px;
+  background: var(--surface-card, #fff);
+}
+.repeat-container-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.repeat-container-title-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.repeat-container-title {
+  margin: 0;
+  font-size: 1rem;
+}
+.repeat-container-cardinality {
+  color: var(--muted-text, #667085);
+  font-size: .85rem;
+  white-space: nowrap;
+}
+.repeat-add-button {
+  flex: 0 0 auto;
+  min-height: 32px;
+}
+.repeat-occurrence-card .repeat-container {
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+.repeat-container-empty {
+  padding: 8px 0 4px;
+  color: var(--muted-text, #667085);
+}
+.repeat-occurrence-card {
+  position: relative;
+  padding-right: 76px;
+}
+.repeat-delete-button {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid #c62828;
+  border-radius: 6px;
+  color: #a31515;
+  background: #fff5f5;
+  cursor: pointer;
+}
+.repeat-delete-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.repeat-row-subtitle {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+  font-weight: 600;
+}
+html[data-color-scheme="dark"] body.nav-application-theme .repeat-container {
+  background: var(--surface-card, #102239);
+  border-color: var(--border-color, #36516e);
+}
+html[data-color-scheme="dark"] body.nav-application-theme .repeat-delete-button {
+  background: #351a1a;
+  border-color: #a84a4a;
+  color: #ffd6d6;
+}
+@media (max-width: 720px) {
+  .repeat-container-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .repeat-add-button {
+    align-self: flex-start;
+  }
+}

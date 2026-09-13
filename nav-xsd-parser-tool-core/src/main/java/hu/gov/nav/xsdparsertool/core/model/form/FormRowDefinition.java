@@ -14,6 +14,9 @@ public class FormRowDefinition {
     private String type;
     private boolean repeatable;
     private String xmlPath;
+    private String repeatContainerPath;
+    private Integer minOccurs;
+    private String maxOccurs;
     private List<FormFieldDefinition> fields = new ArrayList<>();
 /**
  * Visszaadja a következő modellértéket: az objektum technikai azonosítója.
@@ -75,6 +78,42 @@ public String getXmlPath() { return xmlPath; }
  * @param xmlPath az elem teljes, kontextusérzékeny XML-útvonala
  */
 public void setXmlPath(String xmlPath) { this.xmlPath = xmlPath; }
+/**
+ * Visszaadja az ismétlődő sor legkülső, egy példányként kezelendő XML-konténerének útvonalát.
+ *
+ * @return az ismétlődő konténer útvonala, vagy {@code null}
+ */
+public String getRepeatContainerPath() { return repeatContainerPath; }
+/**
+ * Beállítja az ismétlődő sor egy példányként kezelendő XML-konténerének útvonalát.
+ *
+ * @param repeatContainerPath az ismétlődő konténer útvonala
+ */
+public void setRepeatContainerPath(String repeatContainerPath) { this.repeatContainerPath = repeatContainerPath; }
+/**
+ * Visszaadja az ismétlődő konténer minimális előfordulásszámát.
+ *
+ * @return minimális előfordulásszám
+ */
+public Integer getMinOccurs() { return minOccurs; }
+/**
+ * Beállítja az ismétlődő konténer minimális előfordulásszámát.
+ *
+ * @param minOccurs minimális előfordulásszám
+ */
+public void setMinOccurs(Integer minOccurs) { this.minOccurs = minOccurs; }
+/**
+ * Visszaadja az ismétlődő konténer maximális előfordulásszámát.
+ *
+ * @return maximális előfordulásszám vagy {@code unbounded}
+ */
+public String getMaxOccurs() { return maxOccurs; }
+/**
+ * Beállítja az ismétlődő konténer maximális előfordulásszámát.
+ *
+ * @param maxOccurs maximális előfordulásszám vagy {@code unbounded}
+ */
+public void setMaxOccurs(String maxOccurs) { this.maxOccurs = maxOccurs; }
 /**
  * Visszaadja a következő modellértéket: a blokkhoz vagy sorhoz tartozó meződefiníciók rendezett listája.
  *

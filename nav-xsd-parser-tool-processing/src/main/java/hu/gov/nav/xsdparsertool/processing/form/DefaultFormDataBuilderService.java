@@ -59,7 +59,8 @@ public class DefaultFormDataBuilderService implements FormDataBuilderService {
             for (FormTabDefinition tab : formDefinition.getTabs()) {
                 for (FormSectionDefinition section : tab.getSections()) {
                     for (FormRowDefinition row : section.getRows()) {
-                        if (row.isRepeatable() && row.getXmlPath() != null && !row.getXmlPath().isBlank()) {
+                        if (row.isRepeatable() && ((row.getRepeatContainerPath() != null && !row.getRepeatContainerPath().isBlank())
+                                || (row.getXmlPath() != null && !row.getXmlPath().isBlank()))) {
                             buildRepeatableRowData(formData, document.getDocumentElement(), row);
                         } else {
                             buildSimpleRowData(formData, document.getDocumentElement(), row);
@@ -107,7 +108,10 @@ public class DefaultFormDataBuilderService implements FormDataBuilderService {
      * @param row az ismétlődő sor definíciója
      */
     private void buildRepeatableRowData(FormData formData, Element root, FormRowDefinition row) {
-        List<NodeWithPath> rowNodes = findNodesByPath(root, row.getXmlPath());
+        String repeatContainerPath = row.getRepeatContainerPath() == null || row.getRepeatContainerPath().isBlank()
+                ? row.getXmlPath()
+                : row.getRepeatContainerPath();
+        List<NodeWithPath> rowNodes = findNodesByPath(root, repeatContainerPath);
         int rowIndex = 0;
         for (NodeWithPath rowNode : rowNodes) {
             FormRowInstance instance = new FormRowInstance();
@@ -115,9 +119,10 @@ public class DefaultFormDataBuilderService implements FormDataBuilderService {
             instance.setXmlPath(rowNode.path());
 
             for (FormFieldDefinition field : row.getFields()) {
-                String fieldPath = rowNode.path() + "/" + field.getXmlName();
+                String relativeFieldPath = relativePath(field.getXmlPath(), repeatContainerPath);
+                String fieldPath = rowNode.path() + relativeFieldPath;
                 String key = row.getId() + "#" + rowIndex + ":" + field.getId();
-                FormValue value = buildFormValue(key, field, rowNode.node(), fieldPath);
+                FormValue value = buildFormValue(key, field, root, fieldPath);
                 instance.getValuesByFieldId().put(field.getId(), value);
                 formData.getValuesByFieldId().put(value.getKey(), value);
             }
@@ -125,6 +130,27 @@ public class DefaultFormDataBuilderService implements FormDataBuilderService {
             formData.getOrCreateRowInstances(row.getId()).add(instance);
             rowIndex++;
         }
+    }
+
+    /**
+     * A mező sablonútvonalából előállítja az ismétlődő konténerhez viszonyított suffixet.
+     *
+     * @param fieldPath a mező teljes sablonútvonala
+     * @param repeatContainerPath a repeat konténer sablonútvonala
+     * @return a konténer utáni relatív útvonal, kezdő perjellel
+     */
+    private String relativePath(String fieldPath, String repeatContainerPath) {
+        if (fieldPath == null || repeatContainerPath == null) {
+            return "";
+        }
+        if (fieldPath.equals(repeatContainerPath)) {
+            return "";
+        }
+        if (fieldPath.startsWith(repeatContainerPath + "/")) {
+            return fieldPath.substring(repeatContainerPath.length());
+        }
+        int idx = fieldPath.lastIndexOf('/');
+        return idx >= 0 ? fieldPath.substring(idx) : "/" + fieldPath;
     }
 
     /**

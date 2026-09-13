@@ -148,7 +148,7 @@ public class DefaultFormDefinitionBuilderService implements FormDefinitionBuilde
                 );
 
                 row.setXmlPath(resolveRowXmlPath(fieldDefs));
-                row.setRepeatable(isChainRow(fieldDefs));
+                applyRepeatMetadata(row, fieldDefs, documentDefinition);
 
                 LOGGER.debug("UI row resolved. sectionId={} rowId={} rowTitle={} groupId={} matchedBlockId={} fieldCount={}",
                         section.getId(), row.getId(), row.getTitle(), groupId, block != null ? block.getId() : null, fieldDefs.size());
@@ -550,6 +550,99 @@ public class DefaultFormDefinitionBuilderService implements FormDefinitionBuilde
      * @param fields a sorhoz tartozó meződefiníciók
      * @return {@code true}, ha legalább egy mező chain elem alatt található
      */
+    /**
+     * Meghatározza egy sor ismétlődő logikai konténerét és annak kardinalitását.
+     *
+     * <p>A NAV metaséma szerint a lánc ismétlődő rekordhatára a {@code Chain_elem}.
+     * A tényleges minimális és maximális előfordulásszámot azonban nem fixen vesszük,
+     * hanem a konkrét generált XSD-ből, a {@link DocumentDefinition} strukturális
+     * occurrence térképeiből olvassuk ki. Beágyazott láncnál a mezőkhöz legközelebbi,
+     * vagyis leghosszabb illeszkedő {@code Chain_elem} útvonal lesz a konténer.</p>
+     *
+     * @param row a feltöltendő űrlapsor
+     * @param fields a sor mezői
+     * @param documentDefinition a konkrét XSD-ből felépített dokumentumdefiníció
+     */
+    private void applyRepeatMetadata(FormRowDefinition row,
+                                     List<FieldDefinition> fields,
+                                     DocumentDefinition documentDefinition) {
+        String repeatPath = resolveRepeatContainerPath(fields, documentDefinition);
+        if (repeatPath == null) {
+            row.setRepeatable(false);
+            row.setRepeatContainerPath(null);
+            row.setMinOccurs(null);
+            row.setMaxOccurs(null);
+            return;
+        }
+
+        row.setRepeatable(true);
+        row.setRepeatContainerPath(repeatPath);
+        Integer minOccurs = documentDefinition.getStructuralMinOccursByPath().get(repeatPath);
+        String maxOccurs = documentDefinition.getStructuralMaxOccursByPath().get(repeatPath);
+        row.setMinOccurs(minOccurs == null ? 1 : minOccurs);
+        row.setMaxOccurs(firstNonBlank(maxOccurs, "unbounded"));
+    }
+
+    /**
+     * Feloldja a mezők legbelső közös ismétlődő {@code Chain_elem} ősét.
+     *
+     * @param fields a sor mezői
+     * @param documentDefinition a strukturális occurrence metaadatokat tartalmazó modell
+     * @return a repeat konténer teljes XML-útvonala, vagy {@code null}
+     */
+    private String resolveRepeatContainerPath(List<FieldDefinition> fields, DocumentDefinition documentDefinition) {
+        if (fields == null || fields.isEmpty() || documentDefinition == null) {
+            return null;
+        }
+
+        String best = null;
+        for (String candidate : documentDefinition.getStructuralMaxOccursByPath().keySet()) {
+            if (candidate == null || !candidate.matches("(?i).*/Chain_elem$")) {
+                continue;
+            }
+            String maxOccurs = documentDefinition.getStructuralMaxOccursByPath().get(candidate);
+            if (!isRepeatable(maxOccurs)) {
+                continue;
+            }
+            boolean appliesToAll = true;
+            for (FieldDefinition field : fields) {
+                String fieldPath = field == null ? null : field.getXmlPath();
+                if (fieldPath == null || !(fieldPath.equals(candidate) || fieldPath.startsWith(candidate + "/"))) {
+                    appliesToAll = false;
+                    break;
+                }
+            }
+            if (appliesToAll && (best == null || candidate.length() > best.length())) {
+                best = candidate;
+            }
+        }
+
+        if (best != null) {
+            return best;
+        }
+
+        // Kompatibilitási fallback régebbi parser-modellekhez: a mezőútvonalból
+        // vesszük a legbelső Chain_elem szegmensig tartó prefixet.
+        for (FieldDefinition field : fields) {
+            String path = field == null ? null : field.getXmlPath();
+            if (path == null) continue;
+            String[] segments = path.split("/");
+            StringBuilder prefix = new StringBuilder();
+            String candidate = null;
+            for (String segment : segments) {
+                if (segment == null || segment.isBlank()) continue;
+                prefix.append('/').append(segment);
+                if ("Chain_elem".equalsIgnoreCase(segment)) {
+                    candidate = prefix.toString();
+                }
+            }
+            if (candidate != null && (best == null || candidate.length() > best.length())) {
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
     private boolean isChainRow(List<FieldDefinition> fields) {
         if (fields == null) {
             return false;
@@ -669,7 +762,7 @@ public class DefaultFormDefinitionBuilderService implements FormDefinitionBuilde
                 row.setTitle(firstNonBlank(block.getTitle(), block.getName(), "Mezők"));
                 row.setType("fieldgroup");
                 row.setXmlPath(resolveRowXmlPath(block.getFields()));
-                row.setRepeatable(isChainRow(block.getFields()));
+                applyRepeatMetadata(row, block.getFields(), documentDefinition);
 
                 if (block.getFields() != null) {
                     for (FieldDefinition field : block.getFields()) {

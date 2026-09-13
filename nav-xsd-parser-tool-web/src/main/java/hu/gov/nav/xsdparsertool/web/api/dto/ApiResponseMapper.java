@@ -258,6 +258,9 @@ public final class ApiResponseMapper {
                     rowDto.setType(row.getType());
                     rowDto.setRepeatable(row.isRepeatable());
                     rowDto.setXmlPath(row.getXmlPath());
+                    rowDto.setRepeatContainerPath(row.getRepeatContainerPath());
+                    rowDto.setMinOccurs(row.getMinOccurs());
+                    rowDto.setMaxOccurs(row.getMaxOccurs());
                     for (FormFieldDefinition field : row.getFields()) {
                         FormFieldDto fieldDto = new FormFieldDto();
                         fieldDto.setId(field.getId());

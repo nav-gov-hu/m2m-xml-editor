@@ -42,6 +42,32 @@ class DefaultFormDataBuilderServiceTest {
     }
 
 
+
+    @Test
+    void repeatedFieldGroupsUseChainElementAsUnifiedOccurrenceBoundary() throws Exception {
+        Path xml = tempDir.resolve("chain-repeat.xml");
+        Files.writeString(xml, """
+                <Root><Chain>
+                  <Chain_elem><FieldGroup_1><Field_A>one</Field_A></FieldGroup_1></Chain_elem>
+                  <Chain_elem><FieldGroup_1><Field_A>two</Field_A></FieldGroup_1></Chain_elem>
+                </Chain></Root>
+                """);
+        FormRowDefinition row = simpleRow("group-1", field("A", "Field_A", "/Root/Chain/Chain_elem/FieldGroup_1/Field_A"));
+        row.setRepeatable(true);
+        row.setXmlPath("/Root/Chain/Chain_elem/FieldGroup_1");
+        row.setRepeatContainerPath("/Root/Chain/Chain_elem");
+        row.setMinOccurs(1);
+        row.setMaxOccurs("10");
+
+        FormData data = new DefaultFormDataBuilderService().build(definitionWithRow(row), xml);
+
+        assertEquals(2, data.getRowInstancesByRowId().get("group-1").size());
+        assertEquals("/Root/Chain[1]/Chain_elem[1]", data.getRowInstancesByRowId().get("group-1").get(0).getXmlPath());
+        assertEquals("/Root/Chain[1]/Chain_elem[2]", data.getRowInstancesByRowId().get("group-1").get(1).getXmlPath());
+        assertEquals("one", data.getRowInstancesByRowId().get("group-1").get(0).getValuesByFieldId().get("A").getValue());
+        assertEquals("two", data.getRowInstancesByRowId().get("group-1").get(1).getValuesByFieldId().get("A").getValue());
+    }
+
     @Test
     void missingFieldIsRecordedAsNotPresent() throws Exception {
         Path xml = tempDir.resolve("missing.xml");

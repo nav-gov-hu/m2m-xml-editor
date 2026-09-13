@@ -113,6 +113,31 @@ class DefaultFormDefinitionBuilderServiceCoverageTest {
     }
 
     @Test
+    void nestedChainUsesNearestChainElementAndConcreteCardinality() {
+        FieldDefinition field = field(
+                "F1",
+                "/Doc/Form/Chain_1/Chain_elem/Chain_2/Chain_elem/FieldGroup_1/F1",
+                "xs:string"
+        );
+        DocumentDefinition document = document(field);
+        document.setStructuralMaxOccursByPath(new LinkedHashMap<>(java.util.Map.of(
+                "/Doc/Form/Chain_1/Chain_elem", "10",
+                "/Doc/Form/Chain_1/Chain_elem/Chain_2/Chain_elem", "99"
+        )));
+        document.setStructuralMinOccursByPath(new LinkedHashMap<>(java.util.Map.of(
+                "/Doc/Form/Chain_1/Chain_elem", 1,
+                "/Doc/Form/Chain_1/Chain_elem/Chain_2/Chain_elem", 0
+        )));
+
+        var row = service.build(document, null).getTabs().get(0).getSections().get(0).getRows().get(0);
+
+        assertTrue(row.isRepeatable());
+        assertEquals("/Doc/Form/Chain_1/Chain_elem/Chain_2/Chain_elem", row.getRepeatContainerPath());
+        assertEquals(0, row.getMinOccurs());
+        assertEquals("99", row.getMaxOccurs());
+    }
+
+    @Test
     void emptyBlockDoesNotCreateEmptySection() {
         DocumentDefinition document = new DocumentDefinition();
         document.setId("DOC");

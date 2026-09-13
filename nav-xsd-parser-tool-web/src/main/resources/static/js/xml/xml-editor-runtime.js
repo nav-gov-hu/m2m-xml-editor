@@ -1657,7 +1657,9 @@ function handleFormValueChange(event){
 
   if(valueIsEmpty){
     if(canonicalPath && currentXmlDocument){
-      removeXmlNodeByPath(currentXmlDocument, canonicalPath);
+      if(removeXmlNodeByPath(currentXmlDocument, canonicalPath)){
+        pruneEmptyXmlAncestors(currentXmlDocument, canonicalPath);
+      }
     }
     updateFormDataValueReferences(fieldId, canonicalPath || xmlPath, '', false);
     if(fieldWrapper){
@@ -1971,9 +1973,39 @@ function applyXmlSourceChanges(){
  */
 function buildFormDataFromDocument(formDefinition, xmlDocument){
   const valuesByFieldId = {};
+  const rowInstancesByRowId = {};
   for(const tab of (formDefinition?.tabs || [])){
     for(const section of (tab.sections || [])){
       for(const row of (section.rows || [])){
+        if(row?.repeatable && row?.repeatContainerPath){
+          const nodes = findXmlNodesByTemplatePathForFormData(xmlDocument, row.repeatContainerPath);
+          rowInstancesByRowId[row.id] = [];
+          nodes.forEach((entry, rowIndex) => {
+            const instance = {
+              id:`${row.id}#${rowIndex + 1}`,
+              xmlPath:entry.path,
+              valuesByFieldId:{}
+            };
+            (row.fields || []).forEach(field => {
+              if(!field?.id) return;
+              const xmlPath = concreteRepeatFieldPath(field.xmlPath, row.repeatContainerPath, entry.path);
+              const existingNode = findNodeByPath(xmlDocument, xmlPath);
+              const key = `${row.id}#${rowIndex}:${field.id}`;
+              const valueObj = {
+                key,
+                fieldId:field.id,
+                xmlPath,
+                value:existingNode ? getXmlValueByPath(xmlDocument, xmlPath) || '' : '',
+                present:!!existingNode
+              };
+              instance.valuesByFieldId[field.id] = valueObj;
+              valuesByFieldId[key] = valueObj;
+            });
+            rowInstancesByRowId[row.id].push(instance);
+          });
+          continue;
+        }
+
         for(const field of (row.fields || [])){
           if(!field?.id) continue;
           const path = field.xmlPath || '';
@@ -1989,7 +2021,44 @@ function buildFormDataFromDocument(formDefinition, xmlDocument){
       }
     }
   }
-  return { valuesByFieldId };
+  return { valuesByFieldId, rowInstancesByRowId };
+}
+
+function findXmlNodesByTemplatePathForFormData(doc, templatePath){
+  if(!doc?.documentElement || !templatePath) return [];
+  const parts = String(templatePath).split('/').filter(Boolean).map(segment => {
+    const match = segment.match(/^(.*?)(?:\[(\d+)\])?$/);
+    return { name:String(match?.[1] || '').replace(/^.*:/, ''), index:match?.[2] ? Number(match[2]) : null };
+  });
+  let states = [{ node:doc.documentElement, path:`/${resolveNodeName(doc.documentElement)}[1]` }];
+  if(parts.length && resolveNodeName(doc.documentElement) === parts[0].name) parts.shift();
+  for(const segment of parts){
+    const next = [];
+    states.forEach(state => {
+      const matches = [...state.node.children].filter(child => resolveNodeName(child) === segment.name);
+      if(segment.index){
+        const child = matches[segment.index - 1];
+        if(child) next.push({ node:child, path:`${state.path}/${segment.name}[${segment.index}]` });
+      }else{
+        matches.forEach((child, index) => next.push({ node:child, path:`${state.path}/${segment.name}[${index + 1}]` }));
+      }
+    });
+    states = next;
+    if(!states.length) break;
+  }
+  return states;
+}
+
+function concreteRepeatFieldPath(fieldPath, repeatTemplatePath, occurrencePath){
+  const fieldCanonical = canonicalizeXmlPath(fieldPath || '');
+  const templateCanonical = canonicalizeXmlPath(repeatTemplatePath || '');
+  const occurrenceCanonical = canonicalizeXmlPath(occurrencePath || '');
+  if(!fieldCanonical || !templateCanonical || !occurrenceCanonical) return fieldCanonical || fieldPath || '';
+  if(fieldCanonical === templateCanonical) return occurrenceCanonical;
+  if(fieldCanonical.startsWith(templateCanonical + '/')){
+    return occurrenceCanonical + fieldCanonical.substring(templateCanonical.length);
+  }
+  return fieldCanonical;
 }
 
 /**
@@ -2161,6 +2230,25 @@ function removeXmlNodeByPath(doc, path){
  * @param {*} path a mezőhöz vagy XML-csomóponthoz tartozó útvonal
  * @returns {*} a feldolgozás eredménye
  */
+function pruneEmptyXmlAncestors(doc, removedPath){
+  if(!doc?.documentElement || !removedPath) return;
+  const parts = canonicalizeXmlPath(removedPath).split('/').filter(Boolean);
+  if(parts.length <= 1) return;
+  parts.pop();
+  while(parts.length > 1){
+    const candidatePath = `/${parts.join('/')}`;
+    const node = findNodeByPath(doc, candidatePath);
+    if(!node || node === doc.documentElement) break;
+    const hasElementChildren = node.children?.length > 0;
+    const hasText = String(node.textContent || '').trim().length > 0;
+    const hasMeaningfulAttributes = [...(node.attributes || [])].some(attr => !/^xmlns(?::|$)/i.test(attr.name));
+    if(hasElementChildren || hasText || hasMeaningfulAttributes) break;
+    node.parentNode?.removeChild(node);
+    clearXmlNodePathCache();
+    parts.pop();
+  }
+}
+
 function createNodeByPath(doc, path){
   if(!doc || !doc.documentElement || !path) return null;
   clearXmlNodePathCache();

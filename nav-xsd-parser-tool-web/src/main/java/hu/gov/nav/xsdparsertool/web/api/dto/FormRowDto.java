@@ -27,6 +27,12 @@ public class FormRowDto {
     private boolean repeatable;
     @Schema(description = "HU: xmlPath mező. EN: xmlPath field.")
     private String xmlPath;
+    @Schema(description = "HU: repeatContainerPath mező. EN: repeatContainerPath field.")
+    private String repeatContainerPath;
+    @Schema(description = "HU: minOccurs mező. EN: minOccurs field.")
+    private Integer minOccurs;
+    @Schema(description = "HU: maxOccurs mező. EN: maxOccurs field.")
+    private String maxOccurs;
     @Schema(description = "HU: fields mező. EN: fields field.")
     private List<FormFieldDto> fields = new ArrayList<>();
 /**
@@ -80,6 +86,36 @@ public class FormRowDto {
  * @param xmlPath a beállítandó új érték
  */
     public void setXmlPath(String xmlPath) { this.xmlPath = xmlPath; }
+/**
+ * Visszaadja az ismétlődő példány konténerútvonalát.
+ * @return a repeatContainerPath értéke
+ */
+    public String getRepeatContainerPath() { return repeatContainerPath; }
+/**
+ * Beállítja az ismétlődő példány konténerútvonalát.
+ * @param repeatContainerPath a beállítandó útvonal
+ */
+    public void setRepeatContainerPath(String repeatContainerPath) { this.repeatContainerPath = repeatContainerPath; }
+/**
+ * Visszaadja a minimális előfordulásszámot.
+ * @return a minOccurs értéke
+ */
+    public Integer getMinOccurs() { return minOccurs; }
+/**
+ * Beállítja a minimális előfordulásszámot.
+ * @param minOccurs a beállítandó érték
+ */
+    public void setMinOccurs(Integer minOccurs) { this.minOccurs = minOccurs; }
+/**
+ * Visszaadja a maximális előfordulásszámot.
+ * @return a maxOccurs értéke
+ */
+    public String getMaxOccurs() { return maxOccurs; }
+/**
+ * Beállítja a maximális előfordulásszámot.
+ * @param maxOccurs a beállítandó érték
+ */
+    public void setMaxOccurs(String maxOccurs) { this.maxOccurs = maxOccurs; }
 /**
  * Visszaadja a {@code fields} mező aktuális értékét.
  * @return a {@code fields} mező értéke

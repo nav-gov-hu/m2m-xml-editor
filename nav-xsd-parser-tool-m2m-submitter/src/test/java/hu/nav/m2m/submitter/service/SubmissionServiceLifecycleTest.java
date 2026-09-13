@@ -16,10 +16,14 @@ import hu.nav.m2m.submitter.service.nav.NavRegistrationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mock.web.MockMultipartFile;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -251,6 +255,56 @@ class SubmissionServiceLifecycleTest {
         verify(submissionRepository, never())
                 .findByInternalStatusInAndM2mTerminalFalseAndM2mNextPollAtLessThanEqualOrderByM2mNextPollAtAsc(
                         anyList(), any(Instant.class), any(Pageable.class));
+    }
+
+    @Test
+    void addAttachmentsStoresFileBeforeDatabaseRecordAndKeepsNavCommunicationUntouched() throws Exception {
+        M2mSubmission submission = new M2mSubmission();
+        submission.setId(UUID.randomUUID());
+        submission.setXmlFileId(42L);
+        submission.setXmlStoragePath(Path.of("target", "test-submission.xml").toString());
+        submission.setInterfaceType(InterfaceType.BIZONYLAT_API);
+        submission.setGatewayMode(GatewayMode.REAL);
+        submission.setInternalStatus(SubmissionStatus.CREATED);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "attachments",
+                "NAV_F10_1.12_new.xml",
+                "application/xml",
+                "<test/>".getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        );
+
+        when(RepositoryAccess.findById(submissionRepository, submission.getId())).thenReturn(Optional.of(submission));
+        when(referenceExtractor.extract(any(Path.class))).thenReturn(List.of(
+                new XmlAttachmentReferenceExtractor.AttachmentReference(
+                        1, "Attachment_1", null, "NAV_F10_1.12_new.xml", (long) file.getSize())
+        ));
+        when(attachmentRepository.findBySubmissionIdOrderByCreatedAtAsc(submission.getId())).thenReturn(List.of());
+        when(fileStorageService.originalFileName(file)).thenReturn("NAV_F10_1.12_new.xml");
+        when(fileStorageService.storeAttachment(eq(42L), any(UUID.class), eq(file))).thenReturn(
+                new FileStorageService.StoredFile(
+                        "NAV_F10_1.12_new.xml",
+                        Path.of("target", "attachments", "attachment.bin").toString(),
+                        file.getSize(),
+                        "abc123"
+                )
+        );
+        when(attachmentRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.addAttachments(submission.getId(), List.of(file));
+
+        InOrder order = inOrder(fileStorageService, attachmentRepository);
+        order.verify(fileStorageService).storeAttachment(eq(42L), any(UUID.class), eq(file));
+        order.verify(attachmentRepository).saveAndFlush(any());
+
+        ArgumentCaptor<hu.nav.m2m.submitter.domain.M2mAttachment> attachmentCaptor =
+                ArgumentCaptor.forClass(hu.nav.m2m.submitter.domain.M2mAttachment.class);
+        verify(attachmentRepository).saveAndFlush(attachmentCaptor.capture());
+        assertTrue(attachmentCaptor.getValue().isXmlReferencePresent());
+        assertEquals("NAV_F10_1.12_new.xml", attachmentCaptor.getValue().getOriginalFileName());
+        assertEquals(file.getSize(), attachmentCaptor.getValue().getFileSize());
+
+        verifyNoInteractions(mockNavGateway, realNavGateway, navRegistrationService);
     }
 
     private M2mSubmission pollableSubmission() {

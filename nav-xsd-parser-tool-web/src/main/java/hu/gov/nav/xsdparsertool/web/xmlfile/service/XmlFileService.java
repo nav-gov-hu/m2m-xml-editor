@@ -876,7 +876,7 @@ public class XmlFileService {
     public void permanentlyDelete(Long id, String reason) throws IOException {
         XmlFileEntity entity = RepositoryAccess.findById(repository, id)
                 .orElseThrow(() -> new IllegalArgumentException("Nem található XML állomány ezzel az azonosítóval: " + id));
-        if (activeLockFor(id) != null || !sessionRepository.findByXmlFileIdAndActiveTrue(id).isEmpty()) {
+        if (activeLockFor(id) != null) {
             throw new IllegalStateException("Az állomány aktív munkamenetben van. A végleges törlés előtt zárd le a munkamenetet.");
         }
         Path source = normalize(Path.of(entity.getFilePath()));

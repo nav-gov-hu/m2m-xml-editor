@@ -1986,8 +1986,14 @@ public class SubmissionService {
             a.setStoragePath(stored.storagePath());
             a.setFileSize(stored.fileSize());
             a.setSha256Hex(stored.sha256Hex());
-            a.setXmlReferencePresent(false);
-            attachmentRepository.save(a);
+            // A mentés előtt a validateAttachmentFilesAgainstXml már igazolta, hogy
+            // azonos fájlnévvel létezik Attachment_1 hivatkozás az XML-ben.
+            a.setXmlReferencePresent(true);
+            // A fizikai fájl mindig előbb készül el. A flush azért itt történik,
+            // hogy egy adatbázis-hiba még ebben a műveletben felszínre kerüljön.
+            // Sikertelen DB-tranzakció esetén legfeljebb árva fájl maradhat,
+            // de fájl nélküli, felhasználónak látható DB-rekord nem jön létre.
+            attachmentRepository.saveAndFlush(a);
         }
     }
 

@@ -990,6 +990,7 @@ async function uploadSingleAttachment(attachmentNode){
    * @returns {Promise<void>} a művelet befejeződését jelző Promise
    */
 async function refreshCardAttachment(meta, attachmentNode){
+    if(!(await ensureM2mAvailable())) return;
     if(meta?.id){
       await refreshSingleAttachment(meta);
       return;
@@ -1565,6 +1566,13 @@ async function handleAttachmentInputChange(){
         progress.update(1, 'Új Attachment_1 elemek létrehozása az XML-ben.');
         attachments.addPlaceholders(files);
         setState({ attachments: files, markedForSubmit: false });
+
+        // A csatolmányt a kiválasztás után azonnal tartósan eltároljuk.
+        // Ez kizárólag helyi mentés: NAV feltöltés vagy más M2M kommunikáció
+        // ezen a ponton nem indul. A meglévő NAV upload/refresh folyamat változatlan.
+        await storePendingAttachments(files);
+        setState({ attachments: [], markedForSubmit: false });
+
         progress.update(2, 'Az XML-nézet és a Csatolmányok blokk frissítése.');
         context.renderXmlFromCurrentState?.();
         context.markFormDirty?.();
@@ -1572,7 +1580,7 @@ async function handleAttachmentInputChange(){
         updateMenuState();
         await waitForNextPaint();
         progress.close();
-        context.showMessage?.(`${files.length} csatolmány adatai bekerültek az XML Attachment_1 elemébe. A fileId egyelőre üres.`, 'success');
+        context.showMessage?.(`${files.length} csatolmány helyileg elmentve és az XML Attachment_1 eleméhez kapcsolva. A NAV fileId egyelőre üres.`, 'success');
       }catch(error){
         progress.close();
         throw error;

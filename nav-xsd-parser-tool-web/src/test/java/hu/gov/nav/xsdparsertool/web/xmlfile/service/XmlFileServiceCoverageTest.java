@@ -48,6 +48,7 @@ import hu.gov.nav.xsdparsertool.web.xmlfile.dto.XmlResourceResolutionInfo;
 import hu.gov.nav.xsdparsertool.web.xmlfile.dto.XmlResolverInfoDto;
 import hu.gov.nav.xsdparsertool.web.xmlfile.dto.XmlSaveRequest;
 import hu.gov.nav.xsdparsertool.web.xmlfile.entity.XmlFileEntity;
+import hu.gov.nav.xsdparsertool.web.xmlfile.entity.XmlFileLockEntity;
 import hu.gov.nav.xsdparsertool.web.xmlfile.entity.XmlFileSessionEntity;
 import hu.gov.nav.xsdparsertool.web.xmlfile.repository.XmlFileLockRepository;
 import hu.gov.nav.xsdparsertool.web.xmlfile.repository.XmlFileRepository;
@@ -478,15 +479,29 @@ class XmlFileServiceCoverageTest {
     }
 
     @Test
-    void permanentlyDeleteRejectsActiveSessionBeforeDeletingAnything() {
-        XmlFileEntity entity = entity(80L, "active.xml", tempDir.resolve("active.xml"));
-        XmlFileSessionEntity activeSession = new XmlFileSessionEntity();
-        activeSession.setSessionId("session-1");
+    void permanentlyDeleteIgnoresStaleActiveSessionWithoutLiveLock() throws Exception {
+        XmlFileEntity entity = entity(80L, "stale-session.xml", tempDir.resolve("stale-session.xml"));
         when(RepositoryAccess.findById(repository, 80L)).thenReturn(Optional.of(entity));
         when(lockRepository.findByXmlFileIdAndStatus(80L, "ACTIVE")).thenReturn(Optional.empty());
-        when(sessionRepository.findByXmlFileIdAndActiveTrue(80L)).thenReturn(List.of(activeSession));
 
-        assertThrows(IllegalStateException.class, () -> service.permanentlyDelete(80L, "cleanup"));
+        service.permanentlyDelete(80L, "cleanup");
+
+        verify(repository).delete(entity);
+        verify(repository).flush();
+        verify(sessionRepository, never()).findByXmlFileIdAndActiveTrue(80L);
+    }
+
+    @Test
+    void permanentlyDeleteRejectsLiveActiveLockBeforeDeletingAnything() {
+        XmlFileEntity entity = entity(83L, "active-lock.xml", tempDir.resolve("active-lock.xml"));
+        XmlFileLockEntity activeLock = new XmlFileLockEntity();
+        activeLock.setLockToken("LOCK-live");
+        activeLock.setStatus("ACTIVE");
+        activeLock.setLockExpiresAt(LocalDateTime.now().plusMinutes(10));
+        when(RepositoryAccess.findById(repository, 83L)).thenReturn(Optional.of(entity));
+        when(lockRepository.findByXmlFileIdAndStatus(83L, "ACTIVE")).thenReturn(Optional.of(activeLock));
+
+        assertThrows(IllegalStateException.class, () -> service.permanentlyDelete(83L, "cleanup"));
 
         verify(repository, never()).delete(any(XmlFileEntity.class));
         verify(jdbcTemplate, never()).update(any(String.class), anyLong());
@@ -508,7 +523,6 @@ class XmlFileServiceCoverageTest {
         XmlFileEntity entity = entity(81L, "delete.xml", source);
         when(RepositoryAccess.findById(repository, 81L)).thenReturn(Optional.of(entity));
         when(lockRepository.findByXmlFileIdAndStatus(81L, "ACTIVE")).thenReturn(Optional.empty());
-        when(sessionRepository.findByXmlFileIdAndActiveTrue(81L)).thenReturn(List.of());
         when(jdbcTemplate.queryForList(any(String.class), eq(String.class), eq(81L))).thenReturn(List.of(revisionBackup.toString()));
 
         service.permanentlyDelete(81L, "GDPR cleanup");
@@ -533,7 +547,6 @@ class XmlFileServiceCoverageTest {
         XmlFileEntity entity = entity(82L, "outside-delete.xml", source);
         when(RepositoryAccess.findById(repository, 82L)).thenReturn(Optional.of(entity));
         when(lockRepository.findByXmlFileIdAndStatus(82L, "ACTIVE")).thenReturn(Optional.empty());
-        when(sessionRepository.findByXmlFileIdAndActiveTrue(82L)).thenReturn(List.of());
         when(jdbcTemplate.queryForList(any(String.class), eq(String.class), eq(82L))).thenReturn(List.of(outsideRevision.toString()));
 
         assertThrows(java.io.IOException.class, () -> service.permanentlyDelete(82L, "cleanup"));

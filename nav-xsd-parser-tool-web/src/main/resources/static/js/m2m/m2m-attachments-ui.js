@@ -684,14 +684,19 @@ function decorateAttachmentSections(actions = {}){
           <button type="button" data-action="refresh" title="${escapeHtml(refreshTitle)}" ${!canRefresh ? 'disabled' : ''}>${escapeHtml(refreshLabel)}</button>
           <button type="button" data-action="delete" class="danger" ${!canDelete ? 'disabled' : ''}>Csatolmány törlése</button>
         </div>`;
-      card.addEventListener('click', event => {
+      card.addEventListener('click', async event => {
         const button = event.target.closest('button[data-action]');
         if(button){
           if(button.disabled) return;
           const action = button.dataset.action;
-          if(action === 'preview') actions.preview?.(meta, attachment);
-          if(action === 'refresh') actions.refresh?.(meta, attachment);
-          if(action === 'delete') actions.delete?.(meta, attachment);
+          try{
+            if(action === 'preview') await actions.preview?.(meta, attachment);
+            if(action === 'refresh') await actions.refresh?.(meta, attachment);
+            if(action === 'delete') await actions.delete?.(meta, attachment);
+          }catch(error){
+            console.error('Csatolmány műveleti hiba', error);
+            context.showMessage?.(error?.message || 'A csatolmány művelet nem sikerült.', 'error');
+          }
           return;
         }
         if(attachmentPath) context.selectXmlPath?.(attachmentPath);

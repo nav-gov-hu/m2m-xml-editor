@@ -288,7 +288,7 @@
   border-spacing: 0;
   table-layout: auto;
 }
-.xml-files-full-width-table thead th {
+.xml-files-full-width-table > thead > tr > th {
   background: #edf4ff;
   border-bottom: 1px solid #cbd9f1;
   color: #0f2f5f;
@@ -296,11 +296,11 @@
   text-align: left;
   white-space: nowrap;
 }
-.xml-files-full-width-table tbody tr:nth-child(odd) { background: #ffffff; }
-.xml-files-full-width-table tbody tr:nth-child(even) { background: #f8fbff; }
-.xml-files-full-width-table tbody tr:hover { background: #eef6ff; }
-.xml-files-full-width-table th,
-.xml-files-full-width-table td {
+.xml-files-full-width-table > tbody > tr:nth-child(odd) { background: #ffffff; }
+.xml-files-full-width-table > tbody > tr:nth-child(even) { background: #f8fbff; }
+.xml-files-full-width-table > tbody > tr:hover { background: #eef6ff; }
+.xml-files-full-width-table > thead > tr > th,
+.xml-files-full-width-table > tbody > tr > td {
   padding: 10px 12px;
   border-bottom: 1px solid #e2e9f6;
   vertical-align: middle;
@@ -501,10 +501,10 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-table-wrap {
 .xml-files-sort-button:hover {
   text-decoration: underline;
 }
-.xml-files-full-width-table th:nth-child(3),
-.xml-files-full-width-table th:nth-child(4),
-.xml-files-full-width-table td:nth-child(3),
-.xml-files-full-width-table td:nth-child(4) {
+.xml-files-full-width-table > thead > tr > th:nth-child(3),
+.xml-files-full-width-table > thead > tr > th:nth-child(4),
+.xml-files-full-width-table > tbody > tr > td:nth-child(3),
+.xml-files-full-width-table > tbody > tr > td:nth-child(4) {
   white-space: nowrap;
 }
 
@@ -583,32 +583,32 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table {
   border-collapse: separate;
   border-spacing: 0;
 }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th,
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(1),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(1) { width: 44px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(2),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(2) { width: 29%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(3),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(3) { width: 145px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(4),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(4) { width: 145px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(5),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(5) { width: 120px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(6),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(6) { width: 74px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(7),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(7) { width: 78px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(8),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(8) { width: 11%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(9),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(9) { width: 102px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(10),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(10) {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(1),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(1) { width: 44px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(2),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(2) { width: 29%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(3),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(3) { width: 145px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(4),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(4) { width: 145px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(5),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(5) { width: 120px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(6),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(6) { width: 74px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(7),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(7) { width: 78px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(8),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(8) { width: 11%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(9),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(9) { width: 102px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(10),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(10) {
   width: 56px;
   text-align: center;
   overflow: visible;
@@ -738,12 +738,12 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-page-gap {
 .xml-file-menu-item.edit-note .xml-file-menu-icon { color: #b45309; background: #fff7e6; }
 .xml-file-menu-item.archive .xml-file-menu-icon { color: #991b1b; background: #fff0f0; }
 @media (max-width: 1280px) {
-  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(3),
-  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(3),
-  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(4),
-  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(4) { width: 128px; }
-  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(8),
-  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(8) { width: 80px; }
+  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(3),
+  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(3),
+  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(4),
+  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(4) { width: 128px; }
+  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(8),
+  body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(8) { width: 80px; }
 }
 
 
@@ -796,34 +796,34 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table {
   border-collapse: separate;
   border-spacing: 0;
 }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th,
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
 }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(1),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(1) { width: 3.2rem; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(2),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(2) { width: 30%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(3),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(3),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(4),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(4) { width: 12.5%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(5),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(5) { width: 9%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(6),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(6) { width: 5.5rem; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(7),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(7) { width: 5.5rem; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(8),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(8) { width: 8%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(9),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(9) { width: 7rem; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(10),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(10) { width: 4.1rem; text-align: center; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table thead th {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(1),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(1) { width: 3.2rem; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(2),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(2) { width: 30%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(3),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(3),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(4),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(4) { width: 12.5%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(5),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(5) { width: 9%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(6),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(6) { width: 5.5rem; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(7),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(7) { width: 5.5rem; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(8),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(8) { width: 8%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(9),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(9) { width: 7rem; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(10),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(10) { width: 4.1rem; text-align: center; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th {
   position: sticky;
   top: 0;
   z-index: 4;
@@ -1017,50 +1017,52 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-pagination {
 .xml-attachment-table th:nth-child(6),.xml-attachment-table td:nth-child(6){width:110px;min-width:100px}
 
 /* XML file list: authoritative 11-column layout (ID, attachment, filename, dates, form, version, size, note, status, actions). */
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(1),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(1) { width: 44px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(2),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(2) { width: 30px !important; min-width: 30px !important; max-width: 30px !important; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(3),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(3) { width: 24%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(4),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(4),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(5),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(5) { width: 12.5%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(6),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(6) { width: 10%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(7),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(7) { width: 72px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(8),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(8) { width: 88px; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(9),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(9) { width: 11%; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(10),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(10) { width: 104px; text-align: center; }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:nth-child(11),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(11) {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(1),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(1) { width: 44px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(2),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(2) { width: 30px !important; min-width: 30px !important; max-width: 30px !important; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(3),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(3) { width: 24%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(4),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(4),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(5),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(5) { width: 12.5%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(6),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(6) { width: 10%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(7),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(7) { width: 72px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(8),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(8) { width: 88px; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(9),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(9) { width: 11%; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(10),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(10) { width: 104px; text-align: center; }
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:nth-child(11),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(11) {
   width: 58px;
   min-width: 58px;
   max-width: 58px;
   text-align: center;
   overflow: visible;
 }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:last-child,
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:last-child {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:last-child,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:last-child {
   position: sticky;
   right: 0;
   z-index: 3;
   background: inherit;
 }
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table thead th:last-child {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:last-child {
   z-index: 6;
   background: #edf4ff;
 }
 
-/* Csatolmány-részletező táblázat végleges oszlopkiosztása. */
+/* Csatolmány-részletező táblázat végleges oszlopkiosztása.
+ * A sorszám fix, a kompakt metaoszlopok a tartalmukhoz igazodnak,
+ * a fennmaradó szélességet a fájlnév kapja. */
 .xml-attachment-table {
   width: 100% !important;
-  table-layout: fixed !important;
+  table-layout: auto !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
   text-align: left !important;
@@ -1076,63 +1078,44 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table thead th:last-c
 .xml-attachment-table th:nth-child(1),
 .xml-attachment-table td:nth-child(1) {
   box-sizing: border-box;
-  width: 40px !important;
-  min-width: 40px !important;
-  max-width: 40px !important;
-  padding-left: 8px !important;
+  width: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px !important;
+  padding-left: 6px !important;
   padding-right: 4px !important;
   text-align: left !important;
   white-space: nowrap;
 }
 
-/* Fájlnév: a rendelkezésre álló szélesség legnagyobb része. */
+/* Fájlnév: rugalmas oszlop, ez használja fel a fennmaradó helyet. */
 .xml-attachment-table th:nth-child(2),
 .xml-attachment-table td:nth-child(2) {
-  width: 49% !important;
-  min-width: 0 !important;
-  padding-left: 4px !important;
+  width: auto !important;
+  min-width: 140px !important;
+  padding-left: 6px !important;
   text-align: left !important;
   white-space: normal !important;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
-/* Méret */
+/* Méret, típus, csatolás dátuma és művelet: csak a tartalmukhoz szükséges helyet foglalják. */
 .xml-attachment-table th:nth-child(3),
-.xml-attachment-table td:nth-child(3) {
-  width: 8% !important;
-  min-width: 72px;
-  text-align: left !important;
-  white-space: nowrap;
-}
-
-/* Típus */
+.xml-attachment-table td:nth-child(3),
 .xml-attachment-table th:nth-child(4),
-.xml-attachment-table td:nth-child(4) {
-  width: 14% !important;
-  min-width: 110px;
-  text-align: left !important;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Csatolás dátuma */
+.xml-attachment-table td:nth-child(4),
 .xml-attachment-table th:nth-child(5),
-.xml-attachment-table td:nth-child(5) {
-  width: 18% !important;
-  min-width: 150px;
-  text-align: left !important;
-  white-space: nowrap;
-}
-
-/* Művelet */
+.xml-attachment-table td:nth-child(5),
 .xml-attachment-table th:nth-child(6),
 .xml-attachment-table td:nth-child(6) {
-  width: 11% !important;
-  min-width: 72px;
-  text-align: center !important;
+  width: 1% !important;
+  min-width: 0 !important;
   white-space: nowrap;
+}
+
+.xml-attachment-table th:nth-child(6),
+.xml-attachment-table td:nth-child(6) {
+  text-align: center !important;
 }
 
 /* A csatolmány ugyanazzal az inline megtekintési működéssel nyílik meg, mint az űrlapi kártyáról. */
@@ -1307,8 +1290,8 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table col {
   width: auto;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th,
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td {
   box-sizing: border-box;
   width: auto !important;
   min-width: 0 !important;
@@ -1318,24 +1301,24 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td {
   white-space: nowrap;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th {
   position: relative;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th[data-column-key="actions"],
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:last-child {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th[data-column-key="actions"],
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:last-child {
   text-align: center;
   overflow: visible !important;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:last-child,
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:last-child {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:last-child,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:last-child {
   position: static !important;
   right: auto !important;
   z-index: auto !important;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table thead th:last-child {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:last-child {
   background: #edf4ff;
 }
 
@@ -1369,7 +1352,7 @@ body[data-initial-tab="xmlFilesTab"] .xml-column-resizer::after {
   background: transparent;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:hover .xml-column-resizer::after,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:hover .xml-column-resizer::after,
 body[data-initial-tab="xmlFilesTab"] .xml-column-resizer.is-resizing::after {
   background: #7aa7df;
 }
@@ -1380,11 +1363,11 @@ body[data-initial-tab="xmlFilesTab"].xml-column-resize-active * {
   user-select: none !important;
 }
 
-html[data-color-scheme="dark"] body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table thead th:last-child {
+html[data-color-scheme="dark"] body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:last-child {
   background: var(--surface-card, #10233a);
 }
 
-html[data-color-scheme="dark"] body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:hover .xml-column-resizer::after,
+html[data-color-scheme="dark"] body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:hover .xml-column-resizer::after,
 html[data-color-scheme="dark"] body[data-initial-tab="xmlFilesTab"] .xml-column-resizer.is-resizing::after {
   background: #8fb8ec;
 }
@@ -1402,37 +1385,37 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table {
   table-layout: fixed !important;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th,
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th,
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td {
   min-width: 0 !important;
   max-width: none !important;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th:not([data-column-key="id"]):not([data-column-key="attachment"]):not([data-column-key="formType"]):not([data-column-key="formVersion"]):not([data-column-key="fileSize"]):not([data-column-key="actions"]),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(3),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(4),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(5),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(6),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(10),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(11) {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th:not([data-column-key="id"]):not([data-column-key="attachment"]):not([data-column-key="formType"]):not([data-column-key="formVersion"]):not([data-column-key="fileSize"]):not([data-column-key="actions"]),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(3),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(4),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(5),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(6),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(10),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(11) {
   white-space: normal !important;
   overflow-wrap: anywhere;
   word-break: break-word;
   text-overflow: clip;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th[data-column-key="id"],
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th[data-column-key="attachment"],
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th[data-column-key="formType"],
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th[data-column-key="formVersion"],
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th[data-column-key="fileSize"],
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th[data-column-key="actions"],
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(1),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(2),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(7),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(8),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(9),
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(12) {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th[data-column-key="id"],
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th[data-column-key="attachment"],
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th[data-column-key="formType"],
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th[data-column-key="formVersion"],
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th[data-column-key="fileSize"],
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th[data-column-key="actions"],
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(1),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(2),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(7),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(8),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(9),
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(12) {
   white-space: nowrap !important;
 }
 
@@ -1443,8 +1426,8 @@ body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table .xml-file-name-
   text-overflow: clip;
 }
 
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table th[data-column-key="attachment"],
-body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table td:nth-child(2) {
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > thead > tr > th[data-column-key="attachment"],
+body[data-initial-tab="xmlFilesTab"] .xml-files-full-width-table > tbody > tr > td:nth-child(2) {
   padding-left: 2px !important;
   padding-right: 2px !important;
   text-align: center;

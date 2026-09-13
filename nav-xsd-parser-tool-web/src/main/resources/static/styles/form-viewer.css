@@ -1153,3 +1153,99 @@ html[data-color-scheme="dark"] body.nav-application-theme .repeat-delete-button 
     align-self: flex-start;
   }
 }
+
+
+/* 2026-09-13 Block alapú belső tabok. A multiform A/M főtabok ettől függetlenek. */
+.form-block-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 6px 4px;
+  overflow-x: visible;
+  padding: 0 2px 6px;
+  border-bottom: 1px solid #d6e0ee;
+}
+.form-block-tab {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #42546c;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.form-block-tab:hover {
+  background: #f3f6fa;
+}
+.form-block-tab:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+.form-block-tab.active {
+  border-color: #c7d3e3;
+  background: #ffffff;
+  box-shadow: inset 0 -2px 0 #1f5fbf;
+  color: #123e6b;
+}
+.form-block-tab-panels {
+  min-width: 0;
+}
+.form-block-tab-panel[hidden] {
+  display: none !important;
+}
+.form-block-tab-panel > .block-title,
+.form-block-tab-panel > .uimodel-section-header,
+.multiform-block-tab-panels .form-block-tab-panel > .uimodel-section-header {
+  display: none;
+}
+.form-block-tab-panel.form-section,
+.form-block-tab-panel.uimodel-section-card,
+.multiform-block-tab-panels .form-block-tab-panel {
+  margin-top: 14px;
+}
+.multiform-block-tabs {
+  margin-top: 12px;
+}
+
+.multiform-block-empty {
+  padding: 18px 16px;
+  border: 1px dashed #c7d3e3;
+  border-radius: 8px;
+  color: #66758a;
+  background: #f8fafc;
+}
+@media (max-width: 900px) {
+  .form-block-tabs { align-items: stretch; }
+  .form-block-tab { white-space: nowrap; }
+}
+@media print {
+  .form-block-tabs { display: none !important; }
+  .form-block-tab-panel[hidden] { display: block !important; }
+  .form-block-tab-panel > .block-title,
+  .form-block-tab-panel > .uimodel-section-header { display: flex; }
+}
+html[data-color-scheme="dark"] body.nav-application-theme .form-block-tabs {
+  border-bottom-color: var(--border-color, #36516e);
+}
+html[data-color-scheme="dark"] body.nav-application-theme .form-block-tab {
+  color: var(--text-muted, #a9bad0);
+}
+html[data-color-scheme="dark"] body.nav-application-theme .form-block-tab:hover {
+  background: var(--surface-hover, #18314d);
+}
+html[data-color-scheme="dark"] body.nav-application-theme .form-block-tab.active {
+  border-color: var(--border-color, #36516e);
+  border-bottom-color: var(--surface-card, #102239);
+  background: var(--surface-card, #102239);
+  color: var(--text-primary, #f4f7fb);
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme .multiform-block-empty {
+  border-color: #44546a;
+  color: #aeb9c8;
+  background: #1d2733;
+}

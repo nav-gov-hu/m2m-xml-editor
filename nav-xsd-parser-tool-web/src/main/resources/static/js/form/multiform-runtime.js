@@ -234,6 +234,73 @@ function runtimeDetailGroupDescriptor(partName, field){
   };
 }
 
+
+function runtimeDetailBlockDescriptor(partName, field){
+  const path = String(field?.path || '');
+  const segments = path.split('/').filter(Boolean);
+  const blockIndex = segments.findIndex(segment => /^Block_/i.test(segment));
+  if(blockIndex < 0){
+    return { key:'block:root', label:'Adatok' };
+  }
+  const blockSegment = segments[blockIndex];
+  const blockName = blockSegment.replace(/\[\d+\]$/, '');
+  const rootName = currentXmlDocument?.documentElement ? xmlLocalName(currentXmlDocument.documentElement) : '';
+  const fullBlockPath = `/${[rootName, partName, ...segments.slice(0, blockIndex + 1)].filter(Boolean).join('/')}`;
+  return {
+    key:`block:${blockName}`,
+    label:runtimeStructuralLabelForPath(fullBlockPath, blockName)
+  };
+}
+
+/**
+ * Visszaadja az adott multiform részbizonylathoz tartozó Block definíciókat a FormDefinition alapján.
+ *
+ * <p>A tabstruktúra a sémából/formdefinícióból épül, ezért az opcionális, az aktuális XML-ben még
+ * nem materializált blokkok is megjelennek. Az XML továbbra is kizárólag a konkrét mezőértékeket adja.</p>
+ * @param {string} partName a multiform részbizonylat neve, például Form_2608M
+ * @returns {Array<{key:string,label:string}>} a Blockok definíciós sorrendben
+ */
+function runtimeFormPartBlockDescriptors(partName){
+  const normalizedPartName = String(partName || '').replace(/\[\d+\]$/, '');
+  const descriptors = [];
+  const seen = new Set();
+
+  const registerPath = (path, fallbackLabel = '') => {
+    const segments = String(path || '')
+      .split('/')
+      .map(segment => segment.trim())
+      .filter(Boolean)
+      .map(segment => segment.replace(/\[\d+\]$/, ''));
+    if(!segments.length) return;
+    const partIndex = segments.findIndex(segment => segment === normalizedPartName);
+    if(partIndex < 0) return;
+    const blockName = segments.slice(partIndex + 1).find(segment => /^Block_/i.test(segment));
+    if(!blockName) return;
+    const key = `block:${blockName}`;
+    if(seen.has(key)) return;
+    const blockPath = `/${segments.slice(0, segments.indexOf(blockName) + 1).join('/')}`;
+    const label = String(fallbackLabel || runtimeStructuralLabelForPath(blockPath, blockName) || blockName).trim();
+    seen.add(key);
+    descriptors.push({ key, label });
+  };
+
+  for(const tab of (currentFormDefinition?.tabs || [])){
+    for(const section of (tab?.sections || [])){
+      let sectionRegistered = false;
+      for(const row of (section?.rows || [])){
+        const before = descriptors.length;
+        registerPath(row?.xmlPath, section?.title || row?.title || '');
+        for(const field of (row?.fields || [])){
+          registerPath(field?.xmlPath, section?.title || row?.title || field?.uiLabel || field?.xsdLabel || field?.label || '');
+        }
+        if(descriptors.length > before) sectionRegistered = true;
+      }
+      if(!sectionRegistered) registerPath(section?.xmlPath, section?.title || '');
+    }
+  }
+  return descriptors;
+}
+
 /**
  * Elindítja a runtime field path aszinkron vagy több lépéses frontend folyamatát.
  *
@@ -834,6 +901,19 @@ function pruneRenderedPanelToFormPart(panel, partName){
       card.remove();
     }
   });
+
+  const existingBlockKeys = new Set(
+    [...panel.querySelectorAll('.form-block-tab-panel[data-block-tab-panel]')]
+      .map(blockPanel => blockPanel.dataset.blockTabPanel || '')
+      .filter(Boolean)
+  );
+  panel.querySelectorAll('.form-block-tab[data-block-tab-target]').forEach(button => {
+    if(!existingBlockKeys.has(button.dataset.blockTabTarget || '')) button.remove();
+  });
+  const activeBlockPanel = panel.querySelector('.form-block-tab-panel.active:not([hidden])');
+  if(!activeBlockPanel){
+    panel.querySelector('.form-block-tab[data-block-tab-target]')?.click();
+  }
 }
 
 /**
@@ -1860,6 +1940,54 @@ function renderRuntimeDetailPane(container, row, partName, partLabel, total){
     groups.get(descriptor.key).fields.push(field);
   });
 
+  const blockTabs = document.createElement('div');
+  blockTabs.className = 'form-block-tabs multiform-block-tabs';
+  blockTabs.setAttribute('role', 'tablist');
+  blockTabs.setAttribute('aria-label', 'Melléklap blokkjai');
+  const blockPanels = document.createElement('div');
+  blockPanels.className = 'form-block-tab-panels multiform-block-tab-panels';
+  const blockEntries = [];
+  const blockEntryByKey = new Map();
+  const activateBlock = key => {
+    const selected = blockEntries.find(entry => entry.key === key) || blockEntries[0];
+    if(!selected) return;
+    blockEntries.forEach(entry => {
+      const active = entry === selected;
+      entry.button.classList.toggle('active', active);
+      entry.button.setAttribute('aria-selected', active ? 'true' : 'false');
+      entry.button.tabIndex = active ? 0 : -1;
+      entry.panel.hidden = !active;
+      entry.panel.classList.toggle('active', active);
+    });
+    row.activeBlockTabKey = selected.key;
+  };
+  const createBlockEntry = block => {
+    let entry = blockEntryByKey.get(block.key);
+    if(entry) return entry;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'form-block-tab';
+    button.dataset.blockTabTarget = block.key;
+    button.setAttribute('role', 'tab');
+    button.textContent = block.label || 'Adatok';
+    const panel = document.createElement('div');
+    panel.className = 'form-block-tab-panel multiform-block-tab-panel';
+    panel.dataset.blockTabPanel = block.key;
+    panel.setAttribute('role', 'tabpanel');
+    button.addEventListener('click', () => activateBlock(block.key));
+    blockTabs.appendChild(button);
+    blockPanels.appendChild(panel);
+    entry = { key:block.key, button, panel };
+    blockEntries.push(entry);
+    blockEntryByKey.set(block.key, entry);
+    return entry;
+  };
+  const ensureBlockEntry = field => createBlockEntry(runtimeDetailBlockDescriptor(partName, field));
+
+  // A tabok a FormDefinition összes Blockjából készülnek, nem csak az XML-ben már létező mezőkből.
+  runtimeFormPartBlockDescriptors(partName).forEach(createBlockEntry);
+  container.append(blockTabs, blockPanels);
+
   groups.forEach(group => {
     const { descriptor, fields } = group;
     const groupName = descriptor.label;
@@ -1882,8 +2010,18 @@ function renderRuntimeDetailPane(container, row, partName, partLabel, total){
     content.appendChild(grid);
     card.appendChild(headerButton);
     card.appendChild(content);
-    container.appendChild(card);
+    const blockEntry = ensureBlockEntry(fields[0]);
+    blockEntry.panel.appendChild(card);
   });
+  blockEntries.forEach(entry => {
+    if(entry.panel.childElementCount) return;
+    const empty = document.createElement('div');
+    empty.className = 'multiform-block-empty';
+    empty.textContent = 'A blokk az aktuális XML-ben még nem tartalmaz materializált adatot.';
+    entry.panel.appendChild(empty);
+  });
+  if(blockEntries.length) activateBlock(row.activeBlockTabKey || blockEntries[0].key);
+  else { blockTabs.remove(); blockPanels.remove(); }
   container.addEventListener('input', event => {
     const input = event.target.closest('[data-runtime-leaf-index]');
     if(!input || currentXmlFileReadOnlyMode) return;

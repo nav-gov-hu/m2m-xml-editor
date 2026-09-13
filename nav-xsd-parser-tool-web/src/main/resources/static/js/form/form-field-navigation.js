@@ -262,6 +262,14 @@ function openAncestorsForSelectedField(targetOverride = null){
       }
     }
     if(!target) return;
+    const blockPanel = target.closest('.form-block-tab-panel[data-block-tab-panel]');
+    if(blockPanel){
+      const scope = blockPanel.parentElement?.parentElement || document;
+      const key = blockPanel.dataset.blockTabPanel || '';
+      const blockButton = [...scope.querySelectorAll('.form-block-tab[data-block-tab-target]')]
+        .find(button => button.dataset.blockTabTarget === key);
+      blockButton?.click();
+    }
     target.closest('.form-pane')?.querySelectorAll('.collapsible-card').forEach(card => {
       if(card.contains(target)){
         card.classList.remove('collapsed');

@@ -604,6 +604,62 @@ function renderClassicSectionContent(target, section, valuesByFieldId, rowInstan
  * @param {*} formData a függvény formData bemeneti értéke
  * @param {*} schemaBundle a függvény schemaBundle bemeneti értéke
  */
+
+function blockTabStateStore(){
+    if(!(globalThis.navBlockTabSelection instanceof Map)) globalThis.navBlockTabSelection = new Map();
+    return globalThis.navBlockTabSelection;
+}
+
+function createBlockTabLayout(host, contextKey = 'form'){
+    const tabs = document.createElement('div');
+    tabs.className = 'form-block-tabs';
+    tabs.setAttribute('role', 'tablist');
+    tabs.setAttribute('aria-label', 'Űrlapblokkok');
+    const panels = document.createElement('div');
+    panels.className = 'form-block-tab-panels';
+    host.append(tabs, panels);
+    const entries = [];
+
+    const activate = key => {
+        const selected = entries.find(entry => entry.key === key) || entries[0];
+        if(!selected) return;
+        entries.forEach(entry => {
+            const active = entry === selected;
+            entry.button.classList.toggle('active', active);
+            entry.button.setAttribute('aria-selected', active ? 'true' : 'false');
+            entry.button.tabIndex = active ? 0 : -1;
+            entry.panel.hidden = !active;
+            entry.panel.classList.toggle('active', active);
+        });
+        formLazyRenderer?.ensureSection?.(selected.panel);
+        blockTabStateStore().set(contextKey, selected.key);
+    };
+
+    const add = (key, title, panel) => {
+        const normalizedKey = String(key || `block-${entries.length + 1}`);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'form-block-tab';
+        button.setAttribute('role', 'tab');
+        button.dataset.blockTabTarget = normalizedKey;
+        button.textContent = title || normalizedKey;
+        panel.classList.add('form-block-tab-panel');
+        panel.dataset.blockTabPanel = normalizedKey;
+        panel.setAttribute('role', 'tabpanel');
+        button.addEventListener('click', () => activate(normalizedKey));
+        tabs.appendChild(button);
+        panels.appendChild(panel);
+        entries.push({ key: normalizedKey, button, panel });
+    };
+
+    const finish = () => {
+        if(!entries.length){ tabs.remove(); panels.remove(); return; }
+        const wanted = blockTabStateStore().get(contextKey);
+        activate(wanted);
+    };
+    return { add, finish, activate };
+}
+
 function renderClassicForm(formDefinition, formData, schemaBundle) {
     safeReplaceElementChildren(formContainer);
     updateFormHeaderTitle(formDefinition, schemaBundle);
@@ -613,12 +669,13 @@ function renderClassicForm(formDefinition, formData, schemaBundle) {
     const rowInstancesByRowId = formData?.rowInstancesByRowId || {};
     const lazy = isLazyFormRenderingAllowed();
     let hasRenderableContent = false;
+    const blockTabs = createBlockTabLayout(formContainer, 'classic-form');
 
     for (const tab of (formDefinition?.tabs || [])) {
         for (const section of (tab.sections || [])) {
             if(!classicSectionHasRenderableFields(section, valuesByFieldId, rowInstancesByRowId)) continue;
             const sec = document.createElement('section');
-            sec.className = 'form-section collapsible-card collapsed';
+            sec.className = 'form-section';
 
             const sectionButton = document.createElement('button');
             sectionButton.type = 'button';
@@ -638,7 +695,7 @@ function renderClassicForm(formDefinition, formData, schemaBundle) {
             sectionContent.className = 'form-section-content collapsible-content';
             sec.appendChild(sectionButton);
             sec.appendChild(sectionContent);
-            formContainer.appendChild(sec);
+            blockTabs.add(section.id || `block-${hasRenderableContent ? 2 : 1}`, section.title || section.id || 'Blokk', sec);
 
                         /**
              * Megjeleníti vagy újrarendereli a render content állapotát a felhasználói felületen.
@@ -659,6 +716,8 @@ const renderContent = target => renderClassicSectionContent(target, section, val
             hasRenderableContent = true;
         }
     }
+
+    blockTabs.finish();
 
     if (!hasRenderableContent) {
         const emptyMessage = document.createElement('p');
@@ -965,6 +1024,7 @@ function renderUiModelForm(formDefinition, formData, schemaBundle) {
     const shell = document.createElement('div');
     shell.className = 'uimodel-form-shell';
     formContainer.appendChild(shell);
+    const blockTabs = createBlockTabLayout(shell, 'uimodel-form');
     const valuesByFieldId = formData?.valuesByFieldId || {};
     const rowInstancesByRowId = formData?.rowInstancesByRowId || {};
     const lazy = isLazyFormRenderingAllowed();
@@ -979,7 +1039,7 @@ function renderUiModelForm(formDefinition, formData, schemaBundle) {
         visibleSectionIndex += 1;
 
         const sectionCard = document.createElement('section');
-        sectionCard.className = 'uimodel-section-card collapsible-card';
+        sectionCard.className = 'uimodel-section-card';
         const header = document.createElement('button');
         header.type = 'button';
         header.className = 'uimodel-section-header collapse-toggle';
@@ -1001,7 +1061,7 @@ function renderUiModelForm(formDefinition, formData, schemaBundle) {
         const sectionContent = document.createElement('div');
         sectionContent.className = 'collapsible-content uimodel-section-content';
         sectionCard.appendChild(sectionContent);
-        shell.appendChild(sectionCard);
+        blockTabs.add(section.id || `block-${sectionIndex}`, section.title || section.id || 'Blokk', sectionCard);
 
                 /**
          * Megjeleníti vagy újrarendereli a render content állapotát a felhasználói felületen.
@@ -1023,6 +1083,8 @@ const renderContent = target => renderUiModelSectionContent(target, section, val
         hasRenderableContent = true;
       }
     }
+
+    blockTabs.finish();
 
     if(!hasRenderableContent){
       const empty = document.createElement('p');

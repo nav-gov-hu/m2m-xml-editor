@@ -53,6 +53,14 @@
     <section class="panel-card modern-card xml-files-registry-panel">
       <div class="xml-files-toolbar" role="toolbar" aria-label="Űrlapállományok műveletei">
         <div class="xml-files-toolbar-left">
+          <button type="button" class="xml-files-toolbar-button new-xml" id="createNewXmlButton" title="Új XML létrehozása" aria-label="Új XML létrehozása">
+            <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 2h8l4 4v16H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/>
+              <path d="M14 2v5h5"/>
+              <path d="M12 11v6"/>
+              <path d="M9 14h6"/>
+            </svg>
+          </button>
           <button type="button" class="xml-files-toolbar-button upload" id="openXmlUploadModalButton" title="XML feltöltése" aria-label="XML feltöltése">⬆</button>
           <button type="button" class="xml-files-toolbar-button refresh" id="refreshXmlFilesButton" title="Lista frissítése" aria-label="Lista frissítése">↻</button>
           <button type="button" class="xml-files-toolbar-button archive-toggle" id="toggleArchivedXmlFilesButton" title="Archivált állományok megjelenítése" aria-label="Archivált állományok megjelenítése" aria-pressed="false">◴</button>
@@ -85,21 +93,39 @@
       <div id="xmlFileMessages" class="messages"></div>
 
       <div class="table-wrap xml-files-table-wrap">
-        <table class="data-table xml-files-table xml-files-full-width-table">
+        <table class="data-table xml-files-table xml-files-full-width-table" id="xmlFilesTable">
+          <colgroup>
+            <col data-column-key="id">
+            <col data-column-key="attachment">
+            <col data-column-key="fileName">
+            <col data-column-key="partner">
+            <col data-column-key="createdAt">
+            <col data-column-key="updatedAt">
+            <col data-column-key="formType">
+            <col data-column-key="formVersion">
+            <col data-column-key="fileSize">
+            <col data-column-key="note">
+            <col data-column-key="status">
+            <col data-column-key="actions">
+          </colgroup>
           <thead>
             <tr>
-              <th>ID</th>
-              <th class="xml-attachment-toggle-column" aria-label="Csatolmányok"></th>
-              <th>Fájlnév</th>
-              <th>Partner</th>
-              <th><button type="button" class="xml-files-sort-button" data-sort-field="createdAt">Létrehozás dátuma <span id="xmlFileCreatedSortIndicator" aria-hidden="true">▼</span></button></th>
-              <th><button type="button" class="xml-files-sort-button" data-sort-field="updatedAt">Módosítás dátuma <span id="xmlFileUpdatedSortIndicator" aria-hidden="true"></span></button></th>
-              <th>Űrlap</th>
-              <th>Verzió</th>
-              <th>Méret</th>
-              <th>Megjegyzés</th>
-              <th>Státusz</th>
-              <th>Műveletek</th>
+              <th data-column-key="id">ID</th>
+              <th data-column-key="attachment" class="xml-attachment-toggle-column" aria-label="Csatolmányok" title="Csatolmányok">
+                <svg class="xml-attachment-header-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8.5 12.5 15 6a3 3 0 1 1 4.24 4.24l-8.13 8.13a5 5 0 0 1-7.07-7.07l8.13-8.13"/>
+                </svg>
+              </th>
+              <th data-column-key="fileName">Fájlnév</th>
+              <th data-column-key="partner">Partner</th>
+              <th data-column-key="createdAt"><button type="button" class="xml-files-sort-button" data-sort-field="createdAt">Létrehozás dátuma <span id="xmlFileCreatedSortIndicator" aria-hidden="true">▼</span></button></th>
+              <th data-column-key="updatedAt"><button type="button" class="xml-files-sort-button" data-sort-field="updatedAt">Módosítás dátuma <span id="xmlFileUpdatedSortIndicator" aria-hidden="true"></span></button></th>
+              <th data-column-key="formType">Űrlap</th>
+              <th data-column-key="formVersion">Verzió</th>
+              <th data-column-key="fileSize">Méret</th>
+              <th data-column-key="note">Megjegyzés</th>
+              <th data-column-key="status">Státusz</th>
+              <th data-column-key="actions" aria-label="Műveletek" title="Műveletek"></th>
             </tr>
           </thead>
           <tbody id="xmlFilesTableBody">
@@ -119,6 +145,58 @@
       </div>
     </section>
   </main>
+</div>
+
+<div id="newXmlModal" class="xml-files-modal new-xml-modal" hidden>
+  <div class="xml-files-modal-backdrop" data-close-new-xml="true"></div>
+  <section class="xml-files-modal-dialog new-xml-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="newXmlModalTitle">
+    <button type="button" class="xml-files-modal-close" data-close-new-xml="true" aria-label="Bezárás">×</button>
+    <p class="eyebrow">Űrlapállománykezelés</p>
+    <h2 id="newXmlModalTitle">Új XML létrehozása</h2>
+    <p class="hint">Válassza ki az űrlapot és a verziót, adja meg a fájlnevet és a partnert. A létrehozott XML automatikusan megnyílik az Űrlapmegtekintőben.</p>
+    <form id="newXmlForm" class="xml-file-form new-xml-form">
+      <div class="new-xml-form-grid">
+        <label class="new-xml-field" for="newXmlFormType">
+          <span>Űrlap <span aria-hidden="true">*</span></span>
+          <select id="newXmlFormType" required>
+            <option value="">Űrlap kiválasztása...</option>
+          </select>
+        </label>
+        <label class="new-xml-field" for="newXmlFormVersion">
+          <span>Verzió <span aria-hidden="true">*</span></span>
+          <select id="newXmlFormVersion" required disabled>
+            <option value="">Verzió kiválasztása...</option>
+          </select>
+        </label>
+      </div>
+
+      <label for="newXmlFileName">Fájlnév <span aria-hidden="true">*</span></label>
+      <input id="newXmlFileName" type="text" maxlength="500" placeholder="pl. NAV_F10_1.12.xml" autocomplete="off" required>
+
+      <label for="newXmlPartnerSearch">Partner <span aria-hidden="true">*</span></label>
+      <div class="partner-predictive">
+        <input id="newXmlPartnerSearch" type="search" placeholder="Adószám vagy partnernév (min. 2 karakter)" autocomplete="off">
+        <input id="newXmlPartnerId" type="hidden">
+        <div id="newXmlPartnerSuggestions" class="partner-suggestions" hidden></div>
+      </div>
+
+      <div class="xml-upload-quick-partner new-xml-quick-partner">
+        <label for="newXmlPartnerTaxNumber">Adószám</label>
+        <input id="newXmlPartnerTaxNumber" type="text" inputmode="numeric" maxlength="13" placeholder="12345676-1-42" autocomplete="off">
+        <label for="newXmlPartnerName">Partner neve</label>
+        <input id="newXmlPartnerName" type="text" maxlength="255" placeholder="Partner megnevezése" autocomplete="organization">
+        <button type="button" class="secondary" id="newXmlPartnerSaveButton">Partner mentése</button>
+      </div>
+
+      <label for="newXmlNote">Felhasználói megjegyzés</label>
+      <input id="newXmlNote" type="text" maxlength="1000" placeholder="Opcionális megjegyzés">
+
+      <div class="xml-files-modal-actions new-xml-modal-actions">
+        <button type="button" class="secondary" data-close-new-xml="true">Mégse</button>
+        <button type="submit" class="primary" id="newXmlSubmitButton">Létrehozás</button>
+      </div>
+    </form>
+  </section>
 </div>
 
 <div id="xmlUploadModal" class="xml-files-modal" hidden>
@@ -208,5 +286,6 @@
 <script src="/js/core/ui-shell.js?v=@build.asset.version@"></script>
 <script src="/js/core/app.js?v=@build.asset.version@"></script>
 <script src="/js/xml/xml-files.js?v=@build.asset.version@"></script>
+<script type="module" src="/js/xml/xml-new-file-page.js?v=@build.asset.version@"></script>
 </body>
 </html>

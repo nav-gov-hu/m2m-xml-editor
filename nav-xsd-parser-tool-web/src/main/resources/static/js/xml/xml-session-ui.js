@@ -179,6 +179,12 @@ function hideInitialLargeXmlProcess(){
 async function autoLoadFromQuery(){
     const params = new URLSearchParams(window.location.search || '');
     let xmlFileId = params.get('xmlFileId');
+    const openAsNewXml = params.get('newXml') === 'true';
+    if(openAsNewXml){
+      params.delete('newXml');
+      const query = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`);
+    }
     if(!xmlPathInput || !document.body || document.body.dataset.initialTab !== 'formTab') return;
     let opened = null;
     try{
@@ -252,6 +258,10 @@ async function autoLoadFromQuery(){
     document.body.classList.toggle('xml-file-readonly-mode', opened.readOnly === true);
     if(opened.readOnly === true){
       setState({ currentUiModelMissingFieldsVisible:false });
+      callbacks.updateFormRendererSwitch();
+      callbacks.persistUiState();
+    }else if(openAsNewXml){
+      setState({ currentUiModelMissingFieldsVisible:true });
       callbacks.updateFormRendererSwitch();
       callbacks.persistUiState();
     }

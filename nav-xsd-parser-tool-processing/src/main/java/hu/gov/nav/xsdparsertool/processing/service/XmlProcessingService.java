@@ -80,4 +80,22 @@ public interface XmlProcessingService {
  * @return az export eredménye
  */
     ExportResult generateEmptyXml(String documentType, Path schemaRootDir, Path generalXsdDir, Path outputFile);
+
+    /**
+     * Megnyitásra alkalmas új XML állományt generál a megadott űrlaptípushoz és verzióhoz.
+     *
+     * <p>A létrehozott XML jól formált, a pontos séma namespace-ét és sémahelyét tartalmazza,
+     * ezért a webes erőforrás-feloldás ugyanúgy tudja azonosítani, mint egy feltöltött XML-t.
+     * A dokumentum szándékosan nem tölt ki üzleti adatokat.</p>
+     *
+     * @param documentType az űrlap technikai azonosítója
+     * @param documentVersion az űrlapverzió
+     * @param schemaRootDir a dokumentumspecifikus XSD-k gyökérkönyvtára
+     * @param outputFile a létrehozandó XML célfájlja
+     * @return az export eredménye
+     */
+    ExportResult generateOpenableXml(String documentType,
+                                     String documentVersion,
+                                     Path schemaRootDir,
+                                     Path outputFile);
 }

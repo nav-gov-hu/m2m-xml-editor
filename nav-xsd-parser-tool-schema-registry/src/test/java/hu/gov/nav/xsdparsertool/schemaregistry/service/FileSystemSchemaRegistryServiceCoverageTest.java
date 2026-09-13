@@ -107,6 +107,54 @@ class FileSystemSchemaRegistryServiceCoverageTest {
                 () -> new FileSystemSchemaRegistryService().resolveByDocumentType("TEST", tempDir));
     }
 
+    @Test
+    void resolvesExactDocumentVersionAndKeepsReleasePatchPriority() throws Exception {
+        Path v120 = ExceptionSafeOperations.createDirectories(tempDir.resolve("NAV_F10/1.12.0"));
+        Path v121 = ExceptionSafeOperations.createDirectories(tempDir.resolve("NAV_F10/1.12.1"));
+        Path v130 = ExceptionSafeOperations.createDirectories(tempDir.resolve("NAV_F10/1.13.0"));
+        writeXsd(v120.resolve("NAV_F10.xsd"),
+                "https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.12", "Doc_NAV_F10", null);
+        Path expected = writeXsd(v121.resolve("NAV_F10.xsd"),
+                "https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.12", "Doc_NAV_F10", null);
+        writeXsd(v130.resolve("NAV_F10.xsd"),
+                "https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.13", "Doc_NAV_F10", null);
+
+        SchemaBundle bundle = new FileSystemSchemaRegistryService().resolveByDocumentTypeAndVersion(
+                "NAV_F10", "1.12", tempDir, null, null);
+
+        assertEquals(expected, bundle.getPrimaryXsd());
+        assertEquals("1.12", bundle.getDocumentVersion());
+    }
+
+    @Test
+    void listsOnlyDocumentSchemasAndGroupsAvailableVersions() throws Exception {
+        writeXsd(tempDir.resolve("NAV_F10/1.12/NAV_F10.xsd"),
+                "https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.12", "Doc_NAV_F10", null);
+        writeXsd(tempDir.resolve("NAV_F10/1.13/NAV_F10.xsd"),
+                "https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.13", "Doc_NAV_F10", null);
+        writeXsd(tempDir.resolve("common/common.xsd"), "urn:common:1.0", "CommonRoot", null);
+
+        var options = new FileSystemSchemaRegistryService().listDocumentOptions(tempDir);
+
+        assertEquals(1, options.size());
+        assertEquals("NAV_F10", options.get(0).documentType());
+        assertEquals(java.util.List.of("1.12", "1.13"), options.get(0).versions());
+    }
+
+    @Test
+    void exactDocumentVersionFailsClearlyWhenVersionIsMissing() throws Exception {
+        Path v120 = ExceptionSafeOperations.createDirectories(tempDir.resolve("NAV_F10/1.12.0"));
+        writeXsd(v120.resolve("NAV_F10.xsd"),
+                "https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.12", "Doc_NAV_F10", null);
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> new FileSystemSchemaRegistryService().resolveByDocumentTypeAndVersion(
+                        "NAV_F10", "1.13", tempDir, null, null));
+
+        assertTrue(error.getMessage().contains("NAV_F10"));
+        assertTrue(error.getMessage().contains("1.13"));
+    }
+
     private Path writeXsd(Path path, String namespace, String root, String include) throws Exception {
         ExceptionSafeOperations.createDirectories(path.getParent());
         String includeXml = include == null ? "" : "<xs:include schemaLocation='" + include + "'/>";

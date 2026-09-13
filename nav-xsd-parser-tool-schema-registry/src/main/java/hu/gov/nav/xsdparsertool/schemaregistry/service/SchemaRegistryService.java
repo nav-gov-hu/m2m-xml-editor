@@ -63,4 +63,21 @@ public interface SchemaRegistryService {
      * @throws IllegalArgumentException ha a dokumentumtípushoz nem található megfelelő XSD.
      */
     SchemaBundle resolveByDocumentType(String documentType, Path schemaRootDir, Path generalXsdDir, Path uiModelDir);
+
+    /**
+     * Feloldja a megadott dokumentumtípus és űrlapverzió pontos séma-csomagját.
+     *
+     * @param documentType a feloldandó dokumentumtípus vagy gyökérelem-azonosító
+     * @param documentVersion az elvárt űrlapverzió
+     * @param schemaRootDir a nyomtatványspecifikus XSD-k gyökérkönyvtára
+     * @param generalXsdDir a közös/general XSD-k könyvtára; opcionális
+     * @param uiModelDir a UIModel és kísérőfájlok keresési gyökérkönyvtára; opcionális
+     * @return a kiválasztott {@link SchemaBundle}
+     * @throws IllegalArgumentException ha a dokumentumtípus és verzió kombinációhoz nem található megfelelő XSD
+     */
+    SchemaBundle resolveByDocumentTypeAndVersion(String documentType,
+                                                 String documentVersion,
+                                                 Path schemaRootDir,
+                                                 Path generalXsdDir,
+                                                 Path uiModelDir);
 }

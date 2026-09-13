@@ -81,21 +81,23 @@ ValidationResult result = service.validate(xmlFile, schemaDir);
 
 ### `generate`
 
-A `GenerateCommand` dokumentumtípus alapján minimális XML dokumentumot állít elő.
+A `GenerateCommand` megadott űrlaptípus és **pontos űrlapverzió** alapján olyan minimális XML-t állít elő, amely jól formált, tartalmazza a megfelelő gyökérelemet, namespace-t és sémahelyet, ezért a webes erőforrás-feloldás számára megnyitásra alkalmas kiinduló dokumentum. Üzleti mezőértékeket nem generál.
 
 Példa:
 
 ```bash
 java -jar nav-xsd-parser-tool-cli/target/nav-xsd-parser-tool-cli.jar generate \
-  --document-type PMT25 \
-  --schema-dir /path/to/schema-root \
-  --out /path/to/output.xml
+  --form NAV_F10 \
+  --version 1.12 \
+  --schema-dir /path/to/repo/xsd \
+  --out /path/to/NAV_F10_1.12_new.xml
 ```
 
-A tényleges feldolgozást ez a szolgáltatáshívás végzi:
+A `--document-type` a `--form` kompatibilitási aliasa. A generáláshoz nem kell külön UIModel- vagy common XSD-könyvtár: a cél kizárólag a kiválasztott űrlap fő XSD-je alapján egy felismerhető, megnyitható skeleton XML előállítása. A tényleges feldolgozást a reusable processing API végzi:
 
 ```java
-ExportResult result = service.generateEmptyXml(documentType, schemaDir, outputFile);
+ExportResult result = service.generateOpenableXml(
+        documentType, documentVersion, schemaDir, outputFile);
 ```
 
 A parancs sikeres export esetén `0`, sikertelen export esetén `5` kilépési kódot ad vissza.

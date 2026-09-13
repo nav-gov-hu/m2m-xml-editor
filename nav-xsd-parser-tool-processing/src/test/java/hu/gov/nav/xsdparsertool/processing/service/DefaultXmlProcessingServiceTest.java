@@ -243,4 +243,55 @@ class DefaultXmlProcessingServiceTest {
         verify(registry).resolveByDocumentType("DOC", tempDir, general, null);
     }
 
+    @Test
+    void generateOpenableXmlUsesExactVersionNamespaceAndSchemaLocation() throws Exception {
+        SchemaRegistryService registry = mock(SchemaRegistryService.class);
+        SchemaBundle bundle = new SchemaBundle();
+        bundle.setDocumentType("NAV_F10");
+        bundle.setDocumentVersion("1.12");
+        bundle.setRootElementName("Doc_NAV_F10");
+        bundle.setTargetNamespace("https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.12");
+        Path primaryXsd = tempDir.resolve("NAV_F10.xsd");
+        bundle.setPrimaryXsd(primaryXsd);
+        Path output = tempDir.resolve("generated/NAV_F10_1.12_new.xml");
+
+        when(registry.resolveByDocumentTypeAndVersion(
+                "NAV_F10", "1.12", tempDir, null, null)).thenReturn(bundle);
+
+        DefaultXmlProcessingService service = service(mock(XmlProbeService.class), registry, mock(XsdParserService.class),
+                mock(UiModelParserService.class), mock(PageSchemaParserService.class), mock(XsdValidationService.class));
+
+        var result = service.generateOpenableXml("NAV_F10", "1.12", tempDir, output);
+
+        assertTrue(result.isSuccess());
+        String xml = Files.readString(output);
+        assertTrue(xml.contains("<form:Doc_NAV_F10"));
+        assertTrue(xml.contains("xmlns:form=\"https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.12\""));
+        assertTrue(xml.contains("xsi:schemaLocation=\"https://soap.api.nav.gov.hu/definitions/model/2.0/NAV_F10/1.12 NAV_F10.xsd\""));
+        assertTrue(xml.contains("</form:Doc_NAV_F10>"));
+    }
+
+    @Test
+    void generateOpenableXmlUsesNoNamespaceSchemaLocationWhenNeeded() throws Exception {
+        SchemaRegistryService registry = mock(SchemaRegistryService.class);
+        SchemaBundle bundle = new SchemaBundle();
+        bundle.setDocumentType("TEST");
+        bundle.setDocumentVersion("1.0");
+        bundle.setRootElementName("Doc_TEST");
+        bundle.setPrimaryXsd(tempDir.resolve("TEST.xsd"));
+        Path output = tempDir.resolve("TEST_1.0_new.xml");
+
+        when(registry.resolveByDocumentTypeAndVersion(
+                "TEST", "1.0", tempDir, null, null)).thenReturn(bundle);
+
+        DefaultXmlProcessingService service = service(mock(XmlProbeService.class), registry, mock(XsdParserService.class),
+                mock(UiModelParserService.class), mock(PageSchemaParserService.class), mock(XsdValidationService.class));
+
+        service.generateOpenableXml("TEST", "1.0", tempDir, output);
+
+        String xml = Files.readString(output);
+        assertTrue(xml.contains("<Doc_TEST"));
+        assertTrue(xml.contains("xsi:noNamespaceSchemaLocation=\"TEST.xsd\""));
+    }
+
 }

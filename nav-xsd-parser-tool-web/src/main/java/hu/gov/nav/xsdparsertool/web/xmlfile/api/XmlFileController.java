@@ -2,6 +2,7 @@ package hu.gov.nav.xsdparsertool.web.xmlfile.api;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,8 @@ import hu.gov.nav.xsdparsertool.web.xmlfile.dto.LockReleaseRequestDecisionReques
 import hu.gov.nav.xsdparsertool.web.xmlfile.dto.LockReleaseRequestCreateRequest;
 import hu.gov.nav.xsdparsertool.web.xmlfile.dto.FileNameAvailabilityResponse;
 import hu.gov.nav.xsdparsertool.web.xmlfile.dto.CopyXmlFileRequest;
+import hu.gov.nav.xsdparsertool.web.xmlfile.dto.CreateXmlFileRequest;
+import hu.gov.nav.xsdparsertool.web.xmlfile.dto.XmlGenerationOptionDto;
 import hu.gov.nav.xsdparsertool.web.xmlfile.dto.RegisterServerFileRequest;
 import hu.gov.nav.xsdparsertool.web.xmlfile.dto.OpenXmlFileRequest;
 import hu.gov.nav.xsdparsertool.web.xmlfile.dto.OpenXmlFileResponse;
@@ -55,6 +58,7 @@ import hu.gov.nav.xsdparsertool.web.xmlfile.dto.XmlSaveRequest;
 import hu.gov.nav.xsdparsertool.web.xmlfile.dto.XmlSaveResponse;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.ServerFileBrowserService;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlFileService;
+import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlFileGenerationService;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlFileSessionService;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlFileSaveService;
 import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlMutationGuard;
@@ -68,6 +72,7 @@ import hu.gov.nav.xsdparsertool.web.xmlfile.service.XmlMutationGuard;
 @RequestMapping("/api/xml-files")
 public class XmlFileController {
     private final XmlFileService xmlFileService;
+    private final XmlFileGenerationService xmlFileGenerationService;
     private final XmlFileSessionService xmlFileSessionService;
     private final ServerFileBrowserService serverFileBrowserService;
     private final XmlFileSaveService xmlFileSaveService;
@@ -78,13 +83,20 @@ public class XmlFileController {
      *
      * <p>A konstruktor nem indít önálló üzleti folyamatot; a kapott függőségeket a későbbi kérések és szolgáltatási műveletek használják.</p>
      * @param xmlFileService a feldolgozandó XML-hez tartozó adat vagy tartalom
+     * @param xmlFileGenerationService az új XML generálási folyamat szolgáltatása
      * @param xmlFileSessionService a feldolgozandó XML-hez tartozó adat vagy tartalom
      * @param serverFileBrowserService a feldolgozásban részt vevő fájl vagy elérési út
      * @param xmlFileSaveService a feldolgozandó XML-hez tartozó adat vagy tartalom
      * @param mutationGuard a művelet bemeneti {@code mutationGuard} értéke
      */
-    public XmlFileController(XmlFileService xmlFileService, XmlFileSessionService xmlFileSessionService, ServerFileBrowserService serverFileBrowserService, XmlFileSaveService xmlFileSaveService, XmlMutationGuard mutationGuard) {
+    public XmlFileController(XmlFileService xmlFileService,
+                             XmlFileGenerationService xmlFileGenerationService,
+                             XmlFileSessionService xmlFileSessionService,
+                             ServerFileBrowserService serverFileBrowserService,
+                             XmlFileSaveService xmlFileSaveService,
+                             XmlMutationGuard mutationGuard) {
         this.xmlFileService = xmlFileService;
+        this.xmlFileGenerationService = xmlFileGenerationService;
         this.xmlFileSessionService = xmlFileSessionService;
         this.serverFileBrowserService = serverFileBrowserService;
         this.xmlFileSaveService = xmlFileSaveService;
@@ -117,6 +129,30 @@ public class XmlFileController {
     public XmlResolverInfoDto resolverInfo(@PathVariable Long id) throws IOException {
         xmlFileService.requireCurrentUserAccess(id);
         return xmlFileService.resolveInfo(id);
+    }
+
+    /**
+     * Visszaadja az új XML létrehozásához választható űrlaptípusokat és verziókat.
+     *
+     * @return a generálható űrlapok és verzióik
+     */
+    @GetMapping("/generation-options")
+    @PreAuthorize(hu.gov.nav.xsdparsertool.core.security.AuthorizationRules.OPERATOR_WRITE)
+    public List<XmlGenerationOptionDto> generationOptions() {
+        return xmlFileGenerationService.listOptions();
+    }
+
+    /**
+     * Új, az Űrlapmegtekintőben megnyitható XML állományt hoz létre.
+     *
+     * @param request az űrlap-, verzió-, fájlnév- és partneradatok
+     * @return a létrehozott és regisztrált XML állomány
+     * @throws IOException ha a fizikai XML létrehozása sikertelen
+     */
+    @PostMapping(path = "/generate", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize(hu.gov.nav.xsdparsertool.core.security.AuthorizationRules.OPERATOR_WRITE)
+    public XmlFileDto generate(@RequestBody CreateXmlFileRequest request) throws IOException {
+        return xmlFileGenerationService.create(request);
     }
 
     /**
@@ -651,10 +687,14 @@ public class XmlFileController {
         xmlFileService.requireCurrentUserAccess(id);
         Path path = xmlFileService.downloadPath(id);
         Resource resource = new UrlResource(path.toUri());
-        String filename = path.getFileName() == null ? "xml-file.xml" : path.getFileName().toString();
+        String filename = xmlFileService.downloadFileName(id);
+        if (filename == null || filename.isBlank()) {
+            filename = path.getFileName() == null ? "xml-file.xml" : path.getFileName().toString();
+        }
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_XML)
-                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8).build().toString())
                 .body(resource);
     }
 

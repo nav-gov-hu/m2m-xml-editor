@@ -2442,63 +2442,12 @@ async function permanentlyDeleteXmlFile(id){
     const fileName = file?.fileName || `#${id}`;
     const confirmed = window.navConfirm ? await window.navConfirm({
       title: 'Űrlapállomány végleges törlése',
-      message: `A(z) ${fileName} állomány, az adatbázis-bejegyzései, mentési előzményei és nagy XML indexe véglegesen törlődik. A művelet nem vonható vissza.`,
+      message: `Biztosan véglegesen törölni szeretnéd a(z) ${fileName} állományt? Az adatbázis-bejegyzések, mentési előzmények és nagy XML index is törlődik. A művelet nem vonható vissza.`,
       confirmText: 'Végleges törlés',
       cancelText: 'Mégsem',
       variant: 'danger'
-    }) : window.confirm(`A(z) ${fileName} állomány véglegesen törlődik. A művelet nem vonható vissza. Folytatod?`);
+    }) : window.confirm(`Biztosan véglegesen törölni szeretnéd a(z) ${fileName} állományt? A művelet nem vonható vissza.`);
     if(!confirmed) return;
-    const promptResult = window.navFormPrompt ? await window.navFormPrompt({
-      title: 'Törlés megerősítése',
-      message: `A végleges törléshez írd be pontosan ezt az állománynevet: ${fileName}`,
-      confirmText: 'Törlés',
-      cancelText: 'Mégsem',
-      variant: 'danger',
-      fields: [{
-        name: 'fileName',
-        label: 'Állománynév',
-        type: 'text',
-        placeholder: fileName,
-        required: true,
-        maxLength: 512
-      }]
-    }) : null;
-    const typedName = promptResult !== null
-      ? promptResult?.fileName
-      : (window.navPrompt ? await window.navPrompt({
-          title: 'Törlés megerősítése',
-          message: `A végleges törléshez írd be pontosan ezt az állománynevet: ${fileName}`,
-          label: 'Állománynév',
-          placeholder: fileName,
-          confirmText: 'Törlés',
-          cancelText: 'Mégsem',
-          variant: 'danger'
-        }) : window.prompt('Írd be pontosan a törlendő állomány nevét:', ''));
-    if(typedName === null || typedName === undefined) return;
-        /**
-     * Feldolgozza a normalize confirmation file name bemenetét, és a következő feldolgozási lépés számára normalizált reprezentációt készít.
-     *
-     * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
-     * @param {*} value a feldolgozandó vagy beállítandó érték
-     */
-const normalizeConfirmationFileName = value => String(value ?? '')
-      .trim()
-      .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
-      .normalize('NFC');
-    const normalizedTypedName = normalizeConfirmationFileName(typedName);
-    const normalizedExpectedName = normalizeConfirmationFileName(fileName);
-    if(normalizedTypedName !== normalizedExpectedName){
-      console.warn('[XML-PERMANENT-DELETE] Filename confirmation mismatch', {
-        typedName,
-        expectedName: fileName,
-        normalizedTypedName,
-        normalizedExpectedName,
-        typedCodePoints: Array.from(normalizedTypedName).map(character => character.codePointAt(0).toString(16)),
-        expectedCodePoints: Array.from(normalizedExpectedName).map(character => character.codePointAt(0).toString(16))
-      });
-      showMessage('error', `A megadott állománynév nem egyezik. Elvárt érték: ${fileName}`);
-      return;
-    }
     try{
       const response = await fetch(`/api/xml-files/${encodeURIComponent(id)}/permanent`, {
         method:'DELETE', credentials:'same-origin', headers:{'Content-Type':'application/json'},

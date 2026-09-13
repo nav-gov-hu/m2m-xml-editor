@@ -25,9 +25,12 @@ function ensureAvailabilityDialog(){
     <h3 id="m2mConfigurationMissingTitle">Az M2M kapcsolat nincs beállítva</h3>
     <p>Az M2M beküldés, a csatolmánykezelés, az online validáció és a kalkuláció csak a szükséges hitelesítési adatok megadása után használható.</p>
     <p id="m2mConfigurationMissingKeys" class="hint"></p>
-    <div class="m2m-confirm-actions"><button type="button" data-m2m-config-close>Mégse</button><a class="button primary" href="/configuration.html?mode=advanced&category=M2M">M2M beállítások megnyitása</a></div>
+    <div class="m2m-confirm-actions"><button type="button" class="secondary" data-m2m-config-close>Mégse</button><button type="button" class="primary" data-m2m-config-open>M2M beállítások megnyitása</button></div>
   </section>`;
-  backdrop.addEventListener('click',event=>{if(event.target===backdrop||event.target.closest('[data-m2m-config-close]'))backdrop.hidden=true;});
+  backdrop.addEventListener('click',event=>{
+    if(event.target===backdrop||event.target.closest('[data-m2m-config-close]')){backdrop.hidden=true;return;}
+    if(event.target.closest('[data-m2m-config-open]')) window.location.href='/configuration.html?mode=advanced&category=M2M&view=card#configuration-m2m-connection';
+  });
   document.body.appendChild(backdrop);
   return backdrop;
 }

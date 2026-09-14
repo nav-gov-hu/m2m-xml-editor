@@ -31,10 +31,10 @@ A program az XML szerkezetét nem kézzel felépített képernyőkből állítja
 Gyökérben add ki az alábbi parancsot:
 
 Windows:
-bootstrap-dev.cmd
+build-versioned.cmd
 
 Linux:
-bootstrap-dev.sh
+build-versioned.cmd
 
 ## Indítás parancssorból
 

@@ -161,6 +161,67 @@ begin
     Result := 'false';
 end;
 
+
+procedure SplitTextLines(Text: String; var Lines: TArrayOfString);
+var
+  Rest: String;
+  Line: String;
+  P: Integer;
+  Count: Integer;
+begin
+  SetArrayLength(Lines, 0);
+  Rest := Text;
+  Count := 0;
+
+  while Rest <> '' do
+  begin
+    P := Pos(#10, Rest);
+    if P > 0 then
+    begin
+      Line := Copy(Rest, 1, P - 1);
+      Delete(Rest, 1, P);
+    end
+    else
+    begin
+      Line := Rest;
+      Rest := '';
+    end;
+
+    if (Length(Line) > 0) and (Line[Length(Line)] = #13) then
+      Delete(Line, Length(Line), 1);
+
+    SetArrayLength(Lines, Count + 1);
+    Lines[Count] := Line;
+    Count := Count + 1;
+  end;
+end;
+
+function SaveUtf8TextFile(FileName: String; Text: String; Append: Boolean): Boolean;
+var
+  Lines: TArrayOfString;
+begin
+  SplitTextLines(Text, Lines);
+  Result := SaveStringsToUTF8FileWithoutBOM(FileName, Lines, Append);
+end;
+
+function LoadTextFile(FileName: String; var Text: String): Boolean;
+var
+  Lines: TArrayOfString;
+  I: Integer;
+begin
+  Text := '';
+  Result := LoadStringsFromFile(FileName, Lines);
+  if not Result then
+    Exit;
+
+  for I := 0 to GetArrayLength(Lines) - 1 do
+  begin
+    if I > 0 then
+      Text := Text + #13#10;
+    Text := Text + Lines[I];
+  end;
+end;
+
 function NormalizePropPath(Value: String): String;
 var
   Temp: String;
@@ -240,7 +301,8 @@ begin
     'bootstrap.file=' + BootstrapFile + #13#10;
   if not DirExists(LocatorDir) then
     ForceDirectories(LocatorDir);
-  SaveStringToFile(LocatorFile, AnsiString(Content), False);
+  if not SaveUtf8TextFile(LocatorFile, Content, False) then
+    RaiseException('A bootstrap locator UTF-8 mentése sikertelen: ' + LocatorFile);
 end;
 
 function IsSimpleInstall(): Boolean;
@@ -492,15 +554,15 @@ end;
 function DetectExistingInstallerConfig(): Boolean;
 var
   ConfigFile: String;
-  ConfigText: AnsiString;
+  ConfigText: String;
 begin
   ConfigFile := GetConfigRoot() + '\application-bootstrap.properties';
   if not FileExists(ConfigFile) then
     ConfigFile := GetConfigRoot() + '\nav-xsd-parser-tool-paths.properties';
   Result := FileExists(ConfigFile);
   ExistingDatabaseType := '';
-  if Result and LoadStringFromFile(ConfigFile, ConfigText) then
-    ExistingDatabaseType := Uppercase(FindPropertyValue(String(ConfigText), 'nav.xsdparsertool.database.type'));
+  if Result and LoadTextFile(ConfigFile, ConfigText) then
+    ExistingDatabaseType := Uppercase(FindPropertyValue(ConfigText, 'nav.xsdparsertool.database.type'));
 end;
 
 procedure InitializeWizard();
@@ -544,7 +606,7 @@ begin
   SecurityPage := CreateInputOptionPage(DataRootPage.ID,
     L('Alkalmazás üzemmódja', 'Application mode'),
     L('Válaszd ki, hogy az alkalmazás egy- vagy többfelhasználós módban fusson.', 'Choose whether the application should run in single-user or multi-user mode.'),
-    L('STANDALONE módban nincs bejelentkezés. MULTI_USER módban bejelentkezés és szerepkör-kezelés működik.', 'STANDALONE mode has no sign-in. MULTI_USER mode provides sign-in and role management.'),
+    L('STANDALONE és MULTI_USER módban is bejelentkezés szükséges. MULTI_USER módban több felhasználó és szerepkör-kezelés támogatott.', 'Sign-in is required in both STANDALONE and MULTI_USER modes. MULTI_USER mode supports multiple users and role management.'),
     True, False);
   SecurityPage.Add(L('Egyfelhasználós / STANDALONE', 'Single-user / STANDALONE'));
   SecurityPage.Add(L('Többfelhasználós / MULTI_USER', 'Multi-user / MULTI_USER'));
@@ -1115,7 +1177,6 @@ end;
 
 procedure MergeMissingProperties(TargetFile: String; DefaultsText: String);
 var
-  ExistingRaw: AnsiString;
   ExistingText: String;
   Rest: String;
   Line: String;
@@ -1126,16 +1187,16 @@ var
 begin
   if not FileExists(TargetFile) then
   begin
-    SaveStringToFile(TargetFile, AnsiString(DefaultsText), False);
+    if not SaveUtf8TextFile(TargetFile, DefaultsText, False) then
+      RaiseException(L('A konfigurációs fájl UTF-8 mentése sikertelen: ', 'Failed to save configuration file as UTF-8: ') + TargetFile);
     Exit;
   end;
 
-  if not LoadStringFromFile(TargetFile, ExistingRaw) then
+  if not LoadTextFile(TargetFile, ExistingText) then
   begin
     RaiseException(L('A konfigurációs fájl nem olvasható: ', 'Configuration file cannot be read: ') + TargetFile);
     Exit;
   end;
-  ExistingText := String(ExistingRaw);
 
   Nl := #13#10;
   Added := '';
@@ -1167,10 +1228,12 @@ begin
   if Added <> '' then
   begin
     if (Length(ExistingText) > 0) and (Copy(ExistingText, Length(ExistingText), 1) <> #10) then
-      SaveStringToFile(TargetFile, AnsiString(Nl), True);
-    SaveStringToFile(TargetFile,
-      AnsiString(Nl + '# Added by M2M XML EDITOR installer update {#MyAppVersion}' + Nl + Added),
-      True);
+      if not SaveUtf8TextFile(TargetFile, Nl, True) then
+        RaiseException(L('A konfigurációs fájl UTF-8 bővítése sikertelen: ', 'Failed to append to configuration file as UTF-8: ') + TargetFile);
+    if not SaveUtf8TextFile(TargetFile,
+      Nl + '# Added by M2M XML EDITOR installer update {#MyAppVersion}' + Nl + Added,
+      True) then
+      RaiseException(L('A konfigurációs fájl UTF-8 bővítése sikertelen: ', 'Failed to append to configuration file as UTF-8: ') + TargetFile);
   end;
 end;
 
@@ -1195,7 +1258,8 @@ begin
     'm2mApiKey=' + IntegrationPage.Values[1] + Nl +
     'm2mClientId=' + IntegrationPage.Values[2] + Nl +
     'm2mClientSecret=' + IntegrationPage.Values[3] + Nl;
-  SaveStringToFile(TargetFile, AnsiString(Content), False);
+  if not SaveUtf8TextFile(TargetFile, Content, False) then
+    RaiseException(L('A telepítő integrációs átadófájljának UTF-8 mentése sikertelen: ', 'Failed to save installer integration handoff as UTF-8: ') + TargetFile);
 end;
 
 procedure WriteInstallerConfig();
@@ -1259,7 +1323,8 @@ begin
     EnsureDir(RepoPathPage.Values[2]);
     EnsureDir(RepoPathPage.Values[3]);
     EnsureDir(RepoPathPage.Values[4]);
-    SaveStringToFile(MainConfigFile, AnsiString(MainConfigText(DbType) + #13#10 + DbConfigText(DbType)), False);
+    if not SaveUtf8TextFile(MainConfigFile, MainConfigText(DbType) + #13#10 + DbConfigText(DbType), False) then
+      RaiseException(L('A fő konfigurációs fájl UTF-8 mentése sikertelen: ', 'Failed to save main configuration file as UTF-8: ') + MainConfigFile);
   end;
 
   WritePendingIntegrationCredentials();

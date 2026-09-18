@@ -6,7 +6,7 @@ A rendszer Windows asztali alkalmazásként telepíthető, amennyiben a telepít
 Amennyiben lefordítod a programot és windows telepítőt készítesz elkészítettem számodra egy alap felhasználói kézikönyvet amit bátran módosíthatsz magad részére.
 Ezt ítt éred el:
 
-https://github.com/nav-gov-hu/m2m-xml-editor/blob/main/developer_docs/M2M_XML_EDITOR_Felhaszn%C3%A1l%C3%B3i_K%C3%A9zikonyv_1.0.pdf
+[https://github.com/nav-gov-hu/m2m-xml-editor/blob/main/developer_docs/M2M_XML_EDITOR_Felhaszn%C3%A1l%C3%B3i_K%C3%A9zikonyv_1.1.pdf](https://github.com/nav-gov-hu/m2m-xml-editor/blob/main/documentation/M2M_XML_EDITOR_Felhaszn%C3%A1l%C3%B3i_K%C3%A9zikonyv_1.1.pdf)
 
 ## Mire használható?
 
@@ -31,10 +31,10 @@ A program az XML szerkezetét nem kézzel felépített képernyőkből állítja
 Gyökérben add ki az alábbi parancsot:
 
 Windows:
-bootstrap-dev.cmd
+build-versioned.cmd
 
 Linux:
-bootstrap-dev.sh
+build-versioned.cmd
 
 ## Indítás parancssorból
 

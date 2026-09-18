@@ -9,6 +9,79 @@
  * Shared runtime state is initialized by runtime-context.js.
  */
 
+const FIELDGROUP_VIEW_MODE_COOKIE = 'm2m.fieldgroup.viewMode';
+const FIELDGROUP_VIEW_MODE_COOKIE_MAX_AGE_SECONDS = 365 * 24 * 60 * 60;
+const FIELDGROUP_VIEW_MODES = new Set(['auto', 'grid', 'table']);
+const FIELDGROUP_GRID_COLUMNS_COOKIE = 'm2m.fieldgroup.gridColumns';
+const FIELDGROUP_GRID_COLUMNS = new Set([1, 2, 3, 4]);
+
+function normalizeFieldGroupViewMode(value){
+  const mode = String(value || '').trim().toLowerCase();
+  return FIELDGROUP_VIEW_MODES.has(mode) ? mode : 'auto';
+}
+
+function readCookieValue(name){
+  const prefix = `${name}=`;
+  const cookie = String(document.cookie || '')
+    .split(';')
+    .map(part => part.trim())
+    .find(part => part.startsWith(prefix));
+  if(!cookie) return '';
+  try{
+    return decodeURIComponent(cookie.substring(prefix.length));
+  }catch(_error){
+    return '';
+  }
+}
+
+function readFieldGroupViewModeCookie(){
+  return normalizeFieldGroupViewMode(readCookieValue(FIELDGROUP_VIEW_MODE_COOKIE));
+}
+
+function normalizeFieldGroupGridColumns(value){
+  const columns = Number.parseInt(String(value || ''), 10);
+  return FIELDGROUP_GRID_COLUMNS.has(columns) ? columns : 2;
+}
+
+function readFieldGroupGridColumnsCookie(){
+  return normalizeFieldGroupGridColumns(readCookieValue(FIELDGROUP_GRID_COLUMNS_COOKIE));
+}
+
+let currentFieldGroupViewMode = readFieldGroupViewModeCookie();
+let currentFieldGroupGridColumns = readFieldGroupGridColumnsCookie();
+
+function getFieldGroupViewMode(){
+  return currentFieldGroupViewMode;
+}
+
+function setFieldGroupViewMode(mode){
+  currentFieldGroupViewMode = normalizeFieldGroupViewMode(mode);
+  document.cookie = `${FIELDGROUP_VIEW_MODE_COOKIE}=${encodeURIComponent(currentFieldGroupViewMode)}; Path=/; Max-Age=${FIELDGROUP_VIEW_MODE_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
+  return currentFieldGroupViewMode;
+}
+
+function getFieldGroupGridColumns(){
+  return currentFieldGroupGridColumns;
+}
+
+function setFieldGroupGridColumns(columns){
+  currentFieldGroupGridColumns = normalizeFieldGroupGridColumns(columns);
+  document.cookie = `${FIELDGROUP_GRID_COLUMNS_COOKIE}=${encodeURIComponent(currentFieldGroupGridColumns)}; Path=/; Max-Age=${FIELDGROUP_VIEW_MODE_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
+  return currentFieldGroupGridColumns;
+}
+
+function fieldGroupGridWidth(field, type){
+  if(type === 'subtitle' || type === 'link' || type === 'textarea') return 12;
+  if(String(field?.type || '').toLowerCase() === 'textarea') return 12;
+  return 12 / currentFieldGroupGridColumns;
+}
+
+function shouldRenderUiModelRowAsTable(row){
+  if(currentFieldGroupViewMode === 'grid') return false;
+  if(currentFieldGroupViewMode === 'table') return true;
+  return isUiModelTableBlock(row);
+}
+
 function renderForm(formDefinition, formData, schemaBundle) {
     restoreMultiformRuntimeToolbarControls();
     formLazyRenderer?.reset();
@@ -1018,10 +1091,12 @@ function renderUiModelSectionContent(target, section, valuesByFieldId, rowInstan
       renderUiModelRepeatContainer(target, rows, valuesByFieldId, rowInstancesByRowId, section.rows);
       continue;
     }
-    if (isUiModelTableBlock(row)) {
+    if (shouldRenderUiModelRowAsTable(row)) {
       const tableBlock = renderUiModelTableBlock(row, valuesByFieldId);
-      if (tableBlock) target.appendChild(tableBlock);
-      continue;
+      if (tableBlock) {
+        target.appendChild(tableBlock);
+        continue;
+      }
     }
 
     if(!uiModelRowHasStructuralFields(row)) continue;
@@ -1213,7 +1288,7 @@ function renderUiModelFieldElement(field, valueObj){
   }
 
   const wrapper = document.createElement('div');
-  const width = normalizeLayoutWidth(field.layoutWidth);
+  const width = fieldGroupGridWidth(field, type);
   wrapper.className = `uimodel-field form-field field-w-${width}`;
   if(type === 'link') wrapper.classList.add('uimodel-field-link');
   if(isUiModelMissingField(valueObj)) wrapper.classList.add('uimodel-missing-field');
@@ -1577,11 +1652,11 @@ function configureUiModelInputControl(input, field){
   if(String(field?.type || '').toLowerCase() === 'date'){
     input.type = 'text';
     input.maxLength = 10;
-    input.placeholder = 'éééé-nn-hh';
+    input.placeholder = 'éééé-hh-nn';
     input.inputMode = 'numeric';
     input.autocomplete = 'off';
-    input.dataset.dateDisplayFormat = 'yyyy-dd-mm';
-    input.title = 'Dátum formátuma: éééé-nn-hh';
+    input.dataset.dateDisplayFormat = 'yyyy-mm-dd';
+    input.title = 'Dátum formátuma: éééé-hh-nn';
     input.addEventListener('input', () => {
       const formatted = formatUiDateTyping(input.value);
       if(formatted !== input.value) input.value = formatted;
@@ -1611,22 +1686,11 @@ function isoDateToUiDate(value){
   if(date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day){
     return str;
   }
-  return `${match[1]}-${match[3]}-${match[2]}`;
+  return str;
 }
 
 function uiDateToIsoDate(value){
-  const str = String(value ?? '').trim();
-  if(!str) return '';
-  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if(!match) return str;
-  const year = Number(match[1]);
-  const day = Number(match[2]);
-  const month = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if(date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day){
-    return str;
-  }
-  return `${match[1]}-${match[3]}-${match[2]}`;
+  return isoDateToUiDate(value);
 }
 
 function appendUiModelDatePicker(container, input, readonly){
@@ -1812,7 +1876,7 @@ function normalizeUiModelDateValue(value){
   let m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if(m) return isoDateToUiDate(str);
   m = str.match(/^(\d{4})[.](\d{2})[.](\d{2})[.]?$/);
-  if(m) return `${m[1]}-${m[3]}-${m[2]}`;
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
   return str;
 }
 
@@ -1994,6 +2058,11 @@ Object.assign(globalThis, {
   renderUiModelFieldElement,
   appendUiModelHints,
   isUiModelTableBlock,
+  shouldRenderUiModelRowAsTable,
+  getFieldGroupViewMode,
+  setFieldGroupViewMode,
+  getFieldGroupGridColumns,
+  setFieldGroupGridColumns,
   renderUiModelTableBlock,
   renderUiModelTableControl,
   uiModelFieldLabel,

@@ -3085,3 +3085,141 @@ html[data-color-scheme="dark"] body.nav-application-theme .m2m-log-sort:focus-vi
 html[data-color-scheme="dark"] body.nav-application-theme .m2m-log-sort.active {
   color: #8fb5ff !important;
 }
+
+/* 2026-09-18: visual hierarchy for form structural containers.
+   Keep Block, FieldGroup, Chain and Chain occurrence distinguishable without
+   introducing strong semantic colours or changing any form/XML behaviour. */
+body.nav-application-theme[data-initial-tab="formTab"] .form-block-tab-panel.form-section,
+body.nav-application-theme[data-initial-tab="formTab"] .form-block-tab-panel.uimodel-section-card,
+body.nav-application-theme[data-initial-tab="formTab"] .form-section:not(.form-block-tab-panel),
+body.nav-application-theme[data-initial-tab="formTab"] .uimodel-section-card:not(.form-block-tab-panel) {
+  border-color: #cbd6e4 !important;
+  background: #f6f8fb !important;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .form-block-tab-panel > .form-section-content,
+body.nav-application-theme[data-initial-tab="formTab"] .form-block-tab-panel > .uimodel-section-content,
+body.nav-application-theme[data-initial-tab="formTab"] .form-section > .form-section-content,
+body.nav-application-theme[data-initial-tab="formTab"] .uimodel-section-card > .uimodel-section-content {
+  background: #f6f8fb !important;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .fieldgroup-card:not(.chain-row-card):not(.repeat-occurrence-card),
+body.nav-application-theme[data-initial-tab="formTab"] .uimodel-fieldgroup:not(.repeat-occurrence-card) {
+  margin: 0 0 10px;
+  padding: 10px 12px 12px;
+  border: 1px solid #dde4ed !important;
+  border-left: 3px solid #aebdd0 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .fieldgroup-card:not(.chain-row-card):not(.repeat-occurrence-card) > .fieldgroup-title,
+body.nav-application-theme[data-initial-tab="formTab"] .uimodel-fieldgroup:not(.repeat-occurrence-card) > .uimodel-fieldgroup-header {
+  margin: 0 0 8px;
+  padding: 0 0 7px !important;
+  border-bottom: 1px solid #e8edf3 !important;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .repeat-container {
+  margin: 4px 0 14px;
+  padding: 12px;
+  border: 1px solid #c7d3e1 !important;
+  border-radius: 9px !important;
+  background: #eef3f8 !important;
+  box-shadow: none !important;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .repeat-container-toolbar {
+  margin-bottom: 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #d5dfe9;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .repeat-container-title {
+  color: #334b66;
+  font-weight: 700;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .repeat-occurrence-card,
+body.nav-application-theme[data-initial-tab="formTab"] .chain-row-card.repeat-occurrence-card {
+  margin: 10px 0 0;
+  padding: 10px 12px 12px;
+  border: 1px solid #d7e0ea !important;
+  border-left: 3px solid #8da6c2 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .repeat-occurrence-card > .repeat-occurrence-header-row {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom-color: #e4eaf1;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .repeat-occurrence-card > .repeat-occurrence-header-row > .uimodel-fieldgroup-header,
+body.nav-application-theme[data-initial-tab="formTab"] .repeat-occurrence-card > .repeat-occurrence-header-row > .fieldgroup-title {
+  margin: 0;
+  padding: 0 !important;
+  border-bottom: 0 !important;
+}
+
+body.nav-application-theme[data-initial-tab="formTab"] .repeat-occurrence-card .repeat-container {
+  margin-top: 12px;
+  background: #f3f6fa !important;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .form-block-tab-panel.form-section,
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .form-block-tab-panel.uimodel-section-card,
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .form-section:not(.form-block-tab-panel),
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .uimodel-section-card:not(.form-block-tab-panel),
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .form-block-tab-panel > .form-section-content,
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .form-block-tab-panel > .uimodel-section-content,
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .form-section > .form-section-content,
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .uimodel-section-card > .uimodel-section-content {
+  background: #20252b !important;
+  border-color: #46515e !important;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .fieldgroup-card:not(.chain-row-card):not(.repeat-occurrence-card),
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .uimodel-fieldgroup:not(.repeat-occurrence-card) {
+  background: #272c33 !important;
+  border-color: #46515e !important;
+  border-left-color: #72869d !important;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .fieldgroup-card:not(.chain-row-card):not(.repeat-occurrence-card) > .fieldgroup-title,
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .uimodel-fieldgroup:not(.repeat-occurrence-card) > .uimodel-fieldgroup-header {
+  border-bottom-color: #3d4651 !important;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .repeat-container {
+  background: #252c34 !important;
+  border-color: #4b5b6d !important;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .repeat-container-toolbar {
+  border-bottom-color: #3f4b59;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .repeat-container-title {
+  color: #d4deea;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .repeat-occurrence-card,
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .chain-row-card.repeat-occurrence-card {
+  background: #2d333b !important;
+  border-color: #4a5664 !important;
+  border-left-color: #7690ad !important;
+  box-shadow: none !important;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .repeat-occurrence-card > .repeat-occurrence-header-row {
+  border-bottom-color: #414b57;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] .repeat-occurrence-card .repeat-container {
+  background: #283039 !important;
+}

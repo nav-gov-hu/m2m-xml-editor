@@ -679,6 +679,22 @@ body:not(.uimodel-form-renderer-active) .uimodel-details-toggle {
 .view-menu[hidden] {
   display: none !important;
 }
+.view-menu-section {
+  display: grid;
+  gap: 8px;
+}
+.view-menu-section-title {
+  color: #526274;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.view-menu-separator {
+  height: 1px;
+  background: #dce4ee;
+  margin: 2px 0;
+}
 .view-menu-option {
   display: flex;
   align-items: center;
@@ -1411,4 +1427,13 @@ html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="form
 html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] #formContainer .collapse-toggle:focus-visible > .collapse-chevron {
   background: #20364d;
   border-color: #6c8298;
+}
+
+
+html[data-color-scheme="dark"] body.nav-application-theme .view-menu-section-title {
+  color: #aab8c8;
+}
+
+html[data-color-scheme="dark"] body.nav-application-theme .view-menu-separator {
+  background: #3a4756;
 }

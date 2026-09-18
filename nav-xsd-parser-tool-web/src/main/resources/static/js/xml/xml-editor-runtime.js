@@ -1638,8 +1638,8 @@ function handleFormValueChange(event){
 
   // Ne formázzunk minden billentyűleütésre, mert ez lassítja a gépelést és elmozdíthatja a kurzort.
   // A kézzel írható dátummező az input esemény alatt csak a kijelzett maszkot frissíti;
-  // az XML-be a change eseménynél kerül a szabványos xs:date (éééé-hh-nn) érték.
-  const dateDisplayControl = input.dataset?.dateDisplayFormat === 'yyyy-dd-mm';
+  // az XML-be a change eseménynél ugyanaz a szabványos xs:date (éééé-hh-nn) érték kerül.
+  const dateDisplayControl = input.dataset?.dateDisplayFormat === 'yyyy-mm-dd';
   if(dateDisplayControl && event.type === 'input') return;
   if(event.type !== 'input'){
     formatUiModelInputValue(input);

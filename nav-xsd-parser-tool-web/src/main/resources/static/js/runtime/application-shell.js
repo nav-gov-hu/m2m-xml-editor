@@ -1057,6 +1057,30 @@ function setupViewMenu(){
       }
     });
   });
+  viewMenu.querySelectorAll('input[name="fieldGroupViewMode"]').forEach(input => {
+    input.addEventListener('change', () => {
+      if(!input.checked) return;
+      globalThis.setFieldGroupViewMode?.(input.value);
+      if(currentViewMode !== 'xml-tree' && currentFormDefinition && currentFormData){
+        renderForm(currentFormDefinition, currentFormData, currentSchemaBundle || null);
+      }
+      updateViewMenuControls();
+      viewMenu.hidden = true;
+      viewMenuButton.setAttribute('aria-expanded', 'false');
+    });
+  });
+  viewMenu.querySelectorAll('input[name="fieldGroupGridColumns"]').forEach(input => {
+    input.addEventListener('change', () => {
+      if(!input.checked) return;
+      globalThis.setFieldGroupGridColumns?.(input.value);
+      if(currentViewMode !== 'xml-tree' && currentFormDefinition && currentFormData){
+        renderForm(currentFormDefinition, currentFormData, currentSchemaBundle || null);
+      }
+      updateViewMenuControls();
+      viewMenu.hidden = true;
+      viewMenuButton.setAttribute('aria-expanded', 'false');
+    });
+  });
   document.addEventListener('click', (event) => {
     if(viewMenu.hidden) return;
     if(event.target === viewMenuButton || viewMenuButton.contains(event.target) || viewMenu.contains(event.target)) return;
@@ -1079,6 +1103,14 @@ function updateViewMenuControls(){
   };
   if(viewMenuCurrentLabel) viewMenuCurrentLabel.textContent = labels[currentViewMode] || labels.table;
   viewMenu?.querySelectorAll('input[name="formViewMode"]').forEach(input => { input.checked = input.value === currentViewMode; });
+  const fieldGroupViewMode = globalThis.getFieldGroupViewMode?.() || 'auto';
+  viewMenu?.querySelectorAll('input[name="fieldGroupViewMode"]').forEach(input => {
+    input.checked = input.value === fieldGroupViewMode;
+  });
+  const fieldGroupGridColumns = String(globalThis.getFieldGroupGridColumns?.() || 2);
+  viewMenu?.querySelectorAll('input[name="fieldGroupGridColumns"]').forEach(input => {
+    input.checked = input.value === fieldGroupGridColumns;
+  });
 }
 
 /**

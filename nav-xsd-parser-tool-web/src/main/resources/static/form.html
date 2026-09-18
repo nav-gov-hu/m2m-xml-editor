@@ -223,9 +223,27 @@ java -jar nav-xsd-parser-tool-cli/target/nav-xsd-parser-tool-cli.jar generate --
                 <span class="view-menu-caret" aria-hidden="true">▾</span>
               </button>
               <div class="view-menu" id="viewMenu" role="menu" aria-label="Nézet beállítások" hidden>
-                <label class="view-menu-option"><input type="radio" name="formViewMode" value="xml-tree"> XML Fa nézet</label>
-                <label class="view-menu-option"><input type="radio" name="formViewMode" value="table" checked> Táblázat nézet</label>
-                <label class="view-menu-option"><input type="radio" name="formViewMode" value="dual"> Duális nézet</label>
+                <div class="view-menu-section" role="radiogroup" aria-label="Űrlap és XML nézet">
+                  <span class="view-menu-section-title">Űrlap és XML</span>
+                  <label class="view-menu-option"><input type="radio" name="formViewMode" value="xml-tree"> XML Fa nézet</label>
+                  <label class="view-menu-option"><input type="radio" name="formViewMode" value="table" checked> Táblázat nézet</label>
+                  <label class="view-menu-option"><input type="radio" name="formViewMode" value="dual"> Duális nézet</label>
+                </div>
+                <div class="view-menu-separator" aria-hidden="true"></div>
+                <div class="view-menu-section" role="radiogroup" aria-label="Mezőcsoportok megjelenítése">
+                  <span class="view-menu-section-title">Mezőcsoportok</span>
+                  <label class="view-menu-option"><input type="radio" name="fieldGroupViewMode" value="auto"> Automatikus elrendezés</label>
+                  <label class="view-menu-option"><input type="radio" name="fieldGroupViewMode" value="grid"> Grid elrendezés</label>
+                  <label class="view-menu-option"><input type="radio" name="fieldGroupViewMode" value="table"> Táblázatos elrendezés</label>
+                </div>
+                <div class="view-menu-separator" aria-hidden="true"></div>
+                <div class="view-menu-section" role="radiogroup" aria-label="Grid mezők száma soronként">
+                  <span class="view-menu-section-title">Grid mezők soronként</span>
+                  <label class="view-menu-option"><input type="radio" name="fieldGroupGridColumns" value="1"> 1 mező / sor</label>
+                  <label class="view-menu-option"><input type="radio" name="fieldGroupGridColumns" value="2"> 2 mező / sor</label>
+                  <label class="view-menu-option"><input type="radio" name="fieldGroupGridColumns" value="3"> 3 mező / sor</label>
+                  <label class="view-menu-option"><input type="radio" name="fieldGroupGridColumns" value="4"> 4 mező / sor</label>
+                </div>
               </div>
             </div>
           </div>

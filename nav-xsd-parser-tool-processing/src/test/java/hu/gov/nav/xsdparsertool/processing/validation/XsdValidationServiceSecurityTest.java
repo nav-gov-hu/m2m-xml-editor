@@ -116,6 +116,32 @@ class XsdValidationServiceSecurityTest {
         assertEquals("PRIMARY_XSD_MISSING", result.getIssues().get(0).getCode());
     }
 
+
+    @Test
+    void missingLocalImportedSchemaProducesActionableCommonRepositoryMessage() throws Exception {
+        Path xsd = tempDir.resolve("main-with-missing-common.xsd");
+        Files.writeString(xsd, """
+                <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                           xmlns:common="urn:common"
+                           targetNamespace="urn:test"
+                           xmlns="urn:test"
+                           elementFormDefault="qualified">
+                  <xs:import namespace="urn:common" schemaLocation="common.xsd"/>
+                  <xs:element name="root" type="common:AttachmentType"/>
+                </xs:schema>
+                """);
+        Path xml = Files.writeString(tempDir.resolve("missing-common.xml"), "<root xmlns=\"urn:test\"/>");
+        SchemaBundle bundle = new SchemaBundle();
+        bundle.setPrimaryXsd(xsd);
+
+        ValidationResult result = new XsdValidationService().validate(xml, bundle, tempDir.resolve("common"));
+
+        assertFalse(result.isValid());
+        assertEquals("XSD_IMPORT_RESOURCE_MISSING", result.getIssues().get(0).getCode());
+        assertTrue(result.getIssues().get(0).getMessage().contains("common.xsd"));
+        assertTrue(result.getIssues().get(0).getMessage().contains("common repository"));
+    }
+
     @Test
     void relativeIncludeCanBeResolvedFromGeneralXsdDirectory() throws Exception {
         Path primaryDir = Files.createDirectory(tempDir.resolve("primary"));

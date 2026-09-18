@@ -39,6 +39,48 @@ class DefaultFormDefinitionBuilderServiceCoverageTest {
     }
 
     @Test
+    void fallbackGroupsInnerFieldGroupsUnderTopLevelBlocks() {
+        FieldDefinition employer = field("F1", "/Doc_T1041/Form_T1041/Block_120001/FieldGroup_120002/F1", "xs:string");
+        FieldDefinition declarationOne = field("F2", "/Doc_T1041/Form_T1041/Block_120054/FieldGroup_120055/F2", "xs:string");
+        FieldDefinition declarationTwo = field("F3", "/Doc_T1041/Form_T1041/Block_120054/FieldGroup_120056/F3", "xs:string");
+        FieldDefinition insured = field("F4", "/Doc_T1041/Form_T1041/Block_120060/Chain_120015/Chain_elem/FieldGroup_120016/F4", "xs:string");
+        FieldDefinition employers = field("F5", "/Doc_T1041/Form_T1041/Block_120066/Chain_120030/Chain_elem/FieldGroup_120031/F5", "xs:string");
+        FieldDefinition additionalEmployers = field("F6",
+                "/Doc_T1041/Form_T1041/Block_120066/Chain_120030/Chain_elem/Chain_120046/Chain_elem/FieldGroup_120047/F6",
+                "xs:string");
+
+        DocumentDefinition document = new DocumentDefinition();
+        document.setId("T1041");
+        document.setTitle("T1041");
+        document.setBlocks(List.of(
+                block("FieldGroup_120002", employer),
+                block("FieldGroup_120055", declarationOne),
+                block("FieldGroup_120056", declarationTwo),
+                block("FieldGroup_120016", insured),
+                block("FieldGroup_120031", employers),
+                block("FieldGroup_120047", additionalEmployers)));
+        LinkedHashMap<String, String> labels = new LinkedHashMap<>();
+        labels.put("/Doc_T1041/Form_T1041/Block_120001", "FOGLALKOZTATÓ ADATAI");
+        labels.put("/Doc_T1041/Form_T1041/Block_120054", "FOGLALKOZTATÓ NYILATKOZATAI");
+        labels.put("/Doc_T1041/Form_T1041/Block_120060", "BIZTOSÍTOTTAK JOGVISZONY ADATAI");
+        labels.put("/Doc_T1041/Form_T1041/Block_120066",
+                "TÖBB MUNKÁLTATÓ ÁLTAL LÉTESÍTETT MUNKAVISZONY FOGLALKOZTATÓI");
+        document.setStructuralLabelsByPath(labels);
+
+        var sections = service.build(document, null).getTabs().get(0).getSections();
+
+        assertEquals(4, sections.size());
+        assertEquals(List.of(
+                        "FOGLALKOZTATÓ ADATAI",
+                        "FOGLALKOZTATÓ NYILATKOZATAI",
+                        "BIZTOSÍTOTTAK JOGVISZONY ADATAI",
+                        "TÖBB MUNKÁLTATÓ ÁLTAL LÉTESÍTETT MUNKAVISZONY FOGLALKOZTATÓI"),
+                sections.stream().map(section -> section.getTitle()).toList());
+        assertEquals(2, sections.get(1).getRows().size());
+        assertEquals(2, sections.get(3).getRows().size());
+    }
+
+    @Test
     void fallbackPreservesStructuralLabels() {
         DocumentDefinition document = document(field("F1", "/Doc/Form/F1", "xs:string"));
         LinkedHashMap<String, String> labels = new LinkedHashMap<>();

@@ -702,26 +702,39 @@ body:not(.uimodel-form-renderer-active) .uimodel-details-icon-button,
 body:not(.uimodel-form-renderer-active) .uimodel-empty-fields-button {
   opacity: .55;
 }
-.uimodel-missing-field {
-  border: 1px dashed #d5a240 !important;
-  background: #fff8e8 !important;
+/* A sémában létező, de az XML-ben még nem materializált mező diszkrét állapota.
+   Nem validációs hiba: csak a szerkeszthető kontroll kap halvány borostyán hátteret. */
+.uimodel-field.uimodel-missing-field {
+  border: 0 !important;
+  background: transparent !important;
   position: relative;
 }
-.uimodel-field.uimodel-missing-field::after,
-.uimodel-entry-table tr.uimodel-missing-field .uimodel-table-description::after {
-  content: "Nincs az XML-ben";
-  display: inline-flex;
-  margin-top: 4px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: #fff0c2;
-  color: #8a5a00;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .01em;
+.uimodel-field.uimodel-missing-field input:not([type="checkbox"]),
+.uimodel-field.uimodel-missing-field select,
+.uimodel-field.uimodel-missing-field textarea,
+.uimodel-entry-table tr.uimodel-missing-field .uimodel-table-value input:not([type="checkbox"]),
+.uimodel-entry-table tr.uimodel-missing-field .uimodel-table-value select,
+.uimodel-entry-table tr.uimodel-missing-field .uimodel-table-value textarea {
+  background: #fffaf0 !important;
+  border-color: #e7d7a6 !important;
 }
-.uimodel-entry-table tr.uimodel-missing-field td {
-  background: #fffaf0;
+.uimodel-field.uimodel-missing-field input[type="checkbox"],
+.uimodel-entry-table tr.uimodel-missing-field input[type="checkbox"] {
+  box-shadow: 0 0 0 3px #fff3cf;
+  border-radius: 3px;
+}
+html[data-color-scheme="dark"] body.nav-application-theme .uimodel-field.uimodel-missing-field input:not([type="checkbox"]),
+html[data-color-scheme="dark"] body.nav-application-theme .uimodel-field.uimodel-missing-field select,
+html[data-color-scheme="dark"] body.nav-application-theme .uimodel-field.uimodel-missing-field textarea,
+html[data-color-scheme="dark"] body.nav-application-theme .uimodel-entry-table tr.uimodel-missing-field .uimodel-table-value input:not([type="checkbox"]),
+html[data-color-scheme="dark"] body.nav-application-theme .uimodel-entry-table tr.uimodel-missing-field .uimodel-table-value select,
+html[data-color-scheme="dark"] body.nav-application-theme .uimodel-entry-table tr.uimodel-missing-field .uimodel-table-value textarea {
+  background: #342f22 !important;
+  border-color: #6f6344 !important;
+}
+html[data-color-scheme="dark"] body.nav-application-theme .uimodel-field.uimodel-missing-field input[type="checkbox"],
+html[data-color-scheme="dark"] body.nav-application-theme .uimodel-entry-table tr.uimodel-missing-field input[type="checkbox"] {
+  box-shadow: 0 0 0 3px #4a4028;
 }
 
 /* 2026-05-14 v38: XSD drawer 'Egyeb informacio' is generic info, not XPath. Show 2 lines by default. */
@@ -1109,17 +1122,52 @@ html:not([data-color-scheme="dark"]) .uimodel-label {
 }
 .repeat-occurrence-card {
   position: relative;
-  padding-right: 76px;
+}
+.repeat-occurrence-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+.repeat-occurrence-header-row > .uimodel-fieldgroup-header,
+.repeat-occurrence-header-row > .fieldgroup-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 34px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.repeat-occurrence-header-row > .repeat-occurrence-toggle .collapse-chevron {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 7px;
+  background: var(--surface-card, #fff);
+  color: var(--text-muted, #475569);
+  font-size: 16px;
+  line-height: 1;
+}
+.repeat-occurrence-header-row > .repeat-occurrence-toggle:hover .collapse-chevron,
+.repeat-occurrence-header-row > .repeat-occurrence-toggle:focus-visible .collapse-chevron {
+  background: var(--surface-hover, #f1f5f9);
+  border-color: #94a3b8;
 }
 .repeat-delete-button {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  z-index: 2;
-  min-height: 28px;
-  padding: 4px 8px;
+  position: static;
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 4px 10px;
   border: 1px solid #c62828;
-  border-radius: 6px;
+  border-radius: 7px;
   color: #a31515;
   background: #fff5f5;
   cursor: pointer;
@@ -1143,6 +1191,75 @@ html[data-color-scheme="dark"] body.nav-application-theme .repeat-delete-button 
   background: #351a1a;
   border-color: #a84a4a;
   color: #ffd6d6;
+}
+html[data-color-scheme="dark"] body.nav-application-theme .repeat-occurrence-header-row > .repeat-occurrence-toggle .collapse-chevron {
+  background: #16283b;
+  border-color: #4a6077;
+  color: #c7d5e5;
+}
+html[data-color-scheme="dark"] body.nav-application-theme .repeat-occurrence-header-row > .repeat-occurrence-toggle:hover .collapse-chevron,
+html[data-color-scheme="dark"] body.nav-application-theme .repeat-occurrence-header-row > .repeat-occurrence-toggle:focus-visible .collapse-chevron {
+  background: #20364d;
+  border-color: #6c8298;
+}
+
+.ui-date-control {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+.ui-date-control > input[data-date-display-format] {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 44px;
+}
+.ui-date-picker-button {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted, #475569);
+  font-size: 18px;
+  cursor: pointer;
+}
+.ui-date-picker-button:hover,
+.ui-date-picker-button:focus-visible {
+  background: var(--surface-hover, #f1f5f9);
+  outline: none;
+}
+.ui-date-picker-button:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.ui-date-native-picker {
+  position: absolute;
+  right: 4px;
+  bottom: 0;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+html[data-color-scheme="dark"] body.nav-application-theme .ui-date-picker-button {
+  color: #c7d5e5;
+}
+html[data-color-scheme="dark"] body.nav-application-theme .ui-date-picker-button:hover,
+html[data-color-scheme="dark"] body.nav-application-theme .ui-date-picker-button:focus-visible {
+  background: #20364d;
 }
 @media (max-width: 720px) {
   .repeat-container-toolbar {
@@ -1248,4 +1365,19 @@ html[data-color-scheme="dark"] body.nav-application-theme .multiform-block-empty
   border-color: #44546a;
   color: #aeb9c8;
   background: #1d2733;
+}
+
+
+/* XSD-ben fixen rögzített Chain attribútum (sdgID). */
+.repeat-container-fixed-attribute {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.45rem;
+    padding: 0.08rem 0.35rem;
+    border: 1px solid currentColor;
+    border-radius: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 400;
+    opacity: 0.55;
+    user-select: text;
 }

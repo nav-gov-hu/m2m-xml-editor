@@ -21,6 +21,7 @@ public class DocumentDefinition {
     private Map<String, String> structuralLabelsByPath = new LinkedHashMap<>();
     private Map<String, Integer> structuralMinOccursByPath = new LinkedHashMap<>();
     private Map<String, String> structuralMaxOccursByPath = new LinkedHashMap<>();
+    private Map<String, Map<String, String>> structuralFixedAttributesByPath = new LinkedHashMap<>();
 /**
  * Visszaadja a következő modellértéket: az objektum technikai azonosítója.
  *
@@ -177,4 +178,29 @@ public void setBlocks(List<BlockDefinition> blocks) {
                 ? new LinkedHashMap<>()
                 : new LinkedHashMap<>(structuralMaxOccursByPath);
     }
+    /**
+     * Visszaadja a strukturális elemek XSD-ben rögzített, fix sdgID attribútumait teljes XML-útvonal szerint.
+     *
+     * @return útvonalhoz rendelt attribútumnév/érték térképek
+     */
+    public Map<String, Map<String, String>> getStructuralFixedAttributesByPath() {
+        return structuralFixedAttributesByPath;
+    }
+
+    /**
+     * Beállítja a strukturális elemek XSD-ben rögzített fix sdgID attribútumait.
+     *
+     * @param structuralFixedAttributesByPath útvonalhoz rendelt attribútumnév/érték térképek
+     */
+    public void setStructuralFixedAttributesByPath(Map<String, Map<String, String>> structuralFixedAttributesByPath) {
+        this.structuralFixedAttributesByPath = new LinkedHashMap<>();
+        if (structuralFixedAttributesByPath == null) {
+            return;
+        }
+        structuralFixedAttributesByPath.forEach((path, attributes) ->
+                this.structuralFixedAttributesByPath.put(path, attributes == null
+                        ? new LinkedHashMap<>()
+                        : new LinkedHashMap<>(attributes)));
+    }
+
 }

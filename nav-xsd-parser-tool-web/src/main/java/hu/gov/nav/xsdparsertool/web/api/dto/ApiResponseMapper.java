@@ -243,6 +243,7 @@ public final class ApiResponseMapper {
         dto.setId(definition.getId());
         dto.setTitle(definition.getTitle());
         dto.setStructuralLabelsByPath(definition.getStructuralLabelsByPath());
+        dto.setStructuralFixedAttributesByPath(definition.getStructuralFixedAttributesByPath());
         for (FormTabDefinition tab : definition.getTabs()) {
             FormTabDto tabDto = new FormTabDto();
             tabDto.setId(tab.getId());

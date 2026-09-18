@@ -178,7 +178,11 @@ function updateToggleAllFormCollapseButton(){
 function updateCollapseToggle(card){
     const toggle = card?.querySelector(':scope > .collapse-toggle');
     if(!toggle) return;
-    toggle.setAttribute('aria-expanded', card.classList.contains('collapsed') ? 'false' : 'true');
+    const collapsed = card.classList.contains('collapsed');
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    if(toggle.classList.contains('repeat-occurrence-toggle')){
+      toggle.title = collapsed ? 'Elem kibontása' : 'Elem összecsukása';
+    }
   }
 
     /**

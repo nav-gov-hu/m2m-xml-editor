@@ -1637,12 +1637,17 @@ function handleFormValueChange(event){
   const xmlPath = fieldWrapper?.dataset.xmlPath || currentFormData?.valuesByFieldId?.[fieldId]?.xmlPath;
 
   // Ne formázzunk minden billentyűleütésre, mert ez lassítja a gépelést és elmozdíthatja a kurzort.
+  // A kézzel írható dátummező az input esemény alatt csak a kijelzett maszkot frissíti;
+  // az XML-be a change eseménynél kerül a szabványos xs:date (éééé-hh-nn) érték.
+  const dateDisplayControl = input.dataset?.dateDisplayFormat === 'yyyy-dd-mm';
+  if(dateDisplayControl && event.type === 'input') return;
   if(event.type !== 'input'){
     formatUiModelInputValue(input);
   }
 
   let value;
   if(input.type === 'checkbox') value = input.checked ? 'true' : 'false';
+  else if(dateDisplayControl) value = uiDateToIsoDate(input.value);
   else value = input.value;
 
   if(!currentFormData.valuesByFieldId){
@@ -2249,6 +2254,29 @@ function pruneEmptyXmlAncestors(doc, removedPath){
   }
 }
 
+function normalizeStructuralMetadataPath(path){
+  return String(path || '')
+    .split('/')
+    .filter(Boolean)
+    .map(segment => segment.replace(/\[\d+\]$/, ''))
+    .join('/');
+}
+
+function applyFixedStructuralAttributes(node, concretePath){
+  if(!node || !concretePath) return;
+  const metadata = currentFormDefinition?.structuralFixedAttributesByPath || {};
+  const normalizedConcretePath = normalizeStructuralMetadataPath(concretePath);
+  for(const [templatePath, attributes] of Object.entries(metadata)){
+    if(normalizeStructuralMetadataPath(templatePath) !== normalizedConcretePath) continue;
+    Object.entries(attributes || {}).forEach(([name, value]) => {
+      if(name && value !== null && value !== undefined){
+        node.setAttribute(name, String(value));
+      }
+    });
+    break;
+  }
+}
+
 function createNodeByPath(doc, path){
   if(!doc || !doc.documentElement || !path) return null;
   clearXmlNodePathCache();
@@ -2278,6 +2306,8 @@ function createNodeByPath(doc, path){
       const created = createXmlElementForPathSegment(doc, segment.name);
       const parentPath = '/' + walkedParts.join('/');
       insertXmlElementInSchemaOrder(current, created, parentPath);
+      const createdPath = '/' + [...walkedParts, withDefaultIndex(segment.name, matches.length + 1)].join('/');
+      applyFixedStructuralAttributes(created, createdPath);
       matches = [...current.children].filter(child => resolveNodeName(child) === segment.name);
     }
 

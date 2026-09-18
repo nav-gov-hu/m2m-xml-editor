@@ -13,6 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 
 /**
@@ -26,6 +28,7 @@ public class MultiPathResourceResolver implements LSResourceResolver {
 
     private final Path primaryXsdDir;
     private final Path generalXsdDir;
+    private final Set<String> missingLocalResources = new LinkedHashSet<>();
 
 /**
  * Létrehozza a resolvert a megadott séma-gyökerekkel.
@@ -63,6 +66,9 @@ public class MultiPathResourceResolver implements LSResourceResolver {
             Resolution resolution = resolvePath(systemId, baseURI);
 
             if (resolution.path() == null || !ExceptionSafeOperations.fileExists(resolution.path())) {
+                if (isLocalSchemaReference(systemId)) {
+                    missingLocalResources.add(systemId.trim().replace('\\', '/'));
+                }
                 LOGGER.warn(
                         "XSD resource not found. systemId={}, baseURI={}, primaryXsdDir={}, generalXsdDir={}, tried={}",
                         systemId,
@@ -96,6 +102,25 @@ public class MultiPathResourceResolver implements LSResourceResolver {
                     e
             );
         }
+    }
+
+
+    /**
+     * Visszaadja azokat a lokális XSD include/import hivatkozásokat, amelyeket a resolver
+     * egyik engedélyezett keresési helyen sem talált meg.
+     *
+     * @return a hiányzó lokális XSD erőforrások rendszerazonosítói
+     */
+    public List<String> getMissingLocalResources() {
+        return List.copyOf(missingLocalResources);
+    }
+
+    private static boolean isLocalSchemaReference(String systemId) {
+        if (systemId == null || systemId.isBlank()) {
+            return false;
+        }
+        String value = systemId.trim().toLowerCase(java.util.Locale.ROOT);
+        return !value.startsWith("http://") && !value.startsWith("https://");
     }
 
     /**

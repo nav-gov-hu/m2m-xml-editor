@@ -27,6 +27,8 @@ public class FormDefinitionDto {
     private List<FormTabDto> tabs = new ArrayList<>();
     @Schema(description = "XSD annotation alapú strukturális címkék XML útvonal szerint")
     private Map<String, String> structuralLabelsByPath = new LinkedHashMap<>();
+    @Schema(description = "XSD-ben kötelező és fix sdgID attribútumok strukturális XML útvonal szerint")
+    private Map<String, Map<String, String>> structuralFixedAttributesByPath = new LinkedHashMap<>();
 /**
  * Visszaadja a {@code id} mező aktuális értékét.
  * @return a {@code id} mező értéke
@@ -75,4 +77,27 @@ public class FormDefinitionDto {
                 ? new LinkedHashMap<>()
                 : new LinkedHashMap<>(structuralLabelsByPath);
     }
+    /**
+     * Visszaadja az XSD-ben kötelező és fix strukturális sdgID attribútumokat.
+     * @return teljes XML-útvonalhoz rendelt attribútumnév/érték térképek
+     */
+    public Map<String, Map<String, String>> getStructuralFixedAttributesByPath() {
+        return structuralFixedAttributesByPath;
+    }
+
+    /**
+     * Beállítja az XSD-ben kötelező és fix strukturális sdgID attribútumokat.
+     * @param structuralFixedAttributesByPath teljes XML-útvonalhoz rendelt attribútumnév/érték térképek
+     */
+    public void setStructuralFixedAttributesByPath(Map<String, Map<String, String>> structuralFixedAttributesByPath) {
+        this.structuralFixedAttributesByPath = new LinkedHashMap<>();
+        if (structuralFixedAttributesByPath == null) {
+            return;
+        }
+        structuralFixedAttributesByPath.forEach((path, attributes) ->
+                this.structuralFixedAttributesByPath.put(path, attributes == null
+                        ? new LinkedHashMap<>()
+                        : new LinkedHashMap<>(attributes)));
+    }
+
 }

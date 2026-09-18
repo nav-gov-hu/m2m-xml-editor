@@ -99,6 +99,7 @@ public class DefaultFormDefinitionBuilderService implements FormDefinitionBuilde
         formDefinition.setId(firstNonBlank(documentDefinition.getId(), documentDefinition.getName(), meta.getDocumentId(), "form"));
         formDefinition.setTitle(firstNonBlank(documentDefinition.getTitle(), documentDefinition.getName(), meta.getTitle(), "Űrlap"));
         formDefinition.setStructuralLabelsByPath(documentDefinition.getStructuralLabelsByPath());
+        formDefinition.setStructuralFixedAttributesByPath(documentDefinition.getStructuralFixedAttributesByPath());
 
         FormTabDefinition mainTab = new FormTabDefinition();
         mainTab.setId("main");
@@ -734,8 +735,10 @@ public class DefaultFormDefinitionBuilderService implements FormDefinitionBuilde
     /**
      * UIModel hiányában az XSD dokumentumdefiníció szerkezete alapján épít alap űrlapot.
      *
-     * <p>Minden XSD blokk külön szekcióvá, a blokk mezői pedig egy fieldgroup sorrá
-     * alakulnak. Az XML-útvonal, ismétlődés és mezőtípus továbbra is az XSD-metaadatokból
+     * <p>A Form alatti legkülső {@code Block_*} elemek külön szekcióvá alakulnak. Az ezek
+     * alatt található FieldGroup/Chain eredetű fallback blokkok ugyanazon szekción belüli
+     * sorok maradnak, így a tabos megjelenítés nem emeli navigációs szintre a belső
+     * struktúrát. Az XML-útvonal, ismétlődés és mezőtípus továbbra is az XSD-metaadatokból
      * származik.</p>
      *
      * @param documentDefinition az XSD-ből felépített dokumentumdefiníció
@@ -746,41 +749,117 @@ public class DefaultFormDefinitionBuilderService implements FormDefinitionBuilde
         formDefinition.setId(documentDefinition.getId());
         formDefinition.setTitle(firstNonBlank(documentDefinition.getTitle(), documentDefinition.getName(), "Űrlap"));
         formDefinition.setStructuralLabelsByPath(documentDefinition.getStructuralLabelsByPath());
+        formDefinition.setStructuralFixedAttributesByPath(documentDefinition.getStructuralFixedAttributesByPath());
 
         FormTabDefinition mainTab = new FormTabDefinition();
         mainTab.setId("main");
         mainTab.setTitle("Űrlap");
 
+        Map<String, FormSectionDefinition> sectionsByTopLevelBlock = new LinkedHashMap<>();
         if (documentDefinition.getBlocks() != null) {
             for (BlockDefinition block : documentDefinition.getBlocks()) {
-                FormSectionDefinition section = new FormSectionDefinition();
-                section.setId(firstNonBlank(block.getId(), block.getName(), "section"));
-                section.setTitle(firstNonBlank(block.getTitle(), block.getName(), block.getId(), "Blokk"));
+                if (block == null || block.getFields() == null || block.getFields().isEmpty()) {
+                    continue;
+                }
+
+                String topLevelBlockPath = resolveTopLevelBlockPath(block.getFields());
+                String sectionKey = firstNonBlank(topLevelBlockPath,
+                        "legacy:" + firstNonBlank(block.getId(), block.getName(), "section"));
+                FormSectionDefinition section = sectionsByTopLevelBlock.get(sectionKey);
+                if (section == null) {
+                    section = new FormSectionDefinition();
+                    if (topLevelBlockPath != null) {
+                        String blockName = lastPathSegment(topLevelBlockPath);
+                        section.setId(firstNonBlank(blockName, block.getId(), block.getName(), "section"));
+                        section.setTitle(firstNonBlank(
+                                documentDefinition.getStructuralLabelsByPath().get(topLevelBlockPath),
+                                blockName,
+                                block.getTitle(),
+                                block.getName(),
+                                "Blokk"));
+                    } else {
+                        section.setId(firstNonBlank(block.getId(), block.getName(), "section"));
+                        section.setTitle(firstNonBlank(block.getTitle(), block.getName(), block.getId(), "Blokk"));
+                    }
+                    sectionsByTopLevelBlock.put(sectionKey, section);
+                }
 
                 FormRowDefinition row = new FormRowDefinition();
-                row.setId(section.getId() + "-group");
+                row.setId(firstNonBlank(block.getId(), block.getName(), section.getId() + "-group"));
                 row.setTitle(firstNonBlank(block.getTitle(), block.getName(), "Mezők"));
                 row.setType("fieldgroup");
                 row.setXmlPath(resolveRowXmlPath(block.getFields()));
                 applyRepeatMetadata(row, block.getFields(), documentDefinition);
 
-                if (block.getFields() != null) {
-                    for (FieldDefinition field : block.getFields()) {
-                        row.getFields().add(mapField(field, null));
-                    }
+                for (FieldDefinition field : block.getFields()) {
+                    row.getFields().add(mapField(field, null));
                 }
 
                 if (!row.getFields().isEmpty()) {
                     section.getRows().add(row);
                 }
-                if (!section.getRows().isEmpty()) {
-                    mainTab.getSections().add(section);
-                }
+            }
+        }
+
+        for (FormSectionDefinition section : sectionsByTopLevelBlock.values()) {
+            if (!section.getRows().isEmpty()) {
+                mainTab.getSections().add(section);
             }
         }
 
         formDefinition.getTabs().add(mainTab);
         return formDefinition;
+    }
+
+    /**
+     * Meghatározza a mezők Form alatti legkülső {@code Block_*} konténerét.
+     *
+     * <p>UIModel hiányában az XSD parser a belső FieldGroup/Chain szerkezetek mezőit
+     * lapított blokklistában adja tovább. A tabos megjelenítéshez viszont nem ezeket a
+     * belső egységeket, hanem a Form közvetlen fő blokkjaiból származó első
+     * {@code Block_*} útvonalszegmenst kell használni.</p>
+     *
+     * @param fields az adott fallback blokk mezői
+     * @return a legkülső Block teljes XML-útvonala, vagy {@code null}, ha nincs ilyen
+     */
+    private String resolveTopLevelBlockPath(List<FieldDefinition> fields) {
+        if (fields == null) {
+            return null;
+        }
+        for (FieldDefinition field : fields) {
+            String path = field == null ? null : field.getXmlPath();
+            if (path == null || path.isBlank()) {
+                continue;
+            }
+            String[] segments = path.split("/");
+            StringBuilder current = new StringBuilder();
+            for (String segment : segments) {
+                if (segment == null || segment.isBlank()) {
+                    continue;
+                }
+                current.append('/').append(segment);
+                String normalized = segment.replaceFirst("\\[\\d+\\]$", "");
+                if (normalized.startsWith("Block_")) {
+                    return current.toString();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Visszaadja egy XML-útvonal utolsó, index nélküli szegmensét.
+     *
+     * @param path XML-útvonal
+     * @return az utolsó útvonalszegmens
+     */
+    private String lastPathSegment(String path) {
+        if (path == null || path.isBlank()) {
+            return null;
+        }
+        int separator = path.lastIndexOf('/');
+        String segment = separator >= 0 ? path.substring(separator + 1) : path;
+        return segment.replaceFirst("\\[\\d+\\]$", "");
     }
 
     /**

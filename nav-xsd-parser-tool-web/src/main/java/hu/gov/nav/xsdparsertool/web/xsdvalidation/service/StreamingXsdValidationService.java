@@ -329,7 +329,15 @@ public class StreamingXsdValidationService {
             factory.setErrorHandler(errorHandler);
             StreamSource schemaSource = new StreamSource(xsdPath.toFile());
             schemaSource.setSystemId(xsdPath.toUri().toString());
-            Schema schema = factory.newSchema(schemaSource);
+            Schema schema;
+            try {
+                schema = factory.newSchema(schemaSource);
+            } catch (Exception e) {
+                if (resolver.hasMissingLocalResources()) {
+                    throw new IllegalStateException(missingXsdResourceMessage(resolver.missingLocalResources()), e);
+                }
+                throw e;
+            }
             Validator validator = schema.newValidator();
             validator.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
             validator.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "file");
@@ -533,6 +541,27 @@ public class StreamingXsdValidationService {
      * @param message a művelet bemeneti {@code message} értéke
      * @return {@code true}, ha az ellenőrzött feltétel teljesül, egyébként {@code false}
      */
+    private static String missingXsdResourceMessage(List<String> missingResources) {
+        String resources = missingResources.stream()
+                .map(StreamingXsdValidationService::displayResourceName)
+                .distinct()
+                .limit(8)
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("ismeretlen XSD erőforrás");
+        return "Az XSD ellenőrzés nem hajtható végre, mert a séma által importált vagy include-olt XSD állományok hiányoznak: "
+                + resources
+                + ". Töltse le vagy frissítse a common repository-t, majd indítsa újra az XSD validációt.";
+    }
+
+    private static String displayResourceName(String resource) {
+        if (resource == null || resource.isBlank()) {
+            return "ismeretlen XSD erőforrás";
+        }
+        String normalized = resource.replace('\\', '/');
+        int slash = normalized.lastIndexOf('/');
+        return slash >= 0 && slash + 1 < normalized.length() ? normalized.substring(slash + 1) : normalized;
+    }
+
     private static boolean isSchemaResolutionMessage(String message) {
         String lower = message == null ? "" : message.toLowerCase(Locale.ROOT);
         return lower.contains("src-resolve")
@@ -1226,6 +1255,7 @@ public class StreamingXsdValidationService {
         private final Path primaryXsd;
         private final Path primaryDirectory;
         private final Set<Path> searchRoots;
+        private final Set<String> missingLocalResources = new LinkedHashSet<>();
 
         /**
          * Létrehozza a {@code XsdFileResourceResolver} példányt, és eltárolja a működéshez szükséges együttműködő komponenseket.
@@ -1260,6 +1290,9 @@ public class StreamingXsdValidationService {
             try {
                 Path resolved = resolvePath(systemId, baseURI, namespaceURI);
                 if (resolved == null || !ExceptionSafeOperations.isRegularFile(resolved)) {
+                    if (isLocalSchemaReference(systemId)) {
+                        missingLocalResources.add(systemId.trim().replace('\\', '/'));
+                    }
                     return null;
                 }
                 InputStream stream = Files.newInputStream(resolved);
@@ -1267,6 +1300,22 @@ public class StreamingXsdValidationService {
             } catch (IOException | IllegalArgumentException e) {
                 return null;
             }
+        }
+
+        boolean hasMissingLocalResources() {
+            return !missingLocalResources.isEmpty();
+        }
+
+        List<String> missingLocalResources() {
+            return List.copyOf(missingLocalResources);
+        }
+
+        private static boolean isLocalSchemaReference(String systemId) {
+            if (systemId == null || systemId.isBlank()) {
+                return false;
+            }
+            String value = systemId.trim().toLowerCase(Locale.ROOT);
+            return !value.startsWith("http://") && !value.startsWith("https://");
         }
 
         /**

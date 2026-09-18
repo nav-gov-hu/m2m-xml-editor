@@ -66,7 +66,7 @@ class BasicXsdParserServiceTest {
                               <xs:element name="Field_A" type="xs:string"/>
                             </xs:sequence></xs:complexType></xs:element>
                           </xs:sequence></xs:complexType></xs:element>
-                        </xs:sequence></xs:complexType></xs:element>
+                        </xs:sequence><xs:attribute name="sdgID" use="required" fixed="120319"/><xs:attribute name="Type" use="required" fixed="technical"/></xs:complexType></xs:element>
                       </xs:sequence></xs:complexType></xs:element>
                     </xs:sequence></xs:complexType></xs:element>
                   </xs:sequence></xs:complexType></xs:element>
@@ -78,6 +78,10 @@ class BasicXsdParserServiceTest {
 
         assertEquals(1, definition.getStructuralMinOccursByPath().get(repeatPath));
         assertEquals("10", definition.getStructuralMaxOccursByPath().get(repeatPath));
+        assertEquals("120319", definition.getStructuralFixedAttributesByPath()
+                .get("/Doc/Form_1/Block_1/Chain_1").get("sdgID"));
+        assertFalse(definition.getStructuralFixedAttributesByPath()
+                .get("/Doc/Form_1/Block_1/Chain_1").containsKey("Type"));
     }
 
     @Test

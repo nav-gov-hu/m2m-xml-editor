@@ -113,6 +113,8 @@ export function renderStoredXsdValidationResult(data, options = {}){
     updateXsdDrawerTab('ok', 'OK', 'OK · nincs XSD hiba');
   } else if(isCancelled){
     updateXsdDrawerTab('warning', 'Megszakítva', 'WARNING · XSD validáció megszakítva');
+  } else if(isFailed && isMissingXsdResourceMessage(request.technicalErrorMessage)){
+    updateXsdDrawerTab('warning', 'Hiányzó XSD', 'WARNING · az XSD ellenőrzéshez szükséges import/include erőforrás hiányzik');
   } else if(isFailed){
     updateXsdDrawerTab('error', 'Hiba', request.technicalErrorMessage || 'ERROR · XSD validációs hiba');
   } else {
@@ -152,12 +154,21 @@ export function renderInlineXsdValidationResult(data){
     return;
   }
 
-  updateXsdDrawerTab('error', errorCount ? `${errorCount} hiba` : 'Hiba', errorCount ? `ERROR · ${errorCount} XSD hiba` : 'ERROR · XSD validációs hiba');
+  const missingImportIssue = issues.find(issue => String(issue?.code || '').toUpperCase() === 'XSD_IMPORT_RESOURCE_MISSING');
+  if(missingImportIssue){
+    updateXsdDrawerTab('warning', 'Hiányzó XSD', 'WARNING · az XSD ellenőrzéshez szükséges import/include erőforrás hiányzik');
+  } else {
+    updateXsdDrawerTab('error', errorCount ? `${errorCount} hiba` : 'Hiba', errorCount ? `ERROR · ${errorCount} XSD hiba` : 'ERROR · XSD validációs hiba');
+  }
   renderXsdInlineSummary(data, issues);
   renderXsdErrors(issues);
-  setXsdMessage(errorCount
-    ? `Az aktuális XML XSD validációja ${errorCount} hibát talált.`
-    : 'Az aktuális XML XSD validációja hibás eredménnyel zárult.', 'error');
+  if(missingImportIssue){
+    setXsdMessage(missingImportIssue.message, 'warning');
+  } else {
+    setXsdMessage(errorCount
+      ? `Az aktuális XML XSD validációja ${errorCount} hibát talált.`
+      : 'Az aktuális XML XSD validációja hibás eredménnyel zárult.', 'error');
+  }
   openXsdValidationDrawer();
 }
 
@@ -413,11 +424,19 @@ function focusXsdIssue(issue){
  * @param {*} errorCount a függvény errorCount bemeneti értéke
  * @param {*} flags a függvény flags bemeneti értéke
  */
+function isMissingXsdResourceMessage(message){
+  const normalized = String(message || '').toLowerCase();
+  return normalized.includes('importált vagy include-olt xsd állományok hiányoznak')
+    || normalized.includes('common repository');
+}
+
 function renderStoredXsdMessage(request, errorCount, flags){
   if(flags.isValid){
     setXsdMessage('Az aktív Űrlapállomány XSD validációja sikeres.', 'success');
   } else if(flags.isCancelled){
     setXsdMessage('Az XSD validáció felhasználói kérésre megszakadt.', 'warning');
+  } else if(flags.isFailed && isMissingXsdResourceMessage(request.technicalErrorMessage)){
+    setXsdMessage(request.technicalErrorMessage, 'warning');
   } else if(flags.isFailed){
     setXsdMessage(request.technicalErrorMessage || 'Az XSD validáció technikai hibával leállt.', 'error');
   } else {

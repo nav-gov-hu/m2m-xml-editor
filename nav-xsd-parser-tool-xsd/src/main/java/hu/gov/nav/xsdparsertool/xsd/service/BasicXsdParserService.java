@@ -168,6 +168,7 @@ public class BasicXsdParserService implements XsdParserService {
         if (nestedComplexType != null || name.startsWith("Form_") || name.startsWith("Block_") || name.startsWith("FieldGroup_")) {
             registerStructuralLabel(definition, currentPath, resolveStructuralLabel(element, index));
             registerStructuralOccurrence(definition, currentPath, element);
+            registerStructuralFixedAttributes(definition, currentPath, nestedComplexType);
         }
 
         if (name.startsWith("FieldGroup_")) {
@@ -228,6 +229,37 @@ public class BasicXsdParserService implements XsdParserService {
      * @param path a strukturális elem teljes XML-útvonala
      * @param element az eredeti XSD-elem
      */
+    /**
+     * Eltárolja a strukturális elem complex type-ján deklarált, kötelező és fix értékű
+     * {@code sdgID} attribútumot. Új XML-csomópont materializálásakor ez az
+     * XSD szerinti értékkel kerül a létrejövő Chain elemre.
+     *
+     * @param definition a módosított dokumentumdefiníció
+     * @param path a strukturális elem teljes XML-útvonala
+     * @param complexType az elem feloldott complex type definíciója
+     */
+    private void registerStructuralFixedAttributes(DocumentDefinition definition, String path, Element complexType) {
+        if (definition == null || path == null || path.isBlank() || complexType == null) {
+            return;
+        }
+        Map<String, String> fixedAttributes = new LinkedHashMap<>();
+        for (Element child : childElements(complexType)) {
+            if (!"attribute".equals(child.getLocalName())) {
+                continue;
+            }
+            String name = blankToNull(child.getAttribute("name"));
+            String fixed = blankToNull(child.getAttribute("fixed"));
+            String use = blankToNull(child.getAttribute("use"));
+            if ("sdgID".equals(name) && fixed != null && "required".equalsIgnoreCase(use)) {
+                fixedAttributes.put(name, fixed);
+            }
+        }
+        if (!fixedAttributes.isEmpty()) {
+            definition.getStructuralFixedAttributesByPath().put(path, fixedAttributes);
+        }
+    }
+
+
     private void registerStructuralOccurrence(DocumentDefinition definition, String path, Element element) {
         if (definition == null || path == null || path.isBlank() || element == null) {
             return;

@@ -340,6 +340,25 @@ function repeatContainerTitle(rows){
   return titles.length === 1 ? titles[0] : (titles[0] || 'Ismétlődő csoport');
 }
 
+function repeatContainerFixedAttributes(rows){
+  const row = rows?.[0];
+  const repeatPath = repeatPathKey(row?.repeatContainerPath || row?.xmlPath || '');
+  const metadata = currentFormDefinition?.structuralFixedAttributesByPath || {};
+  if(!repeatPath) return {};
+
+  let bestPath = '';
+  let bestAttributes = null;
+  Object.entries(metadata).forEach(([path, attributes]) => {
+    const candidate = repeatPathKey(path);
+    if(!candidate || !repeatPath.startsWith(candidate + '/')) return;
+    if(candidate.length > bestPath.length){
+      bestPath = candidate;
+      bestAttributes = attributes;
+    }
+  });
+  return bestAttributes && typeof bestAttributes === 'object' ? bestAttributes : {};
+}
+
 function createRepeatToolbar(rows, occurrencePaths, onAdd){
   const row = rows?.[0] || {};
   const minOccurs = repeatMinOccurs(row);
@@ -357,6 +376,14 @@ function createRepeatToolbar(rows, occurrencePaths, onAdd){
   cardinality.className = 'repeat-container-cardinality';
   cardinality.textContent = `(${minOccurs}..${Number.isFinite(maxOccurs) ? maxOccurs : 'n'})`;
   titleWrap.appendChild(cardinality);
+  const fixedAttributes = repeatContainerFixedAttributes(rows);
+  Object.entries(fixedAttributes).forEach(([name, value]) => {
+    const metadata = document.createElement('span');
+    metadata.className = 'repeat-container-fixed-attribute';
+    metadata.textContent = `${name}: ${value}`;
+    metadata.title = 'Az XSD által rögzített, nem szerkeszthető attribútum';
+    titleWrap.appendChild(metadata);
+  });
   toolbar.appendChild(titleWrap);
 
   if(!currentXmlFileReadOnlyMode){
@@ -440,6 +467,14 @@ function appendRepeatDeleteButton(card, rows, occurrencePath, totalCount, parent
   const header = card.querySelector('.uimodel-fieldgroup-header, .fieldgroup-title');
   if(!header) return;
   card.classList.add('repeat-occurrence-card');
+  header.classList.add('repeat-occurrence-toggle');
+  header.title = card.classList.contains('collapsed') ? 'Elem kibontása' : 'Elem összecsukása';
+
+  const actionRow = document.createElement('div');
+  actionRow.className = 'repeat-occurrence-header-row';
+  header.parentNode.insertBefore(actionRow, header);
+  actionRow.appendChild(header);
+
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'danger-ghost repeat-delete-button';
@@ -451,7 +486,7 @@ function appendRepeatDeleteButton(card, rows, occurrencePath, totalCount, parent
     event.stopPropagation();
     deleteRepeatOccurrence(rows, occurrencePath, parentTemplate, parentOccurrencePath);
   });
-  card.appendChild(button);
+  actionRow.appendChild(button);
 }
 
 function renderUiModelRepeatContainer(target, rows, valuesByFieldId, rowInstancesByRowId,
@@ -1260,6 +1295,7 @@ function renderUiModelFieldElement(field, valueObj){
     configureUiModelInputControl(control, field);
   }
   wrapper.appendChild(control);
+  if(type === 'date') appendUiModelDatePicker(wrapper, control, readonly);
   if(control && control._pendingDatalist){
     wrapper.appendChild(control._pendingDatalist);
     delete control._pendingDatalist;
@@ -1451,6 +1487,7 @@ function renderUiModelTableControl(field, valueObj){
   input.disabled = readonly;
   configureUiModelInputControl(input, field);
   holder.appendChild(input);
+  if(type === 'date') appendUiModelDatePicker(holder, input, readonly);
   const unit = uiModelUnitFromMask(field.mask);
   if(unit){
     const unitSpan = document.createElement('span');
@@ -1514,7 +1551,7 @@ function uiModelTableHints(field){
  * @returns {*} a feldolgozás eredménye
  */
 function uiModelInputType(type){
-  if(type === 'date') return 'date';
+  if(type === 'date') return 'text';
   if(type === 'number') return 'number';
   return 'text';
 }
@@ -1528,13 +1565,100 @@ function uiModelInputType(type){
  */
 function configureUiModelInputControl(input, field){
   if(field.maxLength) input.maxLength = Number(field.maxLength);
-  if(input.type === 'date'){
-    input.placeholder = '';
+  if(String(field?.type || '').toLowerCase() === 'date'){
+    input.type = 'text';
+    input.maxLength = 10;
+    input.placeholder = 'éééé-nn-hh';
+    input.inputMode = 'numeric';
+    input.autocomplete = 'off';
+    input.dataset.dateDisplayFormat = 'yyyy-dd-mm';
+    input.title = 'Dátum formátuma: éééé-nn-hh';
+    input.addEventListener('input', () => {
+      const formatted = formatUiDateTyping(input.value);
+      if(formatted !== input.value) input.value = formatted;
+    });
   }
   if(shouldUseNumericInputMode(field)){
     input.inputMode = 'numeric';
     input.autocomplete = 'off';
   }
+}
+
+function formatUiDateTyping(value){
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+  if(digits.length <= 4) return digits;
+  if(digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
+function isoDateToUiDate(value){
+  const str = String(value ?? '').trim();
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!match) return str;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if(date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day){
+    return str;
+  }
+  return `${match[1]}-${match[3]}-${match[2]}`;
+}
+
+function uiDateToIsoDate(value){
+  const str = String(value ?? '').trim();
+  if(!str) return '';
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!match) return str;
+  const year = Number(match[1]);
+  const day = Number(match[2]);
+  const month = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if(date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day){
+    return str;
+  }
+  return `${match[1]}-${match[3]}-${match[2]}`;
+}
+
+function appendUiModelDatePicker(container, input, readonly){
+  if(!container || !input || input.dataset.datePickerBound === 'true') return;
+  input.dataset.datePickerBound = 'true';
+  const shell = document.createElement('div');
+  shell.className = 'ui-date-control';
+  input.parentNode.insertBefore(shell, input);
+  shell.appendChild(input);
+
+  const picker = document.createElement('input');
+  picker.type = 'date';
+  picker.className = 'ui-date-native-picker';
+  picker.tabIndex = -1;
+  picker.setAttribute('aria-hidden', 'true');
+  picker.disabled = !!readonly;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'ui-date-picker-button';
+  button.setAttribute('aria-label', 'Dátum kiválasztása');
+  button.title = 'Dátum kiválasztása';
+  button.disabled = !!readonly;
+  button.innerHTML = '<span aria-hidden="true">▦</span>';
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    const iso = uiDateToIsoDate(input.value);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(iso)) picker.value = iso;
+    if(typeof picker.showPicker === 'function') picker.showPicker();
+    else picker.click();
+  });
+  picker.addEventListener('change', () => {
+    if(!picker.value) return;
+    input.value = isoDateToUiDate(picker.value);
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    input.focus();
+  });
+
+  shell.appendChild(button);
+  shell.appendChild(picker);
 }
 
 /**
@@ -1677,9 +1801,9 @@ function normalizeUiModelDateValue(value){
   const str = String(value ?? '').trim();
   if(!str) return '';
   let m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if(m) return str;
-  m = str.match(/^(\d{4})[.](\d{2})[.](\d{2})$/);
-  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  if(m) return isoDateToUiDate(str);
+  m = str.match(/^(\d{4})[.](\d{2})[.](\d{2})[.]?$/);
+  if(m) return `${m[1]}-${m[3]}-${m[2]}`;
   return str;
 }
 
@@ -1822,23 +1946,25 @@ function renderFieldElement(field, valueObj) {
     }
 
     const input = document.createElement('input');
-    input.type = type === 'number' ? 'number' : type === 'date' ? 'date' : 'text';
-    input.value = String(value);
+    input.type = type === 'number' ? 'number' : 'text';
+    input.value = type === 'date' ? normalizeUiModelDateValue(value) : String(value);
     input.dataset.fieldId = String(fieldKey || '');
     input.disabled = readonly;
     if (field.maxLength) {
         input.maxLength = Number(field.maxLength);
     }
+    if(type === 'date') configureUiModelInputControl(input, field);
 
-    if (field.mask) {
+    if (field.mask && type !== 'date') {
         input.dataset.mask = String(field.mask);
         input.title = `Maszk: ${field.mask}`;
         input.placeholder = String(field.mask);
     }
 
     wrapper.appendChild(input);
+    if(type === 'date') appendUiModelDatePicker(wrapper, input, readonly);
 
-    if (field.mask) {
+    if (field.mask && type !== 'date') {
         const maskHint = document.createElement('div');
         maskHint.className = 'field-mask-hint';
         maskHint.textContent = `Maszk: ${field.mask}`;
@@ -1874,6 +2000,9 @@ Object.assign(globalThis, {
   applyUiModelMask,
   normalizeUiModelNumericText,
   normalizeUiModelDateValue,
+  isoDateToUiDate,
+  uiDateToIsoDate,
+  appendUiModelDatePicker,
   uiModelMaskExample,
   uiModelUnitFromMask,
   renderFieldElement

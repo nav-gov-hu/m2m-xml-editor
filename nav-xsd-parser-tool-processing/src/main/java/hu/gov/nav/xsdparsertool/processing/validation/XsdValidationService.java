@@ -91,12 +91,13 @@ public class XsdValidationService {
             return result;
         }
 
+        MultiPathResourceResolver resourceResolver = new MultiPathResourceResolver(primaryXsd.getParent(), generalXsdDir);
         try {
             SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
             schemaFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             schemaFactory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
             schemaFactory.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "file");
-            schemaFactory.setResourceResolver(new MultiPathResourceResolver(primaryXsd.getParent(), generalXsdDir));
+            schemaFactory.setResourceResolver(resourceResolver);
             CollectingErrorHandler errorHandler = new CollectingErrorHandler();
 
             StreamSource xsdSource = new StreamSource(primaryXsd.toFile());
@@ -117,11 +118,42 @@ public class XsdValidationService {
             return result;
         } catch (Exception e) {
             LOGGER.error("Unexpected XSD validation failure.", e);
-            issues.add(new ValidationIssue("VALIDATION_EXCEPTION", xmlFile.toString(), INTERNAL_VALIDATION_ERROR, Severity.ERROR));
+            List<String> missingResources = resourceResolver.getMissingLocalResources();
+            if (!missingResources.isEmpty()) {
+                issues.add(new ValidationIssue(
+                        "XSD_IMPORT_RESOURCE_MISSING",
+                        primaryXsd.toString(),
+                        missingXsdResourceMessage(missingResources),
+                        Severity.ERROR));
+            } else {
+                issues.add(new ValidationIssue("VALIDATION_EXCEPTION", xmlFile.toString(), INTERNAL_VALIDATION_ERROR, Severity.ERROR));
+            }
             result.setValid(false);
             result.setIssues(issues);
             return result;
         }
+    }
+
+
+    private static String missingXsdResourceMessage(List<String> missingResources) {
+        String resources = missingResources.stream()
+                .map(XsdValidationService::displayResourceName)
+                .distinct()
+                .limit(8)
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("ismeretlen XSD erőforrás");
+        return "Az XSD ellenőrzés nem hajtható végre, mert a séma által importált vagy include-olt XSD állományok hiányoznak: "
+                + resources
+                + ". Töltse le vagy frissítse a common repository-t, majd indítsa újra az XSD validációt.";
+    }
+
+    private static String displayResourceName(String resource) {
+        if (resource == null || resource.isBlank()) {
+            return "ismeretlen XSD erőforrás";
+        }
+        String normalized = resource.replace('\\', '/');
+        int slash = normalized.lastIndexOf('/');
+        return slash >= 0 && slash + 1 < normalized.length() ? normalized.substring(slash + 1) : normalized;
     }
 
     /**

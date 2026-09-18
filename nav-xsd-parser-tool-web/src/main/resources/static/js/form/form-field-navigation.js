@@ -178,7 +178,11 @@ function updateToggleAllFormCollapseButton(){
 function updateCollapseToggle(card){
     const toggle = card?.querySelector(':scope > .collapse-toggle');
     if(!toggle) return;
-    toggle.setAttribute('aria-expanded', card.classList.contains('collapsed') ? 'false' : 'true');
+    const collapsed = card.classList.contains('collapsed');
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    if(toggle.classList.contains('repeat-occurrence-toggle')){
+      toggle.title = collapsed ? 'Elem kibontása' : 'Elem összecsukása';
+    }
   }
 
     /**
@@ -262,6 +266,14 @@ function openAncestorsForSelectedField(targetOverride = null){
       }
     }
     if(!target) return;
+    const blockPanel = target.closest('.form-block-tab-panel[data-block-tab-panel]');
+    if(blockPanel){
+      const scope = blockPanel.parentElement?.parentElement || document;
+      const key = blockPanel.dataset.blockTabPanel || '';
+      const blockButton = [...scope.querySelectorAll('.form-block-tab[data-block-tab-target]')]
+        .find(button => button.dataset.blockTabTarget === key);
+      blockButton?.click();
+    }
     target.closest('.form-pane')?.querySelectorAll('.collapsible-card').forEach(card => {
       if(card.contains(target)){
         card.classList.remove('collapsed');

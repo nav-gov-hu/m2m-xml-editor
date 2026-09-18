@@ -19,6 +19,9 @@ public class DocumentDefinition {
     private String targetNamespace;
     private List<BlockDefinition> blocks = new ArrayList<>();
     private Map<String, String> structuralLabelsByPath = new LinkedHashMap<>();
+    private Map<String, Integer> structuralMinOccursByPath = new LinkedHashMap<>();
+    private Map<String, String> structuralMaxOccursByPath = new LinkedHashMap<>();
+    private Map<String, Map<String, String>> structuralFixedAttributesByPath = new LinkedHashMap<>();
 /**
  * Visszaadja a következő modellértéket: az objektum technikai azonosítója.
  *
@@ -135,4 +138,69 @@ public void setBlocks(List<BlockDefinition> blocks) {
                 ? new LinkedHashMap<>()
                 : new LinkedHashMap<>(structuralLabelsByPath);
     }
+
+    /**
+     * Visszaadja a strukturális elemek minimális előfordulásszámát teljes XML-útvonal szerint.
+     *
+     * @return útvonalhoz rendelt minimális előfordulásszámok
+     */
+    public Map<String, Integer> getStructuralMinOccursByPath() {
+        return structuralMinOccursByPath;
+    }
+
+    /**
+     * Beállítja a strukturális elemek minimális előfordulásszámát teljes XML-útvonal szerint.
+     *
+     * @param structuralMinOccursByPath útvonalhoz rendelt minimális előfordulásszámok
+     */
+    public void setStructuralMinOccursByPath(Map<String, Integer> structuralMinOccursByPath) {
+        this.structuralMinOccursByPath = structuralMinOccursByPath == null
+                ? new LinkedHashMap<>()
+                : new LinkedHashMap<>(structuralMinOccursByPath);
+    }
+
+    /**
+     * Visszaadja a strukturális elemek maximális előfordulásszámát teljes XML-útvonal szerint.
+     *
+     * @return útvonalhoz rendelt maximális előfordulásszámok
+     */
+    public Map<String, String> getStructuralMaxOccursByPath() {
+        return structuralMaxOccursByPath;
+    }
+
+    /**
+     * Beállítja a strukturális elemek maximális előfordulásszámát teljes XML-útvonal szerint.
+     *
+     * @param structuralMaxOccursByPath útvonalhoz rendelt maximális előfordulásszámok
+     */
+    public void setStructuralMaxOccursByPath(Map<String, String> structuralMaxOccursByPath) {
+        this.structuralMaxOccursByPath = structuralMaxOccursByPath == null
+                ? new LinkedHashMap<>()
+                : new LinkedHashMap<>(structuralMaxOccursByPath);
+    }
+    /**
+     * Visszaadja a strukturális elemek XSD-ben rögzített, fix sdgID attribútumait teljes XML-útvonal szerint.
+     *
+     * @return útvonalhoz rendelt attribútumnév/érték térképek
+     */
+    public Map<String, Map<String, String>> getStructuralFixedAttributesByPath() {
+        return structuralFixedAttributesByPath;
+    }
+
+    /**
+     * Beállítja a strukturális elemek XSD-ben rögzített fix sdgID attribútumait.
+     *
+     * @param structuralFixedAttributesByPath útvonalhoz rendelt attribútumnév/érték térképek
+     */
+    public void setStructuralFixedAttributesByPath(Map<String, Map<String, String>> structuralFixedAttributesByPath) {
+        this.structuralFixedAttributesByPath = new LinkedHashMap<>();
+        if (structuralFixedAttributesByPath == null) {
+            return;
+        }
+        structuralFixedAttributesByPath.forEach((path, attributes) ->
+                this.structuralFixedAttributesByPath.put(path, attributes == null
+                        ? new LinkedHashMap<>()
+                        : new LinkedHashMap<>(attributes)));
+    }
+
 }

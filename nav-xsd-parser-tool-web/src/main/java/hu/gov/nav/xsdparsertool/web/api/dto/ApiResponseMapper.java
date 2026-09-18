@@ -243,6 +243,7 @@ public final class ApiResponseMapper {
         dto.setId(definition.getId());
         dto.setTitle(definition.getTitle());
         dto.setStructuralLabelsByPath(definition.getStructuralLabelsByPath());
+        dto.setStructuralFixedAttributesByPath(definition.getStructuralFixedAttributesByPath());
         for (FormTabDefinition tab : definition.getTabs()) {
             FormTabDto tabDto = new FormTabDto();
             tabDto.setId(tab.getId());
@@ -258,6 +259,9 @@ public final class ApiResponseMapper {
                     rowDto.setType(row.getType());
                     rowDto.setRepeatable(row.isRepeatable());
                     rowDto.setXmlPath(row.getXmlPath());
+                    rowDto.setRepeatContainerPath(row.getRepeatContainerPath());
+                    rowDto.setMinOccurs(row.getMinOccurs());
+                    rowDto.setMaxOccurs(row.getMaxOccurs());
                     for (FormFieldDefinition field : row.getFields()) {
                         FormFieldDto fieldDto = new FormFieldDto();
                         fieldDto.setId(field.getId());

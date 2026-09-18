@@ -74,12 +74,13 @@ function classicSectionHasRenderableFields(section, valuesByFieldId, rowInstance
         const fields = (row?.fields || []).filter(field => field?.visible !== false);
         if(!fields.length) return false;
         if(row?.repeatable){
-            const instances = rowInstancesByRowId?.[row.id] || [];
-            if(instances.length){
-                return instances.some(instance => fields.some(field =>
-                    !isM2mAttachmentTechnicalField(field, instance?.valuesByFieldId?.[field.id])
-                ));
-            }
+            const renderableFields = fields.filter(field => !isM2mAttachmentTechnicalField(field, null));
+            if(!renderableFields.length) return false;
+
+            // A repeat konténernek XML-példány nélkül is láthatónak kell maradnia,
+            // különben minOccurs=0 esetén a felhasználó nem kap "+ Új elem" műveletet.
+            // A meglévő instance-ok csak a példánykártyák számát határozzák meg.
+            return true;
         }
         return fields.some(field => !isM2mAttachmentTechnicalField(field, valuesByFieldId?.[field.id]));
     });
@@ -139,52 +140,485 @@ function sectionMatchesLazySearch(section, valuesByFieldId, rowInstancesByRowId,
  * @param {*} valuesByFieldId a célobjektum technikai azonosítója
  * @param {*} rowInstancesByRowId a célobjektum technikai azonosítója
  */
+let repeatVirtualStateDocument = null;
+const repeatVirtualOccurrencePaths = new Set();
+
+/**
+ * Az ismétlődő űrlapok kliensoldali virtuális példányállapotát az aktuális XML
+ * dokumentumhoz köti. Másik XML megnyitásakor a korábbi, még nem materializált
+ * példányok nem vihetők át az új dokumentumba.
+ */
+function ensureRepeatVirtualStateDocument(){
+  if(repeatVirtualStateDocument === currentXmlDocument) return;
+  repeatVirtualStateDocument = currentXmlDocument;
+  repeatVirtualOccurrencePaths.clear();
+}
+
+function repeatPathKey(path){
+  return canonicalizeXmlPath(path || '');
+}
+
+function repeatOccurrenceIndex(path){
+  const parts = repeatPathKey(path).split('/').filter(Boolean);
+  const last = parts[parts.length - 1] || '';
+  const match = last.match(/\[(\d+)\]$/);
+  return match ? Number(match[1]) : 1;
+}
+
+function repeatMaxOccurs(row){
+  const raw = String(row?.maxOccurs ?? '').trim();
+  if(!raw || raw.toLowerCase() === 'unbounded') return Number.POSITIVE_INFINITY;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.POSITIVE_INFINITY;
+}
+
+function repeatMinOccurs(row){
+  const parsed = Number.parseInt(String(row?.minOccurs ?? '0'), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function repeatRowsForContainer(sectionRows, anchorRow){
+  const key = repeatPathKey(anchorRow?.repeatContainerPath || anchorRow?.xmlPath || '');
+  return (sectionRows || []).filter(row => row?.repeatable
+    && repeatPathKey(row?.repeatContainerPath || row?.xmlPath || '') === key);
+}
+
+function repeatContainerTemplates(sectionRows){
+  return [...new Set((sectionRows || [])
+    .filter(row => row?.repeatable)
+    .map(row => repeatPathKey(row?.repeatContainerPath || row?.xmlPath || ''))
+    .filter(Boolean))]
+    .sort((left, right) => left.length - right.length);
+}
+
+function parentRepeatContainerTemplate(sectionRows, childTemplate){
+  const child = repeatPathKey(childTemplate);
+  let parent = null;
+  repeatContainerTemplates(sectionRows).forEach(candidate => {
+    if(candidate === child || !child.startsWith(candidate + '/')) return;
+    if(parent === null || candidate.length > parent.length) parent = candidate;
+  });
+  return parent;
+}
+
+function childRepeatContainerTemplates(sectionRows, parentTemplate){
+  const parent = repeatPathKey(parentTemplate);
+  return repeatContainerTemplates(sectionRows).filter(candidate =>
+    parentRepeatContainerTemplate(sectionRows, candidate) === parent
+  );
+}
+
+function topLevelRepeatContainerTemplates(sectionRows){
+  return repeatContainerTemplates(sectionRows).filter(candidate =>
+    parentRepeatContainerTemplate(sectionRows, candidate) === null
+  );
+}
+
+function rowsForRepeatTemplate(sectionRows, template){
+  const key = repeatPathKey(template);
+  return (sectionRows || []).filter(row => row?.repeatable
+    && repeatPathKey(row?.repeatContainerPath || row?.xmlPath || '') === key);
+}
+
+function concreteRepeatOccurrencePath(templatePath, occurrenceIndex, parentTemplate = null, parentOccurrencePath = null){
+  const template = repeatPathKey(templatePath);
+  if(!template) return '';
+  let concrete = template;
+  if(parentTemplate && parentOccurrencePath){
+    const parent = repeatPathKey(parentTemplate);
+    const occurrence = repeatPathKey(parentOccurrencePath);
+    if(template.startsWith(parent + '/')){
+      concrete = occurrence + template.substring(parent.length);
+    }
+  }
+  const parts = concrete.split('/').filter(Boolean);
+  if(!parts.length) return concrete;
+  parts[parts.length - 1] = parts[parts.length - 1].replace(/\[\d+\]$/, `[${occurrenceIndex}]`);
+  return `/${parts.join('/')}`;
+}
+
+function repeatPathWithinParent(path, parentOccurrencePath){
+  if(!parentOccurrencePath) return true;
+  const candidate = repeatPathKey(path);
+  const parent = repeatPathKey(parentOccurrencePath);
+  return candidate.startsWith(parent + '/');
+}
+
+function findXmlNodesByTemplatePath(doc, templatePath){
+  if(!doc?.documentElement || !templatePath) return [];
+  const parts = String(templatePath).split('/').filter(Boolean).map(segment => {
+    const match = segment.match(/^(.*?)(?:\[(\d+)\])?$/);
+    return { name: String(match?.[1] || '').replace(/^.*:/, ''), index: match?.[2] ? Number(match[2]) : null };
+  });
+  if(!parts.length) return [];
+  let states = [{ node:doc.documentElement, path:`/${resolveNodeName(doc.documentElement)}[1]` }];
+  if(resolveNodeName(doc.documentElement) === parts[0].name) parts.shift();
+  for(const segment of parts){
+    const next = [];
+    states.forEach(state => {
+      const matches = [...state.node.children].filter(child => resolveNodeName(child) === segment.name);
+      if(segment.index){
+        const child = matches[segment.index - 1];
+        if(child) next.push({ node:child, path:`${state.path}/${segment.name}[${segment.index}]` });
+        return;
+      }
+      matches.forEach((child, index) => next.push({ node:child, path:`${state.path}/${segment.name}[${index + 1}]` }));
+    });
+    states = next;
+    if(!states.length) break;
+  }
+  return states;
+}
+
+function repeatOccurrencePaths(rows, parentTemplate = null, parentOccurrencePath = null){
+  ensureRepeatVirtualStateDocument();
+  const row = rows?.[0];
+  const template = row?.repeatContainerPath || row?.xmlPath || '';
+  if(!template) return [];
+
+  const materialized = findXmlNodesByTemplatePath(currentXmlDocument, template)
+    .map(item => repeatPathKey(item.path))
+    .filter(path => repeatPathWithinParent(path, parentOccurrencePath));
+  const normalizedTemplate = repeatPathKey(template).replace(/\[\d+\]/g, '[1]');
+  const virtual = [...repeatVirtualOccurrencePaths].filter(path => {
+    if(!repeatPathWithinParent(path, parentOccurrencePath)) return false;
+    const normalizedPath = repeatPathKey(path).replace(/\[\d+\]/g, '[1]');
+    return normalizedTemplate === normalizedPath;
+  });
+  const result = new Set([...materialized, ...virtual]);
+  const minOccurs = repeatMinOccurs(row);
+
+  if(result.size < minOccurs){
+    let index = 1;
+    while(result.size < minOccurs){
+      const candidate = concreteRepeatOccurrencePath(template, index++, parentTemplate, parentOccurrencePath);
+      if(candidate) result.add(candidate);
+    }
+  }
+  return [...result].sort((left, right) => left.localeCompare(right, 'hu', { numeric:true }));
+}
+
+function fieldPathForRepeatOccurrence(field, row, occurrencePath){
+  const template = repeatPathKey(row?.repeatContainerPath || row?.xmlPath || '');
+  const fieldPath = repeatPathKey(field?.xmlPath || '');
+  if(!template || !fieldPath) return fieldPath;
+  const canonicalOccurrence = repeatPathKey(occurrencePath);
+  if(fieldPath === template) return canonicalOccurrence;
+  if(fieldPath.startsWith(template + '/')) return canonicalOccurrence + fieldPath.substring(template.length);
+  return fieldPath;
+}
+
+function ensureRepeatRowInstance(row, occurrencePath, rowInstancesByRowId, valuesByFieldId){
+  if(!rowInstancesByRowId[row.id]) rowInstancesByRowId[row.id] = [];
+  const instances = rowInstancesByRowId[row.id];
+  const canonicalOccurrence = repeatPathKey(occurrencePath);
+  let instance = instances.find(candidate => repeatPathKey(candidate?.xmlPath || '') === canonicalOccurrence);
+  if(instance) return instance;
+
+  const occurrenceIndex = repeatOccurrenceIndex(canonicalOccurrence);
+  const pathKey = canonicalOccurrence.replace(/[^A-Za-z0-9]+/g, '_');
+  instance = {
+    id:`${row.id}#virtual:${pathKey}`,
+    xmlPath:canonicalOccurrence,
+    virtual:!findNodeByPath(currentXmlDocument, canonicalOccurrence),
+    valuesByFieldId:{}
+  };
+  (row.fields || []).forEach(field => {
+    const key = `${row.id}#virtual:${pathKey}:${field.id}`;
+    const xmlPath = fieldPathForRepeatOccurrence(field, row, canonicalOccurrence);
+    const node = currentXmlDocument ? findNodeByPath(currentXmlDocument, xmlPath) : null;
+    const valueObj = { fieldId:field.id, key, xmlPath, value:node ? (node.textContent || '').trim() : '', present:!!node };
+    instance.valuesByFieldId[field.id] = valueObj;
+    valuesByFieldId[key] = valueObj;
+  });
+  instances.push(instance);
+  return instance;
+}
+
+function repeatContainerTitle(rows){
+  const titles = [...new Set((rows || []).map(row => String(row?.title || '').trim()).filter(Boolean))];
+  return titles.length === 1 ? titles[0] : (titles[0] || 'Ismétlődő csoport');
+}
+
+function repeatContainerFixedAttributes(rows){
+  const row = rows?.[0];
+  const repeatPath = repeatPathKey(row?.repeatContainerPath || row?.xmlPath || '');
+  const metadata = currentFormDefinition?.structuralFixedAttributesByPath || {};
+  if(!repeatPath) return {};
+
+  let bestPath = '';
+  let bestAttributes = null;
+  Object.entries(metadata).forEach(([path, attributes]) => {
+    const candidate = repeatPathKey(path);
+    if(!candidate || !repeatPath.startsWith(candidate + '/')) return;
+    if(candidate.length > bestPath.length){
+      bestPath = candidate;
+      bestAttributes = attributes;
+    }
+  });
+  return bestAttributes && typeof bestAttributes === 'object' ? bestAttributes : {};
+}
+
+function createRepeatToolbar(rows, occurrencePaths, onAdd){
+  const row = rows?.[0] || {};
+  const minOccurs = repeatMinOccurs(row);
+  const maxOccurs = repeatMaxOccurs(row);
+  const toolbar = document.createElement('div');
+  toolbar.className = 'repeat-container-toolbar';
+
+  const titleWrap = document.createElement('div');
+  titleWrap.className = 'repeat-container-title-wrap';
+  const title = document.createElement('h4');
+  title.className = 'repeat-container-title';
+  title.textContent = `${repeatContainerTitle(rows)}${minOccurs > 0 ? ' *' : ''}`;
+  titleWrap.appendChild(title);
+  const cardinality = document.createElement('span');
+  cardinality.className = 'repeat-container-cardinality';
+  cardinality.textContent = `(${minOccurs}..${Number.isFinite(maxOccurs) ? maxOccurs : 'n'})`;
+  titleWrap.appendChild(cardinality);
+  const fixedAttributes = repeatContainerFixedAttributes(rows);
+  Object.entries(fixedAttributes).forEach(([name, value]) => {
+    const metadata = document.createElement('span');
+    metadata.className = 'repeat-container-fixed-attribute';
+    metadata.textContent = `${name}: ${value}`;
+    metadata.title = 'Az XSD által rögzített, nem szerkeszthető attribútum';
+    titleWrap.appendChild(metadata);
+  });
+  toolbar.appendChild(titleWrap);
+
+  if(!currentXmlFileReadOnlyMode){
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'secondary repeat-add-button';
+    add.textContent = '+ Új elem';
+    add.disabled = occurrencePaths.length >= maxOccurs;
+    add.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      onAdd?.();
+    });
+    toolbar.appendChild(add);
+  }
+  return toolbar;
+}
+
+/**
+ * Repeat struktúraváltozás előtt újraépíti az űrlapadatokat az aktuális XML DOM-ból.
+ * Így egy másik ismétlődő csoport hozzáadása vagy törlése nem veszíti el a már
+ * materializált mezők érték- és XML-path kötését a teljes űrlap újrarenderelésekor.
+ */
+function rebuildCurrentFormDataFromXmlForRepeatRender(){
+  if(currentFormDefinition && currentXmlDocument){
+    currentFormData = buildFormDataFromDocument(currentFormDefinition, currentXmlDocument);
+  }
+}
+
+function addVirtualRepeatOccurrence(rows, parentTemplate = null, parentOccurrencePath = null){
+  const row = rows?.[0];
+  if(!row) return;
+  const allPaths = repeatOccurrencePaths(rows, parentTemplate, parentOccurrencePath);
+  const maxOccurs = repeatMaxOccurs(row);
+  if(allPaths.length >= maxOccurs) return;
+
+  const used = new Set(allPaths.map(repeatOccurrenceIndex));
+  let nextIndex = 1;
+  while(used.has(nextIndex)) nextIndex++;
+  const template = row.repeatContainerPath || row.xmlPath || '';
+  const path = concreteRepeatOccurrencePath(template, nextIndex, parentTemplate, parentOccurrencePath);
+  if(!path) return;
+  repeatVirtualOccurrencePaths.add(path);
+
+  // A repeat-struktúra változása teljes újrarenderelést vált ki. A már
+  // materializált mezők értékeit mindig az aktuális XML DOM-ból töltsük újra,
+  // hogy más repeat containerek bindingja és megjelenített értéke megmaradjon.
+  rebuildCurrentFormDataFromXmlForRepeatRender();
+
+  markFormDirty();
+  renderForm(currentFormDefinition, currentFormData, currentSchemaBundle || null);
+}
+
+function deleteRepeatOccurrence(rows, occurrencePath, parentTemplate = null, parentOccurrencePath = null){
+  const row = rows?.[0];
+  if(!row || !occurrencePath) return;
+  const paths = repeatOccurrencePaths(rows, parentTemplate, parentOccurrencePath);
+  if(paths.length <= repeatMinOccurs(row)) return;
+  const canonicalOccurrence = repeatPathKey(occurrencePath);
+  [...repeatVirtualOccurrencePaths].forEach(path => {
+    const candidate = repeatPathKey(path);
+    if(candidate === canonicalOccurrence || candidate.startsWith(canonicalOccurrence + '/')){
+      repeatVirtualOccurrencePaths.delete(path);
+    }
+  });
+  if(currentXmlDocument && findNodeByPath(currentXmlDocument, occurrencePath)){
+    removeXmlNodeByPath(currentXmlDocument, occurrencePath);
+    currentFormData = buildFormDataFromDocument(currentFormDefinition, currentXmlDocument);
+    markFormDirty();
+    scheduleXmlFromCurrentState();
+  }else{
+    rebuildCurrentFormDataFromXmlForRepeatRender();
+    markFormDirty();
+  }
+  renderForm(currentFormDefinition, currentFormData, currentSchemaBundle || null);
+}
+
+function appendRepeatDeleteButton(card, rows, occurrencePath, totalCount, parentTemplate = null, parentOccurrencePath = null){
+  if(currentXmlFileReadOnlyMode) return;
+  const minOccurs = repeatMinOccurs(rows?.[0]);
+  const header = card.querySelector('.uimodel-fieldgroup-header, .fieldgroup-title');
+  if(!header) return;
+  card.classList.add('repeat-occurrence-card');
+  header.classList.add('repeat-occurrence-toggle');
+  header.title = card.classList.contains('collapsed') ? 'Elem kibontása' : 'Elem összecsukása';
+
+  const actionRow = document.createElement('div');
+  actionRow.className = 'repeat-occurrence-header-row';
+  header.parentNode.insertBefore(actionRow, header);
+  actionRow.appendChild(header);
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'danger-ghost repeat-delete-button';
+  button.textContent = 'Törlés';
+  button.disabled = totalCount <= minOccurs;
+  button.title = button.disabled ? `Legalább ${minOccurs} elem kötelező.` : 'Elem törlése';
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    deleteRepeatOccurrence(rows, occurrencePath, parentTemplate, parentOccurrencePath);
+  });
+  actionRow.appendChild(button);
+}
+
+function renderUiModelRepeatContainer(target, rows, valuesByFieldId, rowInstancesByRowId,
+                                      sectionRows = rows, parentTemplate = null, parentOccurrencePath = null){
+  const occurrencePaths = repeatOccurrencePaths(rows, parentTemplate, parentOccurrencePath);
+  const template = repeatPathKey(rows?.[0]?.repeatContainerPath || rows?.[0]?.xmlPath || '');
+  const container = document.createElement('section');
+  container.className = 'repeat-container';
+  container.dataset.repeatTemplatePath = template;
+  container.appendChild(createRepeatToolbar(
+    rows,
+    occurrencePaths,
+    () => addVirtualRepeatOccurrence(rows, parentTemplate, parentOccurrencePath)
+  ));
+
+  if(!occurrencePaths.length){
+    const empty = document.createElement('div');
+    empty.className = 'repeat-container-empty';
+    empty.textContent = 'Nincs felvett elem.';
+    container.appendChild(empty);
+  }
+
+  occurrencePaths.forEach((occurrencePath, index) => {
+    const card = createUiModelFieldGroup(repeatContainerTitle(rows), `#${index + 1}`);
+    card.dataset.repeatOccurrencePath = occurrencePath;
+    const grid = card.querySelector('.uimodel-fields-grid');
+    rows.forEach(row => {
+      const instance = ensureRepeatRowInstance(row, occurrencePath, rowInstancesByRowId, valuesByFieldId);
+      const visibleFields = (row.fields || []).filter(field => uiModelDefinitionBelongsToActivePart(field, row));
+      if(rows.length > 1 && visibleFields.length){
+        const subgroup = document.createElement('div');
+        subgroup.className = 'repeat-row-subtitle';
+        subgroup.textContent = row.title || row.id || 'Mezőcsoport';
+        grid.appendChild(subgroup);
+      }
+      visibleFields.forEach(field => {
+        const valueObj = instance.valuesByFieldId?.[field.id];
+        const virtualOccurrence = instance?.virtual === true;
+        if(isM2mAttachmentTechnicalField(field, valueObj)) return;
+        if(!virtualOccurrence && !shouldRenderUiModelField(field, valueObj)) return;
+        const fieldElement = renderUiModelFieldElement(field, valueObj);
+        if(fieldElement) grid.appendChild(fieldElement);
+      });
+    });
+
+    childRepeatContainerTemplates(sectionRows, template).forEach(childTemplate => {
+      const childRows = rowsForRepeatTemplate(sectionRows, childTemplate);
+      renderUiModelRepeatContainer(grid, childRows, valuesByFieldId, rowInstancesByRowId,
+        sectionRows, template, occurrencePath);
+    });
+
+    appendRepeatDeleteButton(card, rows, occurrencePath, occurrencePaths.length, parentTemplate, parentOccurrencePath);
+    if(grid.children.length) container.appendChild(card);
+  });
+  target.appendChild(container);
+}
+
+function renderClassicRepeatContainer(target, rows, valuesByFieldId, rowInstancesByRowId,
+                                      sectionRows = rows, parentTemplate = null, parentOccurrencePath = null){
+  const occurrencePaths = repeatOccurrencePaths(rows, parentTemplate, parentOccurrencePath);
+  const template = repeatPathKey(rows?.[0]?.repeatContainerPath || rows?.[0]?.xmlPath || '');
+  const container = document.createElement('section');
+  container.className = 'repeat-container';
+  container.dataset.repeatTemplatePath = template;
+  container.appendChild(createRepeatToolbar(
+    rows,
+    occurrencePaths,
+    () => addVirtualRepeatOccurrence(rows, parentTemplate, parentOccurrencePath)
+  ));
+
+  if(!occurrencePaths.length){
+    const empty = document.createElement('div');
+    empty.className = 'repeat-container-empty';
+    empty.textContent = 'Nincs felvett elem.';
+    container.appendChild(empty);
+  }
+
+  occurrencePaths.forEach((occurrencePath, index) => {
+    const card = createFieldGroupCard(repeatContainerTitle(rows), `#${index + 1}`, true);
+    card.dataset.repeatOccurrencePath = occurrencePath;
+    const fieldsContainer = card.querySelector('.fieldgroup-fields');
+    rows.forEach(row => {
+      const instance = ensureRepeatRowInstance(row, occurrencePath, rowInstancesByRowId, valuesByFieldId);
+      (row.fields || []).filter(field => field.visible !== false).forEach(field => {
+        const valueObj = instance.valuesByFieldId?.[field.id];
+        if(isM2mAttachmentTechnicalField(field, valueObj)) return;
+        const fieldElement = renderFieldElement(field, valueObj);
+        if(fieldElement) fieldsContainer.appendChild(fieldElement);
+      });
+    });
+
+    childRepeatContainerTemplates(sectionRows, template).forEach(childTemplate => {
+      const childRows = rowsForRepeatTemplate(sectionRows, childTemplate);
+      renderClassicRepeatContainer(fieldsContainer, childRows, valuesByFieldId, rowInstancesByRowId,
+        sectionRows, template, occurrencePath);
+    });
+
+    appendRepeatDeleteButton(card, rows, occurrencePath, occurrencePaths.length, parentTemplate, parentOccurrencePath);
+    if(fieldsContainer.children.length) container.appendChild(card);
+  });
+  target.appendChild(container);
+}
+
 function renderClassicSectionContent(target, section, valuesByFieldId, rowInstancesByRowId){
     let sectionHasFields = false;
+    const handledRepeatPaths = new Set();
+    const topLevelRepeats = new Set(topLevelRepeatContainerTemplates(section.rows));
     for (const row of (section.rows || [])) {
         if (row.repeatable) {
-            const instances = rowInstancesByRowId[row.id] || [];
-            instances.forEach((instance, idx) => {
-                const group = createFieldGroupCard(row.title || row.id || 'Lánc elem', `#${idx + 1}`, true);
-                const fieldsContainer = group.querySelector('.fieldgroup-fields');
-                let groupHasFields = false;
-                (row.fields || [])
-                    .filter(field => field.visible !== false)
-                    .forEach(field => {
-                        const valueObj = instance.valuesByFieldId?.[field.id];
-                        if(isM2mAttachmentTechnicalField(field, valueObj)) return;
-                        const fieldElement = renderFieldElement(field, valueObj);
-                        if (fieldElement) {
-                            fieldsContainer.appendChild(fieldElement);
-                            groupHasFields = true;
-                        }
-                    });
-                if (groupHasFields) {
-                    target.appendChild(group);
-                    sectionHasFields = true;
-                }
-            });
+            const repeatKey = repeatPathKey(row.repeatContainerPath || row.xmlPath || row.id);
+            if(!topLevelRepeats.has(repeatKey) || handledRepeatPaths.has(repeatKey)) continue;
+            handledRepeatPaths.add(repeatKey);
+            const rows = repeatRowsForContainer(section.rows, row);
+            renderClassicRepeatContainer(target, rows, valuesByFieldId, rowInstancesByRowId, section.rows);
+            sectionHasFields = true;
             continue;
         }
 
+        const structuralFields = (row.fields || [])
+            .filter(field => field.visible !== false)
+            .filter(field => !isM2mAttachmentTechnicalField(field, valuesByFieldId[field.id]));
+        if(!structuralFields.length) continue;
+
         const group = createFieldGroupCard(row.title || row.id || 'FieldGroup', '', false);
         const fieldsContainer = group.querySelector('.fieldgroup-fields');
-        let groupHasFields = false;
-        (row.fields || [])
-            .filter(field => field.visible !== false)
-            .forEach(field => {
-                const valueObj = valuesByFieldId[field.id];
-                if(isM2mAttachmentTechnicalField(field, valueObj)) return;
-                const fieldElement = renderFieldElement(field, valueObj);
-                if (fieldElement) {
-                    fieldsContainer.appendChild(fieldElement);
-                    groupHasFields = true;
-                }
-            });
-        if (groupHasFields) {
-            target.appendChild(group);
-            sectionHasFields = true;
-        }
+        structuralFields.forEach(field => {
+            const valueObj = valuesByFieldId[field.id];
+            const fieldElement = renderFieldElement(field, valueObj);
+            if (fieldElement) fieldsContainer.appendChild(fieldElement);
+        });
+        target.appendChild(group);
+        sectionHasFields = true;
     }
     if (!sectionHasFields) {
         const emptyMessage = document.createElement('p');
@@ -201,6 +635,62 @@ function renderClassicSectionContent(target, section, valuesByFieldId, rowInstan
  * @param {*} formData a függvény formData bemeneti értéke
  * @param {*} schemaBundle a függvény schemaBundle bemeneti értéke
  */
+
+function blockTabStateStore(){
+    if(!(globalThis.navBlockTabSelection instanceof Map)) globalThis.navBlockTabSelection = new Map();
+    return globalThis.navBlockTabSelection;
+}
+
+function createBlockTabLayout(host, contextKey = 'form'){
+    const tabs = document.createElement('div');
+    tabs.className = 'form-block-tabs';
+    tabs.setAttribute('role', 'tablist');
+    tabs.setAttribute('aria-label', 'Űrlapblokkok');
+    const panels = document.createElement('div');
+    panels.className = 'form-block-tab-panels';
+    host.append(tabs, panels);
+    const entries = [];
+
+    const activate = key => {
+        const selected = entries.find(entry => entry.key === key) || entries[0];
+        if(!selected) return;
+        entries.forEach(entry => {
+            const active = entry === selected;
+            entry.button.classList.toggle('active', active);
+            entry.button.setAttribute('aria-selected', active ? 'true' : 'false');
+            entry.button.tabIndex = active ? 0 : -1;
+            entry.panel.hidden = !active;
+            entry.panel.classList.toggle('active', active);
+        });
+        formLazyRenderer?.ensureSection?.(selected.panel);
+        blockTabStateStore().set(contextKey, selected.key);
+    };
+
+    const add = (key, title, panel) => {
+        const normalizedKey = String(key || `block-${entries.length + 1}`);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'form-block-tab';
+        button.setAttribute('role', 'tab');
+        button.dataset.blockTabTarget = normalizedKey;
+        button.textContent = title || normalizedKey;
+        panel.classList.add('form-block-tab-panel');
+        panel.dataset.blockTabPanel = normalizedKey;
+        panel.setAttribute('role', 'tabpanel');
+        button.addEventListener('click', () => activate(normalizedKey));
+        tabs.appendChild(button);
+        panels.appendChild(panel);
+        entries.push({ key: normalizedKey, button, panel });
+    };
+
+    const finish = () => {
+        if(!entries.length){ tabs.remove(); panels.remove(); return; }
+        const wanted = blockTabStateStore().get(contextKey);
+        activate(wanted);
+    };
+    return { add, finish, activate };
+}
+
 function renderClassicForm(formDefinition, formData, schemaBundle) {
     safeReplaceElementChildren(formContainer);
     updateFormHeaderTitle(formDefinition, schemaBundle);
@@ -210,12 +700,13 @@ function renderClassicForm(formDefinition, formData, schemaBundle) {
     const rowInstancesByRowId = formData?.rowInstancesByRowId || {};
     const lazy = isLazyFormRenderingAllowed();
     let hasRenderableContent = false;
+    const blockTabs = createBlockTabLayout(formContainer, 'classic-form');
 
     for (const tab of (formDefinition?.tabs || [])) {
         for (const section of (tab.sections || [])) {
             if(!classicSectionHasRenderableFields(section, valuesByFieldId, rowInstancesByRowId)) continue;
             const sec = document.createElement('section');
-            sec.className = 'form-section collapsible-card collapsed';
+            sec.className = 'form-section';
 
             const sectionButton = document.createElement('button');
             sectionButton.type = 'button';
@@ -235,7 +726,7 @@ function renderClassicForm(formDefinition, formData, schemaBundle) {
             sectionContent.className = 'form-section-content collapsible-content';
             sec.appendChild(sectionButton);
             sec.appendChild(sectionContent);
-            formContainer.appendChild(sec);
+            blockTabs.add(section.id || `block-${hasRenderableContent ? 2 : 1}`, section.title || section.id || 'Blokk', sec);
 
                         /**
              * Megjeleníti vagy újrarendereli a render content állapotát a felhasználói felületen.
@@ -256,6 +747,8 @@ const renderContent = target => renderClassicSectionContent(target, section, val
             hasRenderableContent = true;
         }
     }
+
+    blockTabs.finish();
 
     if (!hasRenderableContent) {
         const emptyMessage = document.createElement('p');
@@ -283,12 +776,12 @@ function createFieldGroupCard(title, suffix, chainRow) {
     const group = document.createElement('div');
     group.className = chainRow
         ? 'fieldgroup-card chain-row-card collapsible-card collapsed'
-        : 'fieldgroup-card collapsible-card collapsed';
+        : 'fieldgroup-card collapsible-card';
 
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'fieldgroup-title collapse-toggle';
-    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-expanded', chainRow ? 'false' : 'true');
 
     const titleElement = document.createElement('span');
     titleElement.textContent = suffix ? `${title} ${suffix}` : title;
@@ -485,20 +978,21 @@ function resolveUiModelValueObject(field, valuesByFieldId, row){
  * @param {*} rowInstancesByRowId a célobjektum technikai azonosítója
  * @returns {*} a feldolgozás eredménye
  */
+function uiModelRowHasStructuralFields(row){
+  return (row?.fields || []).some(field =>
+    uiModelDefinitionBelongsToActivePart(field, row)
+    && field?.visible !== false
+    && !isM2mAttachmentTechnicalField(field, null)
+  );
+}
+
 function uiModelSectionHasRenderableFields(section, valuesByFieldId, rowInstancesByRowId){
   for(const row of (section.rows || [])){
-    if(row.repeatable){
-      const instances = rowInstancesForActiveFormPart(rowInstancesByRowId[row.id] || [], row);
-      if(instances.some(instance => (row.fields || []).some(field =>
-        uiModelDefinitionBelongsToActivePart(field, row)
-        && shouldRenderNonAttachmentUiModelField(field, instance.valuesByFieldId?.[field.id])
-      ))) return true;
-      continue;
-    }
-    if((row.fields || []).some(field =>
-      uiModelDefinitionBelongsToActivePart(field, row)
-      && shouldRenderNonAttachmentUiModelField(field, resolveUiModelValueObject(field, valuesByFieldId, row))
-    )) return true;
+    // A blokk és a FieldGroup szerkezeti láthatóságát a definíció határozza meg,
+    // nem az, hogy az aktuális XML-ben a gyerekmezők már materializálódtak-e.
+    // Így az „XML-ben nem szereplő mezők” kapcsoló csak a mezőket szűri,
+    // a Block/FieldGroup konténereket nem tünteti el.
+    if(uiModelRowHasStructuralFields(row)) return true;
   }
   return false;
 }
@@ -513,21 +1007,15 @@ function uiModelSectionHasRenderableFields(section, valuesByFieldId, rowInstance
  * @param {*} rowInstancesByRowId a célobjektum technikai azonosítója
  */
 function renderUiModelSectionContent(target, section, valuesByFieldId, rowInstancesByRowId){
+  const handledRepeatPaths = new Set();
+  const topLevelRepeats = new Set(topLevelRepeatContainerTemplates(section.rows));
   for (const row of (section.rows || [])) {
     if (row.repeatable) {
-      const instances = rowInstancesForActiveFormPart(rowInstancesByRowId[row.id] || [], row);
-      instances.forEach((instance, idx) => {
-        const group = createUiModelFieldGroup(row.title || row.id || 'Lánc elem', `#${idx + 1}`);
-        const grid = group.querySelector('.uimodel-fields-grid');
-        (row.fields || []).forEach(field => {
-          if(!uiModelDefinitionBelongsToActivePart(field, row)) return;
-          const valueObj = instance.valuesByFieldId?.[field.id];
-          if(!shouldRenderNonAttachmentUiModelField(field, valueObj)) return;
-          const fieldElement = renderUiModelFieldElement(field, valueObj);
-          if(fieldElement) grid.appendChild(fieldElement);
-        });
-        if(grid.children.length) target.appendChild(group);
-      });
+      const repeatKey = repeatPathKey(row.repeatContainerPath || row.xmlPath || row.id);
+      if(!topLevelRepeats.has(repeatKey) || handledRepeatPaths.has(repeatKey)) continue;
+      handledRepeatPaths.add(repeatKey);
+      const rows = repeatRowsForContainer(section.rows, row);
+      renderUiModelRepeatContainer(target, rows, valuesByFieldId, rowInstancesByRowId, section.rows);
       continue;
     }
     if (isUiModelTableBlock(row)) {
@@ -535,6 +1023,8 @@ function renderUiModelSectionContent(target, section, valuesByFieldId, rowInstan
       if (tableBlock) target.appendChild(tableBlock);
       continue;
     }
+
+    if(!uiModelRowHasStructuralFields(row)) continue;
 
     const group = createUiModelFieldGroup(row.title || row.id || 'Mezőcsoport', '');
     const grid = group.querySelector('.uimodel-fields-grid');
@@ -545,7 +1035,7 @@ function renderUiModelSectionContent(target, section, valuesByFieldId, rowInstan
       const fieldElement = renderUiModelFieldElement(field, valueObj);
       if(fieldElement) grid.appendChild(fieldElement);
     });
-    if(grid.children.length) target.appendChild(group);
+    target.appendChild(group);
   }
 }
 
@@ -565,6 +1055,7 @@ function renderUiModelForm(formDefinition, formData, schemaBundle) {
     const shell = document.createElement('div');
     shell.className = 'uimodel-form-shell';
     formContainer.appendChild(shell);
+    const blockTabs = createBlockTabLayout(shell, 'uimodel-form');
     const valuesByFieldId = formData?.valuesByFieldId || {};
     const rowInstancesByRowId = formData?.rowInstancesByRowId || {};
     const lazy = isLazyFormRenderingAllowed();
@@ -579,7 +1070,7 @@ function renderUiModelForm(formDefinition, formData, schemaBundle) {
         visibleSectionIndex += 1;
 
         const sectionCard = document.createElement('section');
-        sectionCard.className = 'uimodel-section-card collapsible-card';
+        sectionCard.className = 'uimodel-section-card';
         const header = document.createElement('button');
         header.type = 'button';
         header.className = 'uimodel-section-header collapse-toggle';
@@ -601,7 +1092,7 @@ function renderUiModelForm(formDefinition, formData, schemaBundle) {
         const sectionContent = document.createElement('div');
         sectionContent.className = 'collapsible-content uimodel-section-content';
         sectionCard.appendChild(sectionContent);
-        shell.appendChild(sectionCard);
+        blockTabs.add(section.id || `block-${sectionIndex}`, section.title || section.id || 'Blokk', sectionCard);
 
                 /**
          * Megjeleníti vagy újrarendereli a render content állapotát a felhasználói felületen.
@@ -623,6 +1114,8 @@ const renderContent = target => renderUiModelSectionContent(target, section, val
         hasRenderableContent = true;
       }
     }
+
+    blockTabs.finish();
 
     if(!hasRenderableContent){
       const empty = document.createElement('p');
@@ -798,6 +1291,7 @@ function renderUiModelFieldElement(field, valueObj){
     configureUiModelInputControl(control, field);
   }
   wrapper.appendChild(control);
+  if(type === 'date') appendUiModelDatePicker(wrapper, control, readonly);
   if(control && control._pendingDatalist){
     wrapper.appendChild(control._pendingDatalist);
     delete control._pendingDatalist;
@@ -858,8 +1352,16 @@ function isUiModelTableBlock(row){
  */
 function renderUiModelTableBlock(row, valuesByFieldId){
   const allFields = (row?.fields || []).filter(field => field && !['link','subtitle'].includes(String(field.type || '').toLowerCase()));
-  const fields = allFields.filter(field => shouldRenderNonAttachmentUiModelField(field, resolveUiModelValueObject(field, valuesByFieldId, row)));
-  if(!fields.length) return null;
+  const structuralFields = allFields.filter(field =>
+    uiModelDefinitionBelongsToActivePart(field, row)
+    && field?.visible !== false
+    && !isM2mAttachmentTechnicalField(field, null)
+  );
+  if(!structuralFields.length) return null;
+
+  const fields = structuralFields.filter(field =>
+    shouldRenderNonAttachmentUiModelField(field, resolveUiModelValueObject(field, valuesByFieldId, row))
+  );
 
   const block = document.createElement('article');
   block.className = 'uimodel-table-block collapsible-card';
@@ -877,6 +1379,11 @@ function renderUiModelTableBlock(row, valuesByFieldId){
   header.appendChild(title);
   header.appendChild(chevron);
   block.appendChild(header);
+
+  // A FieldGroup strukturális konténere akkor is maradjon látható, ha az
+  // „XML-ben nem szereplő mezők” kapcsoló éppen minden táblázatsort elrejt.
+  // A kapcsoló csak a mezősorokat szűri, magát a FieldGroupot nem.
+  if(!fields.length) return block;
 
   const tableWrap = document.createElement('div');
   tableWrap.className = 'uimodel-table-scroll collapsible-content';
@@ -989,6 +1496,7 @@ function renderUiModelTableControl(field, valueObj){
   input.disabled = readonly;
   configureUiModelInputControl(input, field);
   holder.appendChild(input);
+  if(type === 'date') appendUiModelDatePicker(holder, input, readonly);
   const unit = uiModelUnitFromMask(field.mask);
   if(unit){
     const unitSpan = document.createElement('span');
@@ -1052,7 +1560,7 @@ function uiModelTableHints(field){
  * @returns {*} a feldolgozás eredménye
  */
 function uiModelInputType(type){
-  if(type === 'date') return 'date';
+  if(type === 'date') return 'text';
   if(type === 'number') return 'number';
   return 'text';
 }
@@ -1066,13 +1574,100 @@ function uiModelInputType(type){
  */
 function configureUiModelInputControl(input, field){
   if(field.maxLength) input.maxLength = Number(field.maxLength);
-  if(input.type === 'date'){
-    input.placeholder = '';
+  if(String(field?.type || '').toLowerCase() === 'date'){
+    input.type = 'text';
+    input.maxLength = 10;
+    input.placeholder = 'éééé-nn-hh';
+    input.inputMode = 'numeric';
+    input.autocomplete = 'off';
+    input.dataset.dateDisplayFormat = 'yyyy-dd-mm';
+    input.title = 'Dátum formátuma: éééé-nn-hh';
+    input.addEventListener('input', () => {
+      const formatted = formatUiDateTyping(input.value);
+      if(formatted !== input.value) input.value = formatted;
+    });
   }
   if(shouldUseNumericInputMode(field)){
     input.inputMode = 'numeric';
     input.autocomplete = 'off';
   }
+}
+
+function formatUiDateTyping(value){
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 8);
+  if(digits.length <= 4) return digits;
+  if(digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
+function isoDateToUiDate(value){
+  const str = String(value ?? '').trim();
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!match) return str;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if(date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day){
+    return str;
+  }
+  return `${match[1]}-${match[3]}-${match[2]}`;
+}
+
+function uiDateToIsoDate(value){
+  const str = String(value ?? '').trim();
+  if(!str) return '';
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!match) return str;
+  const year = Number(match[1]);
+  const day = Number(match[2]);
+  const month = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if(date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day){
+    return str;
+  }
+  return `${match[1]}-${match[3]}-${match[2]}`;
+}
+
+function appendUiModelDatePicker(container, input, readonly){
+  if(!container || !input || input.dataset.datePickerBound === 'true') return;
+  input.dataset.datePickerBound = 'true';
+  const shell = document.createElement('div');
+  shell.className = 'ui-date-control';
+  input.parentNode.insertBefore(shell, input);
+  shell.appendChild(input);
+
+  const picker = document.createElement('input');
+  picker.type = 'date';
+  picker.className = 'ui-date-native-picker';
+  picker.tabIndex = -1;
+  picker.setAttribute('aria-hidden', 'true');
+  picker.disabled = !!readonly;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'ui-date-picker-button';
+  button.setAttribute('aria-label', 'Dátum kiválasztása');
+  button.title = 'Dátum kiválasztása';
+  button.disabled = !!readonly;
+  button.innerHTML = '<span aria-hidden="true">▦</span>';
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    const iso = uiDateToIsoDate(input.value);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(iso)) picker.value = iso;
+    if(typeof picker.showPicker === 'function') picker.showPicker();
+    else picker.click();
+  });
+  picker.addEventListener('change', () => {
+    if(!picker.value) return;
+    input.value = isoDateToUiDate(picker.value);
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    input.focus();
+  });
+
+  shell.appendChild(button);
+  shell.appendChild(picker);
 }
 
 /**
@@ -1215,9 +1810,9 @@ function normalizeUiModelDateValue(value){
   const str = String(value ?? '').trim();
   if(!str) return '';
   let m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if(m) return str;
-  m = str.match(/^(\d{4})[.](\d{2})[.](\d{2})$/);
-  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  if(m) return isoDateToUiDate(str);
+  m = str.match(/^(\d{4})[.](\d{2})[.](\d{2})[.]?$/);
+  if(m) return `${m[1]}-${m[3]}-${m[2]}`;
   return str;
 }
 
@@ -1360,23 +1955,25 @@ function renderFieldElement(field, valueObj) {
     }
 
     const input = document.createElement('input');
-    input.type = type === 'number' ? 'number' : type === 'date' ? 'date' : 'text';
-    input.value = String(value);
+    input.type = type === 'number' ? 'number' : 'text';
+    input.value = type === 'date' ? normalizeUiModelDateValue(value) : String(value);
     input.dataset.fieldId = String(fieldKey || '');
     input.disabled = readonly;
     if (field.maxLength) {
         input.maxLength = Number(field.maxLength);
     }
+    if(type === 'date') configureUiModelInputControl(input, field);
 
-    if (field.mask) {
+    if (field.mask && type !== 'date') {
         input.dataset.mask = String(field.mask);
         input.title = `Maszk: ${field.mask}`;
         input.placeholder = String(field.mask);
     }
 
     wrapper.appendChild(input);
+    if(type === 'date') appendUiModelDatePicker(wrapper, input, readonly);
 
-    if (field.mask) {
+    if (field.mask && type !== 'date') {
         const maskHint = document.createElement('div');
         maskHint.className = 'field-mask-hint';
         maskHint.textContent = `Maszk: ${field.mask}`;
@@ -1412,6 +2009,9 @@ Object.assign(globalThis, {
   applyUiModelMask,
   normalizeUiModelNumericText,
   normalizeUiModelDateValue,
+  isoDateToUiDate,
+  uiDateToIsoDate,
+  appendUiModelDatePicker,
   uiModelMaskExample,
   uiModelUnitFromMask,
   renderFieldElement

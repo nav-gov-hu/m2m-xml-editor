@@ -167,6 +167,8 @@ public class BasicXsdParserService implements XsdParserService {
 
         if (nestedComplexType != null || name.startsWith("Form_") || name.startsWith("Block_") || name.startsWith("FieldGroup_")) {
             registerStructuralLabel(definition, currentPath, resolveStructuralLabel(element, index));
+            registerStructuralOccurrence(definition, currentPath, element);
+            registerStructuralFixedAttributes(definition, currentPath, nestedComplexType);
         }
 
         if (name.startsWith("FieldGroup_")) {
@@ -217,6 +219,57 @@ public class BasicXsdParserService implements XsdParserService {
      * @param definition a dokumentumdefiníció, amelyhez a blokk tartozik
      * @return a már létező vagy újonnan létrehozott alapértelmezett blokk
      */
+    /**
+     * Eltárolja egy strukturális XSD-elem tényleges {@code minOccurs}/{@code maxOccurs}
+     * értékeit a teljes XML-útvonalhoz. A repeat-kezelés ebből határozza meg a
+     * hozzáadható/törölhető logikai példányok határait, ezért nem a metaséma
+     * alapértékeire, hanem mindig a konkrét generált XSD-re támaszkodik.
+     *
+     * @param definition a módosított dokumentumdefiníció
+     * @param path a strukturális elem teljes XML-útvonala
+     * @param element az eredeti XSD-elem
+     */
+    /**
+     * Eltárolja a strukturális elem complex type-ján deklarált, kötelező és fix értékű
+     * {@code sdgID} attribútumot. Új XML-csomópont materializálásakor ez az
+     * XSD szerinti értékkel kerül a létrejövő Chain elemre.
+     *
+     * @param definition a módosított dokumentumdefiníció
+     * @param path a strukturális elem teljes XML-útvonala
+     * @param complexType az elem feloldott complex type definíciója
+     */
+    private void registerStructuralFixedAttributes(DocumentDefinition definition, String path, Element complexType) {
+        if (definition == null || path == null || path.isBlank() || complexType == null) {
+            return;
+        }
+        Map<String, String> fixedAttributes = new LinkedHashMap<>();
+        for (Element child : childElements(complexType)) {
+            if (!"attribute".equals(child.getLocalName())) {
+                continue;
+            }
+            String name = blankToNull(child.getAttribute("name"));
+            String fixed = blankToNull(child.getAttribute("fixed"));
+            String use = blankToNull(child.getAttribute("use"));
+            if ("sdgID".equals(name) && fixed != null && "required".equalsIgnoreCase(use)) {
+                fixedAttributes.put(name, fixed);
+            }
+        }
+        if (!fixedAttributes.isEmpty()) {
+            definition.getStructuralFixedAttributesByPath().put(path, fixedAttributes);
+        }
+    }
+
+
+    private void registerStructuralOccurrence(DocumentDefinition definition, String path, Element element) {
+        if (definition == null || path == null || path.isBlank() || element == null) {
+            return;
+        }
+        String minOccurs = blankToNull(element.getAttribute("minOccurs"));
+        String maxOccurs = blankToNull(element.getAttribute("maxOccurs"));
+        definition.getStructuralMinOccursByPath().put(path, minOccurs == null ? 1 : parseInteger(minOccurs, 1));
+        definition.getStructuralMaxOccursByPath().put(path, maxOccurs == null ? "1" : maxOccurs);
+    }
+
     private BlockDefinition ensureDefaultBlock(DocumentDefinition definition) {
         if (!definition.getBlocks().isEmpty()
                 && "default-fields".equals(definition.getBlocks().get(definition.getBlocks().size() - 1).getId())) {

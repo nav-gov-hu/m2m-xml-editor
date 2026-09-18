@@ -16,6 +16,7 @@ public class FormDefinition {
     private String title;
     private List<FormTabDefinition> tabs = new ArrayList<>();
     private Map<String, String> structuralLabelsByPath = new LinkedHashMap<>();
+    private Map<String, Map<String, String>> structuralFixedAttributesByPath = new LinkedHashMap<>();
 /**
  * Visszaadja a következő modellértéket: az objektum technikai azonosítója.
  *
@@ -68,4 +69,29 @@ public void setTabs(List<FormTabDefinition> tabs) { this.tabs = tabs; }
                 ? new LinkedHashMap<>()
                 : new LinkedHashMap<>(structuralLabelsByPath);
     }
+    /**
+     * Visszaadja a strukturális XML-elemek XSD-ben rögzített fix sdgID attribútumait.
+     *
+     * @return teljes XML-útvonalhoz rendelt attribútumnév/érték térképek
+     */
+    public Map<String, Map<String, String>> getStructuralFixedAttributesByPath() {
+        return structuralFixedAttributesByPath;
+    }
+
+    /**
+     * Beállítja a strukturális XML-elemek XSD-ben rögzített fix sdgID attribútumait.
+     *
+     * @param structuralFixedAttributesByPath teljes XML-útvonalhoz rendelt attribútumnév/érték térképek
+     */
+    public void setStructuralFixedAttributesByPath(Map<String, Map<String, String>> structuralFixedAttributesByPath) {
+        this.structuralFixedAttributesByPath = new LinkedHashMap<>();
+        if (structuralFixedAttributesByPath == null) {
+            return;
+        }
+        structuralFixedAttributesByPath.forEach((path, attributes) ->
+                this.structuralFixedAttributesByPath.put(path, attributes == null
+                        ? new LinkedHashMap<>()
+                        : new LinkedHashMap<>(attributes)));
+    }
+
 }

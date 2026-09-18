@@ -1381,3 +1381,34 @@ html[data-color-scheme="dark"] body.nav-application-theme .multiform-block-empty
     opacity: 0.55;
     user-select: text;
 }
+
+/* 2026-09-18: egységes, jól látható kinyit/becsuk vezérlő az űrlapstruktúra fejlécsoraiban. */
+body.nav-application-theme[data-initial-tab="formTab"] #formContainer .collapse-toggle > .collapse-chevron {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 7px;
+  background: var(--surface-card, #ffffff);
+  color: var(--text-muted, #475569);
+  font-size: 16px;
+  line-height: 1;
+}
+body.nav-application-theme[data-initial-tab="formTab"] #formContainer .collapse-toggle:hover > .collapse-chevron,
+body.nav-application-theme[data-initial-tab="formTab"] #formContainer .collapse-toggle:focus-visible > .collapse-chevron {
+  background: var(--surface-hover, #f1f5f9);
+  border-color: #94a3b8;
+}
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] #formContainer .collapse-toggle > .collapse-chevron {
+  background: #16283b;
+  border-color: #4a6077;
+  color: #c7d5e5 !important;
+}
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] #formContainer .collapse-toggle:hover > .collapse-chevron,
+html[data-color-scheme="dark"] body.nav-application-theme[data-initial-tab="formTab"] #formContainer .collapse-toggle:focus-visible > .collapse-chevron {
+  background: #20364d;
+  border-color: #6c8298;
+}

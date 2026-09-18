@@ -605,24 +605,20 @@ function renderClassicSectionContent(target, section, valuesByFieldId, rowInstan
             continue;
         }
 
+        const structuralFields = (row.fields || [])
+            .filter(field => field.visible !== false)
+            .filter(field => !isM2mAttachmentTechnicalField(field, valuesByFieldId[field.id]));
+        if(!structuralFields.length) continue;
+
         const group = createFieldGroupCard(row.title || row.id || 'FieldGroup', '', false);
         const fieldsContainer = group.querySelector('.fieldgroup-fields');
-        let groupHasFields = false;
-        (row.fields || [])
-            .filter(field => field.visible !== false)
-            .forEach(field => {
-                const valueObj = valuesByFieldId[field.id];
-                if(isM2mAttachmentTechnicalField(field, valueObj)) return;
-                const fieldElement = renderFieldElement(field, valueObj);
-                if (fieldElement) {
-                    fieldsContainer.appendChild(fieldElement);
-                    groupHasFields = true;
-                }
-            });
-        if (groupHasFields) {
-            target.appendChild(group);
-            sectionHasFields = true;
-        }
+        structuralFields.forEach(field => {
+            const valueObj = valuesByFieldId[field.id];
+            const fieldElement = renderFieldElement(field, valueObj);
+            if (fieldElement) fieldsContainer.appendChild(fieldElement);
+        });
+        target.appendChild(group);
+        sectionHasFields = true;
     }
     if (!sectionHasFields) {
         const emptyMessage = document.createElement('p');
@@ -780,12 +776,12 @@ function createFieldGroupCard(title, suffix, chainRow) {
     const group = document.createElement('div');
     group.className = chainRow
         ? 'fieldgroup-card chain-row-card collapsible-card collapsed'
-        : 'fieldgroup-card collapsible-card collapsed';
+        : 'fieldgroup-card collapsible-card';
 
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'fieldgroup-title collapse-toggle';
-    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-expanded', chainRow ? 'false' : 'true');
 
     const titleElement = document.createElement('span');
     titleElement.textContent = suffix ? `${title} ${suffix}` : title;
@@ -982,23 +978,21 @@ function resolveUiModelValueObject(field, valuesByFieldId, row){
  * @param {*} rowInstancesByRowId a célobjektum technikai azonosítója
  * @returns {*} a feldolgozás eredménye
  */
+function uiModelRowHasStructuralFields(row){
+  return (row?.fields || []).some(field =>
+    uiModelDefinitionBelongsToActivePart(field, row)
+    && field?.visible !== false
+    && !isM2mAttachmentTechnicalField(field, null)
+  );
+}
+
 function uiModelSectionHasRenderableFields(section, valuesByFieldId, rowInstancesByRowId){
   for(const row of (section.rows || [])){
-    if(row.repeatable){
-      // A repeat konténer láthatóságát a meződefiníció határozza meg, nem az,
-      // hogy a megnyitott XML-ben már létezik-e Chain_elem occurrence. Így
-      // minOccurs=0 esetén is elérhető marad a "+ Új elem" művelet.
-      if((row.fields || []).some(field =>
-        uiModelDefinitionBelongsToActivePart(field, row)
-        && field?.visible !== false
-        && !isM2mAttachmentTechnicalField(field, null)
-      )) return true;
-      continue;
-    }
-    if((row.fields || []).some(field =>
-      uiModelDefinitionBelongsToActivePart(field, row)
-      && shouldRenderNonAttachmentUiModelField(field, resolveUiModelValueObject(field, valuesByFieldId, row))
-    )) return true;
+    // A blokk és a FieldGroup szerkezeti láthatóságát a definíció határozza meg,
+    // nem az, hogy az aktuális XML-ben a gyerekmezők már materializálódtak-e.
+    // Így az „XML-ben nem szereplő mezők” kapcsoló csak a mezőket szűri,
+    // a Block/FieldGroup konténereket nem tünteti el.
+    if(uiModelRowHasStructuralFields(row)) return true;
   }
   return false;
 }
@@ -1030,6 +1024,8 @@ function renderUiModelSectionContent(target, section, valuesByFieldId, rowInstan
       continue;
     }
 
+    if(!uiModelRowHasStructuralFields(row)) continue;
+
     const group = createUiModelFieldGroup(row.title || row.id || 'Mezőcsoport', '');
     const grid = group.querySelector('.uimodel-fields-grid');
     (row.fields || []).forEach(field => {
@@ -1039,7 +1035,7 @@ function renderUiModelSectionContent(target, section, valuesByFieldId, rowInstan
       const fieldElement = renderUiModelFieldElement(field, valueObj);
       if(fieldElement) grid.appendChild(fieldElement);
     });
-    if(grid.children.length) target.appendChild(group);
+    target.appendChild(group);
   }
 }
 
@@ -1356,8 +1352,16 @@ function isUiModelTableBlock(row){
  */
 function renderUiModelTableBlock(row, valuesByFieldId){
   const allFields = (row?.fields || []).filter(field => field && !['link','subtitle'].includes(String(field.type || '').toLowerCase()));
-  const fields = allFields.filter(field => shouldRenderNonAttachmentUiModelField(field, resolveUiModelValueObject(field, valuesByFieldId, row)));
-  if(!fields.length) return null;
+  const structuralFields = allFields.filter(field =>
+    uiModelDefinitionBelongsToActivePart(field, row)
+    && field?.visible !== false
+    && !isM2mAttachmentTechnicalField(field, null)
+  );
+  if(!structuralFields.length) return null;
+
+  const fields = structuralFields.filter(field =>
+    shouldRenderNonAttachmentUiModelField(field, resolveUiModelValueObject(field, valuesByFieldId, row))
+  );
 
   const block = document.createElement('article');
   block.className = 'uimodel-table-block collapsible-card';
@@ -1375,6 +1379,11 @@ function renderUiModelTableBlock(row, valuesByFieldId){
   header.appendChild(title);
   header.appendChild(chevron);
   block.appendChild(header);
+
+  // A FieldGroup strukturális konténere akkor is maradjon látható, ha az
+  // „XML-ben nem szereplő mezők” kapcsoló éppen minden táblázatsort elrejt.
+  // A kapcsoló csak a mezősorokat szűri, magát a FieldGroupot nem.
+  if(!fields.length) return block;
 
   const tableWrap = document.createElement('div');
   tableWrap.className = 'uimodel-table-scroll collapsible-content';

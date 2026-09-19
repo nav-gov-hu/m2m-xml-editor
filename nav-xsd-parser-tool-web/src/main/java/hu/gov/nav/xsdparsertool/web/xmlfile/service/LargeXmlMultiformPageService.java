@@ -404,7 +404,12 @@ public class LargeXmlMultiformPageService {
         boolean hasDisplay = selection.fields().stream().anyMatch(IndexFieldDto::isDisplay);
         boolean hasSearchable = selection.fields().stream().anyMatch(field -> field.isSearchable() || field.isDefaultSearch());
         String declaration = resolveDeclarationName(file, safeFormName);
-        return new ConfigurationStatus(!(hasDisplay && hasSearchable), declaration, file.getFormVersion(), safeFormName, hasDisplay, hasSearchable);
+        List<IndexFieldResult> indexFields = selection.fields().stream()
+                .map(field -> new IndexFieldResult(field.getName(), field.getLabel(), field.getXmlPath(),
+                        field.isDisplay(), field.isSearchable(), field.isDefaultSearch()))
+                .toList();
+        return new ConfigurationStatus(!(hasDisplay && hasSearchable), declaration, file.getFormVersion(), safeFormName,
+                hasDisplay, hasSearchable, indexFields);
     }
 
     /**
@@ -722,7 +727,12 @@ public class LargeXmlMultiformPageService {
      *
      * <p>A {@code ConfigurationStatus} rekord a web modul XML-állománykezelési területéhez tartozik. A típus a réteg felelősségi határain belül tartja a hozzá tartozó adatokat és műveleteket, és nem helyettesíti az alacsonyabb szintű modulok üzleti szolgáltatásait.</p>
      */
-    public record ConfigurationStatus(boolean configurationRequired, String formName, String sourceVersion, String formPartName, boolean hasDisplayFields, boolean hasSearchableFields) {}
+    public record ConfigurationStatus(boolean configurationRequired, String formName, String sourceVersion,
+                                      String formPartName, boolean hasDisplayFields, boolean hasSearchableFields,
+                                      List<IndexFieldResult> indexFields) {}
+
+    public record IndexFieldResult(String name, String label, String xmlPath, boolean display,
+                                   boolean searchable, boolean defaultSearch) {}
 
     /**
      * A web modul XML-állománykezelési területének közös alkalmazási típusa.

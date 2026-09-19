@@ -32,6 +32,21 @@ function isUiModelMissingField(valueObj){
 }
 
 /**
+ * Ellenőrzi, hogy az XML-útvonal az M2M csatolmánykezelés technikai mezőjére mutat-e.
+ *
+ * <p>A multiform részletező a FormDefinition alapján virtuális mezőket is felépít.
+ * Ezek közül a csatolmány technikai mezőit ugyanúgy ki kell szűrni, mint a normál
+ * űrlap-rendererben, de a segédfüggvénynek ebben az ES modulban is elérhetőnek kell lennie.</p>
+ *
+ * @param {*} path a mezőhöz tartozó XML-útvonal
+ * @returns {boolean} {@code true}, ha technikai csatolmánymezőről van szó
+ */
+function isM2mAttachmentTechnicalXmlPath(path){
+  return /(^|\/)attachment_1(?:\[\d+\])?\/(?:fileid|filename|filesize)(?:\[\d+\])?$/i
+    .test(String(path || '').trim());
+}
+
+/**
  * A <code>xmlLocalName</code> függvény a űrlap-megjelenítési és mezőkötési folyamat egy önálló feldolgozási lépését valósítja meg.
  *
  * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
@@ -60,6 +75,29 @@ function directElementChildren(node){
  * @param {*} xmlDoc a feldolgozandó XML-tartalom vagy XML DOM-objektum
  * @returns {*} a feldolgozás eredménye
  */
+function runtimeDefinedFormPartNames(){
+  const names = [];
+  const seen = new Set();
+  const register = path => {
+    const segments = String(path || '').split('/').filter(Boolean).map(segment => segment.replace(/\[\d+\]$/, ''));
+    const formName = segments.find(segment => /^Form_/i.test(segment));
+    if(!formName || seen.has(formName)) return;
+    seen.add(formName);
+    names.push(formName);
+  };
+  Object.keys(currentFormDefinition?.structuralLabelsByPath || {}).forEach(register);
+  for(const tab of (currentFormDefinition?.tabs || [])){
+    for(const section of (tab?.sections || [])){
+      register(section?.xmlPath);
+      for(const row of (section?.rows || [])){
+        register(row?.xmlPath);
+        for(const field of (row?.fields || [])) register(field?.xmlPath);
+      }
+    }
+  }
+  return names;
+}
+
 function detectRuntimeMultiformParts(xmlDoc){
   const root = xmlDoc?.documentElement;
   if(!root) return [];
@@ -70,24 +108,39 @@ function detectRuntimeMultiformParts(xmlDoc){
     if(!groups.has(name)) groups.set(name, []);
     groups.get(name).push(child);
   });
-  if(groups.size < 2 && !Array.from(groups.values()).some(items => items.length > 1)) return [];
-  const entries = Array.from(groups.entries());
-  const hasRepeatedInstances = entries.some(([, elements]) => elements.length > 1);
+
+  const definedNames = runtimeDefinedFormPartNames();
+  const orderedNames = [];
+  const seenNames = new Set();
+  [...definedNames, ...groups.keys()].forEach(name => {
+    if(!name || seenNames.has(name)) return;
+    seenNames.add(name);
+    orderedNames.push(name);
+  });
+
+  const hasRepeatedInstances = Array.from(groups.values()).some(items => items.length > 1);
+  if(orderedNames.length < 2 && !hasRepeatedInstances) return [];
+
   const largeRepeatingName = root.getAttribute('data-large-repeating-form-name') || '';
   const largeRepeatingCount = Number(root.getAttribute('data-large-repeating-form-count') || 0);
-  return entries.map(([name, elements], index) => ({
-    name,
-    // Normál XML-ben az ismétlődő melléklapot a több példány jelzi. Nagy XML
-    // részleges előnézetben azonban memória-védelemből csak az első melléklap
-    // kerül átadásra. Ilyenkor a gyökér első Form_* gyermeke a főlap, az első
-    // eltérő nevű további Form_* gyermek pedig a melléklap mintapéldánya.
-    role: elements.length > 1 || name === largeRepeatingName || (!hasRepeatedInstances && entries.length > 1 && index > 0)
-      ? 'REPEATING'
-      : 'MAIN',
-    count: name === largeRepeatingName && largeRepeatingCount > 0 ? largeRepeatingCount : elements.length,
-    previewCount: elements.length,
-    elements
-  }));
+  return orderedNames.map((name, index) => {
+    const elements = groups.get(name) || [];
+    const schemaDeclaresMultipleParts = definedNames.length > 1;
+    const repeating = elements.length > 1
+      || name === largeRepeatingName
+      || (schemaDeclaresMultipleParts && index > 0)
+      || (!hasRepeatedInstances && orderedNames.length > 1 && index > 0);
+    return {
+      name,
+      // Új, csak gyökérelemet tartalmazó XML-nél is a FormDefinition/XSD szerkezete
+      // dönti el a főlap/melléklap felosztást. Így a Block-tabok nem lapulnak egy
+      // közös tabsorba csak azért, mert a részbizonylatok még nem materializálódtak.
+      role: repeating ? 'REPEATING' : 'MAIN',
+      count: name === largeRepeatingName && largeRepeatingCount > 0 ? largeRepeatingCount : elements.length,
+      previewCount: elements.length,
+      elements
+    };
+  });
 }
 
 /**
@@ -301,6 +354,29 @@ function runtimeFormPartBlockDescriptors(partName){
   return descriptors;
 }
 
+function runtimeFormPartRenderedBlockKeys(partName){
+  const keys = new Set();
+  const normalizedPart = String(partName || '').replace(/\[\d+\]$/, '');
+  const belongs = path => pathBelongsToFormPart(path, normalizedPart);
+  for(const tab of (currentFormDefinition?.tabs || [])){
+    for(const section of (tab?.sections || [])){
+      const paths = [section?.xmlPath];
+      for(const row of (section?.rows || [])){
+        paths.push(row?.xmlPath);
+        for(const field of (row?.fields || [])) paths.push(field?.xmlPath);
+      }
+      if(!paths.some(path => path && belongs(path))) continue;
+      if(section?.id) keys.add(String(section.id));
+      paths.filter(Boolean).forEach(path => {
+        const blockName = String(path).split('/').map(segment => segment.replace(/\[\d+\]$/, '')).find(segment => /^Block_/i.test(segment));
+        if(blockName) keys.add(blockName);
+      });
+    }
+  }
+  return keys;
+}
+
+
 /**
  * Elindítja a runtime field path aszinkron vagy több lépéses frontend folyamatát.
  *
@@ -334,16 +410,20 @@ function runtimeFieldPath(root, leaf){
  */
 function collectRuntimeLeafFields(element, limit = 250){
   const fields = [];
+  if(!element) return fields;
     /**
    * A <code>walk</code> függvény a űrlap-megjelenítési és mezőkötési folyamat egy önálló feldolgozási lépését valósítja meg.
    *
    * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
    * @param {*} node a feldolgozásban részt vevő DOM-elem vagy DOM-gyökér
    */
-const walk = (node) => {
-    if(fields.length >= limit) return;
+const walk = (node, rootNode = false) => {
+    if(fields.length >= limit || !node) return;
     const children = directElementChildren(node);
     if(!children.length){
+      // Maga a Form_* részbizonylat nem mező. Egy üres új/hibás melléklap
+      // nem jelenhet meg "Form_..." nevű szerkeszthető szövegmezőként.
+      if(rootNode) return;
       const value = String(node.textContent || '').trim();
       const name = xmlLocalName(node);
       fields.push({
@@ -355,9 +435,9 @@ const walk = (node) => {
       });
       return;
     }
-    children.forEach(walk);
+    children.forEach(child => walk(child, false));
   };
-  walk(element);
+  walk(element, true);
   return fields;
 }
 
@@ -660,7 +740,7 @@ const walk = (node, depth = 0) => {
 function createRuntimeUiModelFieldElement(field, row, partName){
   const fieldId = runtimeFieldIdFromName(field?.name);
   const xmlPath = runtimeOccurrenceXmlPath(partName, row?.index, field?.path);
-  const metadata = findRuntimeFieldMetadata(field, partName);
+  const metadata = field?.definition || findRuntimeFieldMetadata(field, partName);
   const enumValues = runtimeEnumValuesFromMetadata(metadata);
   const resolvedType = enumValues.length
     ? 'select'
@@ -682,7 +762,7 @@ function createRuntimeUiModelFieldElement(field, row, partName){
     key: fieldId,
     value: field?.value ?? '',
     xmlPath,
-    present: true
+    present: !!field?.node
   };
   const element = renderUiModelFieldElement(fieldModel, valueObj);
   if(!element) return null;
@@ -752,14 +832,79 @@ function buildRuntimeOptionLabel(row, part){
  * @param {*} partName a feloldáshoz vagy megjelenítéshez használt név
  * @returns {*} a feldolgozás eredménye
  */
+function runtimeDefinitionLeafFields(partName, occurrenceIndex){
+  const fields = [];
+  const seen = new Set();
+  const normalizedPart = String(partName || '').replace(/\[\d+\]$/, '');
+  const collect = field => {
+    const xmlPath = String(field?.xmlPath || '').trim();
+    if(!xmlPath || !pathBelongsToFormPart(xmlPath, normalizedPart)) return;
+    const parts = xmlPath.split('/').filter(Boolean);
+    const formIndex = parts.findIndex(part => part.replace(/\[\d+\]$/, '') === normalizedPart);
+    if(formIndex < 0 || formIndex + 1 >= parts.length) return;
+    const relativePath = parts.slice(formIndex + 1).join('/');
+    const name = String(field?.xmlName || parts[parts.length - 1].replace(/\[\d+\]$/, '') || field?.id || '').trim();
+    if(!name || isM2mAttachmentTechnicalXmlPath(xmlPath)) return;
+    const concretePath = runtimeOccurrenceXmlPath(normalizedPart, occurrenceIndex, relativePath);
+    const canonical = canonicalizeXmlPath(concretePath);
+    if(seen.has(canonical)) return;
+    seen.add(canonical);
+    const node = findNodeByPath(currentXmlDocument, concretePath);
+    fields.push({
+      name,
+      label: field?.uiLabel || field?.xsdLabel || field?.label || name,
+      path: relativePath,
+      value: node && !node.children?.length ? String(node.textContent || '') : '',
+      node: node || null,
+      definition: field,
+      virtual: !node
+    });
+  };
+  for(const tab of (currentFormDefinition?.tabs || [])){
+    for(const section of (tab?.sections || [])){
+      for(const row of (section?.rows || [])){
+        for(const field of (row?.fields || [])) collect(field);
+      }
+    }
+  }
+  return fields;
+}
+
+function mergeRuntimeRowLeavesWithDefinition(actualLeaves, partName, row){
+  const actual = Array.isArray(actualLeaves) ? actualLeaves : [];
+  if(!currentUiModelMissingFieldsVisible && row?.isNew !== true && row?.isDraft !== true) return actual;
+  const merged = [...actual];
+  const existingPaths = new Set(actual.map(field => canonicalizeXmlPath(runtimeOccurrenceXmlPath(partName, row?.index, field?.path))));
+  runtimeDefinitionLeafFields(partName, row?.index).forEach(field => {
+    const path = canonicalizeXmlPath(runtimeOccurrenceXmlPath(partName, row?.index, field?.path));
+    if(existingPaths.has(path)) return;
+    existingPaths.add(path);
+    merged.push(field);
+  });
+  return merged;
+}
+
 function ensureRuntimeRowLeaves(row, labelLookup, displayFields, partName){
   if(!row) return [];
   ensureRuntimeRowSummary(row, displayFields);
-  if(Array.isArray(row.leaves)) return row.leaves;
-  row.leaves = collectRuntimeLeafFields(row.element);
-  row.leaves.forEach(field => {
+  const definitionFieldsVisible = currentUiModelMissingFieldsVisible || row?.isNew === true || row?.isDraft === true;
+  if(Array.isArray(row.leaves) && row.definitionFieldsVisible === definitionFieldsVisible) return row.leaves;
+  const actualLeaves = row?.isDraft === true ? [] : collectRuntimeLeafFields(row.element);
+  actualLeaves.forEach(field => {
     field.label = runtimeFriendlyFieldLabel(field, labelLookup, partName);
   });
+  row.leaves = mergeRuntimeRowLeavesWithDefinition(actualLeaves, partName, row);
+  if(row?.isDraft === true){
+    const draftValues = row.draftValues || {};
+    row.leaves.forEach(field => {
+      if(Object.prototype.hasOwnProperty.call(draftValues, field.path)){
+        field.value = draftValues[field.path];
+        field.node = null;
+        field.virtual = true;
+      }
+    });
+  }
+  row.definitionFieldsVisible = definitionFieldsVisible;
   return row.leaves;
 }
 
@@ -842,6 +987,14 @@ function getRuntimeMultiformLabel(part){
   return `Főlap - ${label}`;
 }
 
+function updateRuntimeRepeatingTabLabel(){
+  const state = currentMultiformState;
+  const part = state?.repeatingPart;
+  if(!state || !part) return;
+  const tab = state.tabsElement?.querySelector(`.multiform-runtime-tab[data-panel-key="${CSS.escape(part.name)}"]`);
+  if(tab) tab.textContent = getRuntimeMultiformLabel(part);
+}
+
 /**
  * A <code>formPartPathPrefix</code> függvény a űrlap-megjelenítési és mezőkötési folyamat egy önálló feldolgozási lépését valósítja meg.
  *
@@ -902,13 +1055,36 @@ function pruneRenderedPanelToFormPart(panel, partName){
     }
   });
 
+  const allowedBlockNames = new Set(
+    runtimeFormPartBlockDescriptors(partName)
+      .map(block => String(block?.key || '').replace(/^block:/, ''))
+      .filter(Boolean)
+  );
+  const allowedRenderedBlockKeys = runtimeFormPartRenderedBlockKeys(partName);
+  panel.querySelectorAll('.form-block-tab-panel[data-block-tab-panel]').forEach(blockPanel => {
+    const key = String(blockPanel.dataset.blockTabPanel || '');
+    const normalizedKey = key.replace(/^block:/, '');
+    const blockName = normalizedKey.match(/Block_[^/\s]+/i)?.[0] || normalizedKey;
+    const belongsToPart = (allowedBlockNames.size === 0 && allowedRenderedBlockKeys.size === 0)
+      || allowedBlockNames.has(blockName)
+      || allowedRenderedBlockKeys.has(key)
+      || allowedRenderedBlockKeys.has(blockName);
+    if(!belongsToPart) blockPanel.remove();
+  });
   const existingBlockKeys = new Set(
     [...panel.querySelectorAll('.form-block-tab-panel[data-block-tab-panel]')]
       .map(blockPanel => blockPanel.dataset.blockTabPanel || '')
       .filter(Boolean)
   );
   panel.querySelectorAll('.form-block-tab[data-block-tab-target]').forEach(button => {
-    if(!existingBlockKeys.has(button.dataset.blockTabTarget || '')) button.remove();
+    const key = String(button.dataset.blockTabTarget || '');
+    const normalizedKey = key.replace(/^block:/, '');
+    const blockName = normalizedKey.match(/Block_[^/\s]+/i)?.[0] || normalizedKey;
+    const allowed = (allowedBlockNames.size === 0 && allowedRenderedBlockKeys.size === 0)
+      || allowedBlockNames.has(blockName)
+      || allowedRenderedBlockKeys.has(key)
+      || allowedRenderedBlockKeys.has(blockName);
+    if(!existingBlockKeys.has(key) || !allowed) button.remove();
   });
   const activeBlockPanel = panel.querySelector('.form-block-tab-panel.active:not([hidden])');
   if(!activeBlockPanel){
@@ -980,6 +1156,21 @@ function restoreMultiformRuntimeToolbarControls(){
  *
  * <p>Az űrlap- és XML-kötésnél a teljes kontextust és az indexelt útvonalakat meg kell őrizni; multiform esetben globális fieldId-alapú fallback nem tekinthető egyértelmű azonosításnak.</p>
  */
+function updateMultiformListToolbarControlVisibility(panelKey){
+  const state = currentMultiformState;
+  const repeatingListActive = Boolean(state?.repeatingPart?.name && panelKey === state.repeatingPart.name);
+  ['uiModelDetailsToggle', 'toggleEmptyUiModelFieldsButton'].forEach(id => {
+    const control = document.getElementById(id);
+    if(!control) return;
+    control.hidden = repeatingListActive;
+    if(repeatingListActive){
+      control.style.display = 'none';
+    } else {
+      control.style.removeProperty('display');
+    }
+  });
+}
+
 function ensureStandardFormToolbarControlsVisible(){
   document.querySelectorAll('.multiform-selector-mount[data-runtime-owned="true"]').forEach(node => node.remove());
   const paneHeader = document.querySelector('#formPanel .pane-header');
@@ -1015,6 +1206,7 @@ function ensureStandardFormToolbarControlsVisible(){
       control.style.removeProperty('visibility');
     });
   });
+  updateMultiformListToolbarControlVisibility(null);
   updateToggleAllFormCollapseButton();
   updateFormRendererSwitch();
 }
@@ -1130,7 +1322,6 @@ function enhanceMultiformRuntimeView(){
     hasMoreSuggestions: false,
     loadingSuggestions: false,
     activePanelKey: mainPart.name,
-    openDetailRows: new Map(),
     dirtyPanelKey: null,
     tabsElement: tabs,
     shellElement: shell,
@@ -1142,7 +1333,14 @@ function enhanceMultiformRuntimeView(){
     serverPage: 0,
     serverPageSize: 20,
     serverLoadedQuery: null,
-    serverLoading: false
+    serverLoading: false,
+    repeatingView: 'list',
+    draftRow: null,
+    draftDirty: false,
+    detailPanelKey: null,
+    draftPanelKey: null,
+    indexFields: [],
+    localStructuralChanges: false
   };
 
   repeatingPanel.appendChild(renderRuntimeRepeatingPartPanel());
@@ -1171,6 +1369,7 @@ const activate = (panelKey, partName = panelKey, options = {}) => {
     }
     currentMultiformState.activePanelKey = panelKey;
     currentMultiformState.activePartName = partName;
+    updateMultiformListToolbarControlVisibility(panelKey);
     shell.querySelectorAll('.multiform-runtime-tab').forEach(button => button.classList.toggle('active', button.dataset.panelKey === panelKey));
     shell.querySelectorAll('.multiform-runtime-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.partPanel === panelKey));
     if(currentMultiformState?.selectorMount){
@@ -1220,7 +1419,7 @@ const markPanelDirty = panelKey => {
     const dirtyPanelKey = currentMultiformState.dirtyPanelKey;
     if(dirtyPanelKey && dirtyPanelKey !== panelKey){
       window.alert('Egy másik lapon mentetlen módosítások vannak. Térjen vissza a pirossal jelölt tabra, és mentse el.');
-      currentMultiformState.activatePanel(dirtyPanelKey, dirtyPanelKey.startsWith('detail:') ? repeatingPart.name : dirtyPanelKey);
+      currentMultiformState.activatePanel(dirtyPanelKey, dirtyPanelKey);
       return false;
     }
     currentMultiformState.dirtyPanelKey = panelKey;
@@ -1249,6 +1448,7 @@ const markPanelDirty = panelKey => {
     currentMultiformState.dirtyPanelKey = null;
   };
   shell.addEventListener('beforeinput', event => {
+    if(event.target.closest?.('.multiform-draft-form-host')) return;
     const panel = event.target.closest?.('.multiform-runtime-panel');
     if(!panel || !currentMultiformState) return;
     if(!markPanelDirty(panel.dataset.partPanel)){
@@ -1257,6 +1457,7 @@ const markPanelDirty = panelKey => {
     }
   }, true);
   shell.addEventListener('change', event => {
+    if(event.target.closest?.('.multiform-draft-form-host')) return;
     const panel = event.target.closest?.('.multiform-runtime-panel');
     if(panel) markPanelDirty(panel.dataset.partPanel);
   }, true);
@@ -1341,6 +1542,9 @@ async function loadServerRuntimeSuggestions(reset = false){
     const statusParams = new URLSearchParams({ formName:state.repeatingPart.name });
     const statusResponse = await fetch(`/api/xml-files/${encodeURIComponent(xmlFileId)}/large-multiform/configuration-status?${statusParams}`, { credentials:'same-origin' });
     const status = await statusResponse.json().catch(() => ({}));
+    if(statusResponse.ok){
+      state.indexFields = Array.isArray(status.indexFields) ? status.indexFields : (state.indexFields || []);
+    }
     if(statusResponse.ok && status.configurationRequired){
       hideLargeXmlProcessDialog();
       const formPartName = String(status.formPartName || state.repeatingPart.name || '');
@@ -1398,7 +1602,11 @@ async function loadServerRuntimeSuggestions(reset = false){
     const added = (data.rows || []).map(parseServerRuntimeRow);
     state.repeatingPart.rows = reset ? added : state.repeatingPart.rows.concat(added);
     state.suggestionRows = state.repeatingPart.rows.slice();
-    state.totalSuggestions = Number(data.total || state.repeatingPart.count || 0);
+    state.totalSuggestions = Number(data.total ?? state.repeatingPart.count ?? 0);
+    if(state.localStructuralChanges !== true){
+      state.repeatingPart.count = state.totalSuggestions;
+      updateRuntimeRepeatingTabLabel();
+    }
     state.tableColumns = Array.isArray(data.columns) ? data.columns : [];
     state.hasMoreSuggestions = data.hasMore === true;
     if(!reset) state.serverPage += 1;
@@ -1497,18 +1705,98 @@ function refreshRuntimeRepeatingPanel(container, options = {}){
   persistUiState();
 }
 
-/**
- * Elindítja a runtime detail tab title aszinkron vagy több lépéses frontend folyamatát.
- *
- * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
- * @param {*} row a függvény row bemeneti értéke
- * @returns {*} a feldolgozás eredménye
- */
-function runtimeDetailTabTitle(row){
-  const raw = String(row?.serverLabel || buildRuntimeOptionLabel(row, currentMultiformState?.repeatingPart) || '').replace(/^\d+\s*-\s*/, '').trim();
-  const compact = raw.length > 70 ? `${raw.slice(0, 67)}...` : raw;
-  return `${row?.index || ''} - ${compact || 'Melléklap'}`;
+function runtimeDetailPanelKey(partName, occurrenceIndex){
+  return `multiform-detail:${String(partName || '')}:${Number(occurrenceIndex || 0)}`;
 }
+
+function runtimeDraftPanelKey(partName){
+  return `multiform-draft:${String(partName || '')}`;
+}
+
+function removeRuntimeShellPanel(panelKey){
+  const state = currentMultiformState;
+  if(!state?.shellElement || !panelKey) return;
+  state.shellElement.querySelector(`.multiform-runtime-tab[data-panel-key="${CSS.escape(panelKey)}"]`)?.remove();
+  state.shellElement.querySelector(`.multiform-runtime-panel[data-part-panel="${CSS.escape(panelKey)}"]`)?.remove();
+}
+
+function ensureRuntimeDetailShellPanel(row, options = {}){
+  const state = currentMultiformState;
+  const part = state?.repeatingPart;
+  if(!state || !part || !row) return false;
+  const panelKey = runtimeDetailPanelKey(part.name, row.index);
+  if(state.detailPanelKey && state.detailPanelKey !== panelKey){
+    if(options.validationNavigation !== true && state.dirtyPanelKey === state.detailPanelKey){
+      showMultiformWarning('Az aktuális melléklapon mentetlen módosítások vannak. Mentse el a módosításokat, mielőtt másik melléklapot nyit meg.');
+      return false;
+    }
+    removeRuntimeShellPanel(state.detailPanelKey);
+  }
+
+  let tab = state.tabsElement?.querySelector(`.multiform-runtime-tab[data-panel-key="${CSS.escape(panelKey)}"]`);
+  let panel = state.shellElement?.querySelector(`.multiform-runtime-panel[data-part-panel="${CSS.escape(panelKey)}"]`);
+  if(!tab){
+    tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = 'multiform-runtime-tab multiform-runtime-detail-tab';
+    tab.dataset.panelKey = panelKey;
+    tab.dataset.partName = part.name;
+    tab.dataset.saveState = 'clean';
+    tab.textContent = `${row.index}. melléklap`;
+    tab.addEventListener('click', () => state.activatePanel?.(panelKey, part.name));
+    state.tabsElement?.appendChild(tab);
+  } else {
+    tab.textContent = `${row.index}. melléklap`;
+  }
+  if(!panel){
+    panel = document.createElement('div');
+    panel.className = 'multiform-runtime-panel multiform-runtime-detail-panel';
+    panel.dataset.partPanel = panelKey;
+    state.shellElement?.appendChild(panel);
+  }
+  panel.replaceChildren();
+  const detailHost = document.createElement('div');
+  detailHost.className = 'multiform-selected-form-host multiform-detail-tab-host';
+  panel.appendChild(detailHost);
+  renderRuntimeDetailPane(detailHost, row, part.name, part.label, Number(state.totalSuggestions ?? part.count ?? 0));
+  state.detailPanelKey = panelKey;
+  return state.activatePanel?.(panelKey, part.name, options) !== false;
+}
+
+function ensureRuntimeDraftShellPanel(options = {}){
+  const state = currentMultiformState;
+  const part = state?.repeatingPart;
+  const row = state?.draftRow;
+  if(!state || !part || !row) return false;
+  const panelKey = runtimeDraftPanelKey(part.name);
+  let tab = state.tabsElement?.querySelector(`.multiform-runtime-tab[data-panel-key="${CSS.escape(panelKey)}"]`);
+  let panel = state.shellElement?.querySelector(`.multiform-runtime-panel[data-part-panel="${CSS.escape(panelKey)}"]`);
+  if(!tab){
+    tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = 'multiform-runtime-tab multiform-runtime-draft-tab';
+    tab.dataset.panelKey = panelKey;
+    tab.dataset.partName = part.name;
+    tab.dataset.saveState = 'clean';
+    tab.textContent = 'Új melléklap';
+    tab.addEventListener('click', () => state.activatePanel?.(panelKey, part.name));
+    state.tabsElement?.appendChild(tab);
+  }
+  if(!panel){
+    panel = document.createElement('div');
+    panel.className = 'multiform-runtime-panel multiform-runtime-draft-panel';
+    panel.dataset.partPanel = panelKey;
+    state.shellElement?.appendChild(panel);
+  }
+  panel.replaceChildren();
+  const draftHost = document.createElement('div');
+  draftHost.className = 'multiform-selected-form-host multiform-draft-form-host';
+  panel.appendChild(draftHost);
+  renderRuntimeDetailPane(draftHost, row, part.name, part.label, Number(state.totalSuggestions ?? part.count ?? 0));
+  state.draftPanelKey = panelKey;
+  return state.activatePanel?.(panelKey, part.name, options) !== false;
+}
+
 
 /**
  * A <code>openRuntimeDetailTab</code> függvény a űrlap-megjelenítési és mezőkötési folyamat egy önálló feldolgozási lépését valósítja meg.
@@ -1520,70 +1808,24 @@ function runtimeDetailTabTitle(row){
 function openRuntimeDetailTab(row, options = {}){
   const state = currentMultiformState;
   if(!state || !row) return;
-  const key = `detail:${row.index}`;
-  if(options.validationNavigation !== true && state.dirtyPanelKey && state.dirtyPanelKey !== key){
-    showMultiformWarning('Az aktuális lapon mentetlen módosítások vannak. Mentésig másik melléklap nem nyitható meg.');
-    state.activatePanel(state.dirtyPanelKey, state.dirtyPanelKey.startsWith('detail:') ? state.repeatingPart.name : state.dirtyPanelKey);
+  if(options.validationNavigation !== true
+      && state.dirtyPanelKey
+      && state.selectedIndex
+      && Number(state.selectedIndex) !== Number(row.index)){
+    showMultiformWarning('Az aktuális melléklapon mentetlen módosítások vannak. Mentse el a módosításokat, mielőtt másik melléklapot nyit meg.');
     return;
   }
-  for(const [openedKey, openedEntry] of Array.from(state.openDetailRows.entries())){
-    if(openedKey === key) continue;
-    if(openedEntry?.tab?.dataset?.dirty === 'true'){
-      if(options.validationNavigation === true) continue;
-      showMultiformWarning('A megnyitott melléklapon mentetlen módosítások vannak. Mentse el a módosításokat.');
-      return;
-    }
-    openedEntry?.tab?.remove();
-    openedEntry?.panel?.remove();
-    state.openDetailRows.delete(openedKey);
-  }
-  let opened = state.openDetailRows.get(key);
-  if(!opened){
-    const tab = document.createElement('button');
-    tab.type = 'button';
-    tab.className = 'multiform-runtime-tab multiform-runtime-detail-tab';
-    tab.dataset.panelKey = key;
-    tab.dataset.partName = state.repeatingPart.name;
-    tab.title = runtimeDetailTabTitle(row);
-    const titleSpan = document.createElement('span');
-    titleSpan.textContent = runtimeDetailTabTitle(row);
-    const closeButton = document.createElement('span');
-    closeButton.className = 'multiform-runtime-tab-close';
-    closeButton.textContent = '×';
-    closeButton.setAttribute('role','button');
-    closeButton.setAttribute('aria-label','Melléklap bezárása');
-    tab.append(titleSpan, closeButton);
 
-    const panel = document.createElement('div');
-    panel.className = 'multiform-runtime-panel';
-    panel.dataset.partPanel = key;
-    const detail = document.createElement('div');
-    detail.className = 'multiform-selected-form-host';
-    renderRuntimeDetailPane(detail, row, state.repeatingPart.name, state.repeatingPart.label, state.totalSuggestions || state.repeatingPart.count);
-    panel.appendChild(detail);
-
-    state.tabsElement.appendChild(tab);
-    state.shellElement.appendChild(panel);
-    tab.addEventListener('click', event => { if(!event.target.closest('.multiform-runtime-tab-close')) state.activatePanel(key, state.repeatingPart.name); });
-    panel.addEventListener('input', () => state.markPanelDirty?.(key));
-    panel.addEventListener('change', () => state.markPanelDirty?.(key));
-    closeButton.addEventListener('click', event => {
-      event.stopPropagation();
-      if(tab.dataset.dirty === 'true'){ window.alert('A melléklap mentetlen módosításokat tartalmaz. Mentse el, mielőtt bezárja.'); return; }
-      const wasActive = tab.classList.contains('active');
-      state.openDetailRows.delete(key); tab.remove(); panel.remove();
-      if(wasActive) state.activatePanel(state.repeatingPart.name, state.repeatingPart.name);
-    });
-    opened = { tab, panel, row };
-    state.openDetailRows.set(key, opened);
-  }
   state.selectedIndex = row.index;
   state.detailRow = row;
-  state.activatePanel(key, state.repeatingPart.name, options);
+  state.repeatingView = 'detail';
+  if(!ensureRuntimeDetailShellPanel(row, options)) return;
+
   markXmlViewsDirty();
   ensureActiveXmlViewRendered('tree', { force:true });
   window.setTimeout(() => refreshFieldSearch({ showList:false }), 0);
 }
+
 
 
 /**
@@ -1671,9 +1913,32 @@ async function ensureMultiformValidationTargetVisible(path){
  * @param {*} page az előfordulást, lapozást vagy mennyiségi korlátot meghatározó érték
  * @returns {Promise<void>} a folyamat befejeződését jelző Promise
  */
+function refreshRuntimeLocalTablePage(page = 0){
+  const state = currentMultiformState;
+  const part = state?.repeatingPart;
+  if(!state || !part) return;
+  const query = String(state.query || '').trim().toLocaleLowerCase('hu-HU');
+  const allRows = Array.isArray(part.rows) ? part.rows : [];
+  const filteredRows = query
+    ? allRows.filter(row => runtimeRowSearchText(row, part).includes(query)
+        || runtimeMatches(buildRuntimeOptionLabel(row, part), query, 'contains'))
+    : allRows;
+  const pageSize = Math.max(1, Number(state.serverPageSize || 20));
+  const pageCount = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  state.serverPage = Math.min(Math.max(0, Number(page || 0)), pageCount - 1);
+  const from = state.serverPage * pageSize;
+  state.suggestionRows = filteredRows.slice(from, from + pageSize);
+  state.totalSuggestions = filteredRows.length;
+  state.serverLoadedQuery = String(state.query || '');
+}
+
 async function loadRuntimeTablePage(page = 0){
   const state = currentMultiformState;
   if(!state?.serverPaged) return;
+  if(state.localStructuralChanges === true){
+    refreshRuntimeLocalTablePage(page);
+    return;
+  }
   state.serverPage = Math.max(0, page);
   await loadServerRuntimeSuggestions(true);
 }
@@ -1747,11 +2012,314 @@ function paginationWindow(current, pages){
  * @param {*} options a művelet opcionális beállításai
  * @returns {*} a feldolgozás eredménye
  */
+async function ensureRuntimeIndexConfiguration(){
+  const state = currentMultiformState;
+  if(!state?.repeatingPart) return [];
+  if(Array.isArray(state.indexFields) && state.indexFields.length) return state.indexFields;
+  const xmlFileId = activeXmlFileIdForLargeMultiform();
+  if(!xmlFileId) return [];
+  const params = new URLSearchParams({ formName:state.repeatingPart.name });
+  const response = await fetch(`/api/xml-files/${encodeURIComponent(xmlFileId)}/large-multiform/configuration-status?${params}`, { credentials:'same-origin' });
+  const data = await response.json().catch(() => ({}));
+  if(!response.ok) throw new Error(data.message || data.error || 'A melléklap indexkonfigurációja nem tölthető be.');
+  state.indexFields = Array.isArray(data.indexFields) ? data.indexFields : [];
+  return state.indexFields;
+}
+
+function nextRuntimeRepeatingOccurrenceIndex(part){
+  const indexes = (part?.rows || []).map(row => Number(row?.index || 0)).filter(Number.isFinite);
+  const xmlCount = directElementChildren(currentXmlDocument?.documentElement).filter(child => xmlLocalName(child) === part?.name).length;
+  return Math.max(xmlCount, Number(part?.count || 0), ...indexes, 0) + 1;
+}
+
+function createRuntimeRepeatingPartDraft(part){
+  return {
+    index: nextRuntimeRepeatingOccurrenceIndex(part),
+    element: null,
+    values: {},
+    searchText: '',
+    leaves: null,
+    draftValues: {},
+    isDraft: true,
+    isNew: true,
+    activeBlockTabKey: null
+  };
+}
+
+function runtimeDraftRequiredIndexFields(state){
+  const configured = Array.isArray(state?.indexFields) ? state.indexFields : [];
+  if(configured.length) return configured;
+  return (state?.tableColumns || []).map(column => ({ name:column.name, label:column.label, xmlPath:'' }));
+}
+
+function runtimeDraftFieldMatchesIndexField(leaf, indexField){
+  if(!leaf || !indexField) return false;
+  const configuredPath = normalizeRuntimeSchemaPath(indexField.xmlPath || '');
+  if(configuredPath){
+    const leafPath = normalizeRuntimeSchemaPath(leaf.definition?.xmlPath || leaf.path || '');
+    if(leafPath && (leafPath === configuredPath || leafPath.endsWith(`/${configuredPath}`) || configuredPath.endsWith(`/${leafPath}`))) return true;
+  }
+  return String(leaf.name || '').trim() === String(indexField.name || '').trim();
+}
+
+function validateRuntimeRepeatingPartDraft(row){
+  const state = currentMultiformState;
+  const required = runtimeDraftRequiredIndexFields(state);
+  if(!required.length) return true;
+  const leaves = ensureRuntimeRowLeaves(row, state?.repeatingPart?.labelLookup, state?.repeatingPart?.displayFields, state?.repeatingPart?.name);
+  const missing = [];
+  required.forEach(indexField => {
+    const leaf = leaves.find(candidate => runtimeDraftFieldMatchesIndexField(candidate, indexField));
+    const value = String(leaf?.value ?? row?.draftValues?.[leaf?.path] ?? '').trim();
+    if(!leaf || !value) missing.push({ indexField, leaf });
+  });
+  document.querySelectorAll('.multiform-draft-index-missing').forEach(node => {
+    node.classList.remove('multiform-draft-index-missing');
+    node.querySelector('input, select, textarea')?.removeAttribute('aria-invalid');
+  });
+  if(!missing.length) return true;
+  missing.forEach(({ leaf }) => {
+    if(!leaf) return;
+    const selector = `[data-xml-path="${CSS.escape(runtimeOccurrenceXmlPath(state.repeatingPart.name, row.index, leaf.path))}"]`;
+    const wrapper = state.shellElement?.querySelector(selector);
+    wrapper?.classList.add('multiform-draft-index-missing');
+    wrapper?.querySelector('input, select, textarea')?.setAttribute('aria-invalid', 'true');
+  });
+  const labels = missing.map(({ indexField }) => indexField.label || indexField.name).filter(Boolean);
+  showMultiformWarning(`A melléklap mentéséhez töltse ki az indexelt mezőket: ${labels.join(', ')}.`);
+  const first = state.shellElement?.querySelector('.multiform-draft-index-missing input, .multiform-draft-index-missing select, .multiform-draft-index-missing textarea');
+  first?.focus();
+  return false;
+}
+
+function materializeRuntimeRepeatingPartDraft(){
+  const state = currentMultiformState;
+  const part = state?.repeatingPart;
+  const row = state?.draftRow;
+  const root = currentXmlDocument?.documentElement;
+  if(!state || !part || !row || !root) return;
+  if(!validateRuntimeRepeatingPartDraft(row)) return;
+
+  const rootName = xmlLocalName(root);
+  const occurrenceIndex = row.index;
+  const partPath = `/${rootName}/${part.name}[${occurrenceIndex}]`;
+  const element = createNodeByPath(currentXmlDocument, partPath);
+  if(!element){
+    showMultiformWarning('Az új melléklap XML-eleme nem hozható létre.');
+    return;
+  }
+
+  const leaves = ensureRuntimeRowLeaves(row, part.labelLookup, part.displayFields, part.name);
+  leaves.forEach(leaf => {
+    const value = String(leaf?.value ?? row.draftValues?.[leaf?.path] ?? '');
+    if(!value.trim()) return;
+    setXmlValueByPath(currentXmlDocument, runtimeOccurrenceXmlPath(part.name, occurrenceIndex, leaf.path), value, { createMissing:true });
+  });
+
+  row.element = element;
+  row.isDraft = false;
+  row.isNew = false;
+  row.draftValues = null;
+  row.leaves = null;
+  row.values = null;
+  row.searchText = null;
+  ensureRuntimeRowSummary(row, part.displayFields);
+  const actualLeaves = collectRuntimeLeafFields(element);
+  const configuredValues = { ...(row.values || {}) };
+  (state.tableColumns || []).forEach(column => {
+    const match = actualLeaves.find(leaf => String(leaf.name || '') === String(column.name || ''));
+    if(match) configuredValues[column.name] = match.value;
+  });
+  row.values = configuredValues;
+
+  rebuildRuntimeRepeatingRowsFromCurrentDocument();
+  const materializedRow = (part.rows || []).find(item => Number(item.index) === Number(occurrenceIndex)) || row;
+  const draftPanelKey = state.draftPanelKey || runtimeDraftPanelKey(part.name);
+  state.draftRow = null;
+  state.draftDirty = false;
+  state.repeatingView = 'list';
+  removeRuntimeShellPanel(draftPanelKey);
+  state.draftPanelKey = null;
+  state.selectedIndex = materializedRow.index;
+  state.detailRow = materializedRow;
+  markXmlViewsDirty();
+  scheduleXmlFromCurrentState();
+  markFormDirty();
+
+  const panel = state.shellElement?.querySelector(`[data-part-panel="${CSS.escape(part.name)}"] .multiform-repeating-selector-layout`);
+  if(panel) refreshRuntimeRepeatingPanel(panel, { keepSuggestions:true });
+  openRuntimeDetailTab(materializedRow);
+  if(state.detailPanelKey) state.markPanelDirty?.(state.detailPanelKey);
+}
+
+function runtimeRepeatingPartIdentitySummary(row){
+  const state = currentMultiformState;
+  const part = state?.repeatingPart;
+  if(!row || !part) return '';
+  const leaves = ensureRuntimeRowLeaves(row, part.labelLookup, part.displayFields, part.name);
+  const configured = Array.isArray(state.indexFields) ? state.indexFields : [];
+  const lines = configured.map(indexField => {
+    const leaf = leaves.find(candidate => runtimeDraftFieldMatchesIndexField(candidate, indexField));
+    const value = String(leaf?.value ?? '').trim();
+    if(!value) return null;
+    return `${indexField.label || indexField.name}: ${value}`;
+  }).filter(Boolean);
+  if(lines.length) return lines.join('\n');
+
+  ensureRuntimeRowSummary(row, part.displayFields);
+  return (state.tableColumns || []).map(column => {
+    const value = String(row.values?.[column.name] ?? '').trim();
+    return value ? `${column.label || column.name}: ${value}` : null;
+  }).filter(Boolean).join('\n');
+}
+
+function rebuildRuntimeRepeatingRowsFromCurrentDocument(){
+  const state = currentMultiformState;
+  const part = state?.repeatingPart;
+  const root = currentXmlDocument?.documentElement;
+  if(!state || !part || !root) return [];
+  const elements = directElementChildren(root).filter(child => xmlLocalName(child) === part.name);
+  const rows = elements.map((element, index) => ({
+    index:index + 1,
+    element,
+    values:null,
+    searchText:null,
+    leaves:null
+  }));
+  const summaryFields = [];
+  const seenSummaryNames = new Set();
+  [...(part.displayFields || []), ...(state.tableColumns || [])].forEach(field => {
+    const name = String(field?.name || '').trim();
+    if(!name || seenSummaryNames.has(name)) return;
+    seenSummaryNames.add(name);
+    summaryFields.push({ name, label:field?.label || name });
+  });
+  rows.forEach(row => ensureRuntimeRowSummary(row, summaryFields));
+  part.rows = rows;
+  part.count = rows.length;
+  state.localStructuralChanges = true;
+  refreshRuntimeLocalTablePage(Math.min(Number(state.serverPage || 0), Math.max(0, Math.ceil(rows.length / Math.max(1, Number(state.serverPageSize || 20))) - 1)));
+  updateRuntimeRepeatingTabLabel();
+  return rows;
+}
+
+async function deleteRuntimeRepeatingPartOccurrence(row){
+  const state = currentMultiformState;
+  const part = state?.repeatingPart;
+  if(!state || !part || !row || row.isDraft === true || currentXmlFileReadOnlyMode) return;
+  if(currentActiveXmlFile?.largeFileMode === true){
+    showMultiformWarning('Nagy XML módban a melléklap törlése nem érhető el.');
+    return;
+  }
+  const root = currentXmlDocument?.documentElement;
+  const currentOccurrences = directElementChildren(root).filter(child => xmlLocalName(child) === part.name);
+  const element = currentOccurrences[Number(row.index) - 1] || null;
+  if(!element?.parentNode){
+    showMultiformWarning('A törlendő melléklap XML-eleme nem található az aktuális XML-ben.');
+    return;
+  }
+
+  const identity = runtimeRepeatingPartIdentitySummary(row);
+  const message = [
+    `Biztosan törölni szeretné a(z) ${row.index}. melléklapot?`,
+    identity,
+    'A törlés a fő Mentés művelet végrehajtásakor válik véglegessé.'
+  ].filter(Boolean).join('\n\n');
+  const confirmed = window.navConfirm
+    ? await window.navConfirm({
+        title:'Melléklap törlése',
+        message,
+        eyebrow:'Melléklap',
+        confirmText:'Melléklap törlése',
+        cancelText:'Mégsem',
+        variant:'danger'
+      })
+    : false;
+  if(!confirmed) return;
+
+  element.parentNode.removeChild(element);
+  globalThis.clearXmlNodePathCache?.();
+  rebuildRuntimeRepeatingRowsFromCurrentDocument();
+
+  const detailPanelKey = state.detailPanelKey || runtimeDetailPanelKey(part.name, row.index);
+  removeRuntimeShellPanel(detailPanelKey);
+  state.detailPanelKey = null;
+  state.selectedIndex = null;
+  state.detailRow = null;
+  state.repeatingView = 'list';
+  state.dirtyPanelKey = null;
+  state.activatePanel?.(part.name, part.name, { validationNavigation:true });
+  state.markPanelDirty?.(part.name);
+  markXmlViewsDirty();
+  scheduleXmlFromCurrentState();
+  markFormDirty();
+
+  const panel = state.shellElement?.querySelector(`[data-part-panel="${CSS.escape(part.name)}"] .multiform-repeating-selector-layout`);
+  if(panel) refreshRuntimeRepeatingPanel(panel, { keepSuggestions:true });
+}
+
+async function cancelRuntimeRepeatingPartDraft(){
+  const state = currentMultiformState;
+  if(!state?.draftRow) return;
+  if(state.draftDirty && window.navConfirm){
+    const confirmed = await window.navConfirm({
+      title:'Új melléklap elvetése',
+      message:'Az új melléklapon megadott, még XML-be nem mentett adatok elvesznek.',
+      eyebrow:'Melléklap',
+      confirmText:'Elvetés',
+      cancelText:'Mégsem',
+      variant:'warning'
+    });
+    if(!confirmed) return;
+  }
+  const draftPanelKey = state.draftPanelKey || runtimeDraftPanelKey(state.repeatingPart.name);
+  state.draftRow = null;
+  state.draftDirty = false;
+  state.repeatingView = 'list';
+  removeRuntimeShellPanel(draftPanelKey);
+  state.draftPanelKey = null;
+  state.activatePanel?.(state.repeatingPart.name, state.repeatingPart.name, { validationNavigation:true });
+  const panel = state.shellElement?.querySelector(`[data-part-panel="${CSS.escape(state.repeatingPart.name)}"] .multiform-repeating-selector-layout`);
+  if(panel) refreshRuntimeRepeatingPanel(panel, { keepSuggestions:true });
+}
+
+async function addRuntimeRepeatingPartOccurrence(){
+  const state = currentMultiformState;
+  const part = state?.repeatingPart;
+  if(!state || !part || !currentXmlDocument?.documentElement) return;
+  if(currentXmlFileReadOnlyMode){
+    showMultiformWarning('A megnyitott XML csak olvasható, ezért új melléklap nem adható hozzá.');
+    return;
+  }
+  if(currentActiveXmlFile?.largeFileMode === true){
+    showMultiformWarning('Nagy XML módban új melléklap hozzáadása jelenleg nem támogatott.');
+    return;
+  }
+  if(state.draftRow){
+    state.repeatingView = 'draft';
+    ensureRuntimeDraftShellPanel();
+    return;
+  }
+  try{
+    await ensureRuntimeIndexConfiguration();
+  }catch(error){
+    showMultiformWarning(error.message || 'A melléklap indexkonfigurációja nem tölthető be.');
+    return;
+  }
+  state.draftRow = createRuntimeRepeatingPartDraft(part);
+  state.draftDirty = false;
+  state.repeatingView = 'draft';
+  ensureRuntimeDraftShellPanel();
+}
+
 function renderRuntimeRepeatingPartPanel(options = {}){
   const state = currentMultiformState;
   const part = state.repeatingPart;
   const container = document.createElement('div');
   container.className = 'multiform-repeating-selector-layout multiform-table-layout';
+
+  // A melléklaplista önálló felső szintű tab. A megnyitott és az új melléklap
+  // külön, vele azonos szintű multiform-runtime tabon jelenik meg.
 
   if(state.selectorMount){
     state.selectorMount.replaceChildren();
@@ -1795,9 +2363,21 @@ function renderRuntimeRepeatingPartPanel(options = {}){
   const title = document.createElement('strong');
   title.textContent = `${part.label || runtimeFormPartLabel(part.name)} lista`;
   const summary = document.createElement('span');
-  const total = Number(state.totalSuggestions || part.count || 0);
+  const total = Number(state.totalSuggestions ?? part.count ?? 0);
   summary.textContent = `${total.toLocaleString('hu-HU')} elem`;
-  tableHeader.append(title, summary);
+  const headerActions = document.createElement('div');
+  headerActions.className = 'multiform-table-header-actions';
+  const addButton = document.createElement('button');
+  addButton.type = 'button';
+  addButton.className = 'secondary mini-button multiform-add-record-button';
+  addButton.textContent = '+ Új melléklap';
+  addButton.disabled = !!currentXmlFileReadOnlyMode || currentActiveXmlFile?.largeFileMode === true;
+  addButton.title = addButton.disabled
+    ? 'Ebben a módban új melléklap nem adható hozzá.'
+    : 'Új melléklap kitöltése';
+  addButton.addEventListener('click', addRuntimeRepeatingPartOccurrence);
+  headerActions.append(summary, addButton);
+  tableHeader.append(title, headerActions);
   tableCard.appendChild(tableHeader);
 
   const tableWrap = document.createElement('div');
@@ -1905,6 +2485,7 @@ const createPagerButton = (label, ariaLabel, targetPage, disabled = false) => {
   pager.append(pageInfo, actions);
   tableCard.appendChild(pager);
   container.appendChild(tableCard);
+
   return container;
 }
 
@@ -1929,7 +2510,39 @@ function renderRuntimeDetailPane(container, row, partName, partLabel, total){
   }
   const header = document.createElement('div');
   header.className = 'multiform-detail-header';
-  header.innerHTML = `<strong>${escapeHtml(partLabel || runtimeFormPartLabel(partName))} / ${row.index}. melléklap</strong><span>Találati halmaz: ${escapeHtml(String(total))} elem</span>`;
+  const headerText = document.createElement('div');
+  headerText.className = 'multiform-detail-header-text';
+  headerText.innerHTML = row.isDraft === true
+    ? `<strong>Új ${escapeHtml(partLabel || runtimeFormPartLabel(partName))}</strong><span>Az XML és a melléklaplista csak a melléklap mentésekor frissül.</span>`
+    : `<strong>${escapeHtml(partLabel || runtimeFormPartLabel(partName))} / ${row.index}. melléklap</strong><span>Találati halmaz: ${escapeHtml(String(total))} elem</span>`;
+  header.appendChild(headerText);
+  if(row.isDraft === true){
+    const actions = document.createElement('div');
+    actions.className = 'multiform-draft-actions';
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'secondary mini-button';
+    cancelButton.textContent = 'Mégse';
+    cancelButton.addEventListener('click', cancelRuntimeRepeatingPartDraft);
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.className = 'primary mini-button';
+    saveButton.textContent = 'Melléklap mentése';
+    saveButton.addEventListener('click', materializeRuntimeRepeatingPartDraft);
+    actions.append(cancelButton, saveButton);
+    header.appendChild(actions);
+  } else if(!currentXmlFileReadOnlyMode && currentActiveXmlFile?.largeFileMode !== true){
+    const actions = document.createElement('div');
+    actions.className = 'multiform-detail-actions';
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.className = 'danger-ghost mini-button multiform-delete-record-button';
+    deleteButton.textContent = 'Melléklap törlése';
+    deleteButton.title = 'A megnyitott melléklap törlése az XML-ből';
+    deleteButton.addEventListener('click', () => deleteRuntimeRepeatingPartOccurrence(row));
+    actions.appendChild(deleteButton);
+    header.appendChild(actions);
+  }
   container.appendChild(header);
 
   const rowLeaves = ensureRuntimeRowLeaves(row, currentMultiformState?.repeatingPart?.labelLookup, currentMultiformState?.repeatingPart?.displayFields, partName);
@@ -2027,9 +2640,30 @@ function renderRuntimeDetailPane(container, row, partName, partLabel, total){
     if(!input || currentXmlFileReadOnlyMode) return;
     globalThis.clearEditedFieldXsdHighlight?.(input);
     const leaf = rowLeaves[Number(input.dataset.runtimeLeafIndex)];
-    if(!leaf?.node) return;
-    leaf.node.textContent = input.value;
+    if(!leaf) return;
+    if(row?.isDraft === true){
+      row.draftValues = row.draftValues || {};
+      row.draftValues[leaf.path] = input.value;
+      leaf.value = input.value;
+      row.values = row.values || {};
+      row.values[leaf.name] = input.value;
+      row.searchText = '';
+      if(currentMultiformState) currentMultiformState.draftDirty = true;
+      const wrapper = input.closest('.multiform-draft-index-missing');
+      wrapper?.classList.remove('multiform-draft-index-missing');
+      input.removeAttribute('aria-invalid');
+      return;
+    }
+    if(!leaf.node){
+      const xmlPath = runtimeOccurrenceXmlPath(partName, row?.index, leaf.path);
+      leaf.node = setXmlValueByPath(currentXmlDocument, xmlPath, input.value, { createMissing:true });
+      leaf.virtual = !leaf.node;
+    }else{
+      leaf.node.textContent = input.value;
+    }
+    if(!leaf.node) return;
     leaf.value = input.value;
+    input.closest('.uimodel-missing-field')?.classList.remove('uimodel-missing-field');
     if(Object.prototype.hasOwnProperty.call(row.values || {}, leaf.name)) row.values[leaf.name] = input.value;
     row.searchText = null;
     markXmlViewsDirty();
@@ -2345,6 +2979,128 @@ function scheduleFieldBindingDebug(reason){
   }, 250);
 }
 
+function captureMultiformRuntimeViewState(){
+  const state = currentMultiformState;
+  if(!state?.repeatingPart) return null;
+  const rowSnapshot = row => {
+    if(!row) return null;
+    let xml = '';
+    try{ if(row.element) xml = new XMLSerializer().serializeToString(row.element); }catch(_error){ xml = ''; }
+    return {
+      index:Number(row.index || 0),
+      serverLabel:String(row.serverLabel || ''),
+      values:{ ...(row.values || {}) },
+      xml,
+      activeBlockTabKey:row.activeBlockTabKey || null
+    };
+  };
+  return {
+    activePanelKey:state.activePanelKey,
+    selectedIndex:Number(state.selectedIndex || 0),
+    selectedRow:rowSnapshot(state.detailRow),
+    query:String(state.query || ''),
+    dirtyPanelKey:state.dirtyPanelKey || null,
+    repeatingView:state.repeatingView || 'list',
+    localStructuralChanges:state.localStructuralChanges === true,
+    serverPage:Number(state.serverPage || 0),
+    totalSuggestions:Number(state.totalSuggestions ?? state.repeatingPart.count ?? 0),
+    tableColumns:Array.isArray(state.tableColumns) ? state.tableColumns.map(column => ({...column})) : [],
+    indexFields:Array.isArray(state.indexFields) ? state.indexFields.map(field => ({...field})) : [],
+    draftDirty:state.draftDirty === true,
+    draftRow:state.draftRow ? {
+      index:Number(state.draftRow.index || 0),
+      draftValues:{ ...(state.draftRow.draftValues || {}) },
+      values:{ ...(state.draftRow.values || {}) },
+      activeBlockTabKey:state.draftRow.activeBlockTabKey || null
+    } : null
+  };
+}
+
+function restoreMultiformRuntimeViewState(snapshot){
+  const state = currentMultiformState;
+  if(!snapshot || !state?.repeatingPart) return;
+  state.query = snapshot.query || '';
+  state.indexFields = Array.isArray(snapshot.indexFields) ? snapshot.indexFields : [];
+  state.tableColumns = Array.isArray(snapshot.tableColumns) ? snapshot.tableColumns : [];
+  state.serverPage = Math.max(0, Number(snapshot.serverPage || 0));
+  state.totalSuggestions = Number(snapshot.totalSuggestions ?? state.repeatingPart.count ?? 0);
+  state.repeatingView = snapshot.repeatingView || 'list';
+  state.localStructuralChanges = snapshot.localStructuralChanges === true;
+  if(state.localStructuralChanges) rebuildRuntimeRepeatingRowsFromCurrentDocument();
+  else updateRuntimeRepeatingTabLabel();
+  if(snapshot.draftRow){
+    state.draftRow = {
+      index:Number(snapshot.draftRow.index || nextRuntimeRepeatingOccurrenceIndex(state.repeatingPart)),
+      element:null,
+      values:{ ...(snapshot.draftRow.values || {}) },
+      searchText:'',
+      leaves:null,
+      draftValues:{ ...(snapshot.draftRow.draftValues || {}) },
+      isDraft:true,
+      isNew:true,
+      activeBlockTabKey:snapshot.draftRow.activeBlockTabKey || null
+    };
+    state.draftDirty = snapshot.draftDirty === true;
+  }
+  const restoreDirty = () => {
+    if(snapshot.dirtyPanelKey) state.markPanelDirty?.(snapshot.dirtyPanelKey);
+  };
+  if(state.draftRow && (snapshot.repeatingView === 'draft' || String(snapshot.activePanelKey || '').startsWith('multiform-draft:'))){
+    ensureRuntimeDraftShellPanel({ validationNavigation:true });
+    restoreDirty();
+    return;
+  }
+  const wantsDetail = String(snapshot.activePanelKey || '').startsWith('multiform-detail:')
+    || (snapshot.repeatingView === 'detail' && Number(snapshot.selectedIndex || 0) > 0);
+  if(wantsDetail){
+    let row = (state.repeatingPart.rows || []).find(item => Number(item.index) === Number(snapshot.selectedIndex));
+    if(!row && snapshot.selectedRow?.xml){
+      const parsed = new DOMParser().parseFromString(snapshot.selectedRow.xml, 'application/xml');
+      row = {
+        index:Number(snapshot.selectedRow.index || snapshot.selectedIndex),
+        element:parsed.documentElement,
+        serverLabel:snapshot.selectedRow.serverLabel || '',
+        values:{ ...(snapshot.selectedRow.values || {}) },
+        searchText:'',
+        leaves:null,
+        activeBlockTabKey:snapshot.selectedRow.activeBlockTabKey || null
+      };
+    }
+    if(row){
+      row.activeBlockTabKey = snapshot.selectedRow?.activeBlockTabKey || row.activeBlockTabKey;
+      openRuntimeDetailTab(row, { validationNavigation:true });
+      restoreDirty();
+      return;
+    }
+  }
+  if(snapshot.activePanelKey === state.repeatingPart.name){
+    state.activatePanel?.(state.repeatingPart.name, state.repeatingPart.name, { validationNavigation:true });
+    const listPanel = () => state.shellElement?.querySelector(`[data-part-panel="${CSS.escape(state.repeatingPart.name)}"] .multiform-repeating-selector-layout`);
+    if(state.localStructuralChanges){
+      refreshRuntimeLocalTablePage(state.serverPage);
+      const panel = listPanel();
+      if(panel) refreshRuntimeRepeatingPanel(panel, { keepSuggestions:true });
+    }else if(state.serverPaged){
+      void loadRuntimeTablePage(state.serverPage).then(() => {
+        if(currentMultiformState !== state || state.activePanelKey !== state.repeatingPart.name) return;
+        updateRuntimeRepeatingTabLabel();
+        const panel = listPanel();
+        if(panel) refreshRuntimeRepeatingPanel(panel, { keepSuggestions:true });
+      }).catch(error => {
+        console.error('[Multiform index] A melléklaplista visszaállítása sikertelen.', error);
+      });
+    }else{
+      refreshRuntimeLocalTablePage(state.serverPage);
+      const panel = listPanel();
+      if(panel) refreshRuntimeRepeatingPanel(panel, { keepSuggestions:true });
+    }
+    restoreDirty();
+    return;
+  }
+  state.activatePanel?.(state.mainPartName, state.mainPartName, { validationNavigation:true });
+  restoreDirty();
+}
+
 Object.assign(globalThis, {
   isUiModelMissingField,
   xmlLocalName,
@@ -2367,6 +3123,7 @@ Object.assign(globalThis, {
   buildRuntimeOptionLabel,
   buildRuntimePartIndex,
   getRuntimeMultiformLabel,
+  updateRuntimeRepeatingTabLabel,
   formPartPathPrefix,
   pathBelongsToFormPart,
   pruneRenderedPanelToFormPart,
@@ -2379,6 +3136,8 @@ Object.assign(globalThis, {
   runtimeMatches,
   computeRuntimeSuggestions,
   refreshRuntimeRepeatingPanel,
+  captureMultiformRuntimeViewState,
+  restoreMultiformRuntimeViewState,
   ensureMultiformValidationTargetVisible,
   renderRuntimeRepeatingPartPanel,
   renderRuntimeDetailPane,

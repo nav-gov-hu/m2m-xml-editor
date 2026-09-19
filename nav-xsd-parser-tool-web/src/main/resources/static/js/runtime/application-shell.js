@@ -1235,14 +1235,23 @@ function updateFormRendererSwitch(){
  * @param {*} visible a függvény visible bemeneti értéke
  * @param {*} options a művelet opcionális beállításai
  */
+function rerenderCurrentUiModelPreservingMultiformView(){
+  const multiformViewState = globalThis.captureMultiformRuntimeViewState?.() || null;
+  if(currentXmlDocument && currentFormDefinition && typeof buildFormDataFromDocument === 'function'){
+    currentFormData = buildFormDataFromDocument(currentFormDefinition, currentXmlDocument);
+  }
+  renderForm(currentFormDefinition, currentFormData, currentSchemaBundle || null);
+  bindFieldClicks();
+  bindFormValueSync();
+  highlightSelections();
+  globalThis.restoreMultiformRuntimeViewState?.(multiformViewState);
+}
+
 function setUiModelDetailsVisible(visible, options = {}){
   currentUiModelDetailsVisible = visible === true;
   updateFormRendererSwitch();
   if(!options.skipRender && currentFormRenderer === 'uimodel' && currentFormDefinition && currentFormData){
-    renderForm(currentFormDefinition, currentFormData, currentSchemaBundle || null);
-    bindFieldClicks();
-    bindFormValueSync();
-    highlightSelections();
+    rerenderCurrentUiModelPreservingMultiformView();
   }
   persistUiState();
 }
@@ -1261,10 +1270,7 @@ function setUiModelMissingFieldsVisible(visible, options = {}){
   currentUiModelMissingFieldsVisible = visible === true;
   updateFormRendererSwitch();
   if(!options.skipRender && currentFormRenderer === 'uimodel' && currentFormDefinition && currentFormData){
-    renderForm(currentFormDefinition, currentFormData, currentSchemaBundle || null);
-    bindFieldClicks();
-    bindFormValueSync();
-    highlightSelections();
+    rerenderCurrentUiModelPreservingMultiformView();
   }
   persistUiState();
 }

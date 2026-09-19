@@ -1,3 +1,44 @@
+# Alapértelmezés: szöveges fájlok normalizálása
+* text=auto
+
+# Forráskód és konfiguráció - egységesen LF
+*.java text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.xml text eol=lf
+*.xsd text eol=lf
+*.xsl text eol=lf
+*.xslt text eol=lf
+*.md text eol=lf
+*.properties text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.sql text eol=lf
+
+pom.xml text eol=lf
+
+# Unix/Linux shell
+*.sh text eol=lf
+
+# Windows-specifikus fájlok
 *.cmd text eol=crlf
 *.bat text eol=crlf
-*.sh text eol=lf
+*.ps1 text eol=crlf
+*.iss text eol=crlf
+
+# Bináris állományok
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.jar binary
+*.war binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

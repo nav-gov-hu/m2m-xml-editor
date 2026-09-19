@@ -540,3 +540,88 @@ body.form-only-layout.uimodel-form-renderer-active .multiform-repeating-selector
 }
 .multiform-runtime-tab.is-dirty::after { content: "  • Mentetlen"; font-size: .82em; font-weight: 700; }
 .multiform-runtime-tab.is-saved::after { content: "  ✓ Mentve"; font-size: .82em; font-weight: 700; }
+
+/* 2026-09-19: melléklaplista fejlécműveletei */
+.multiform-table-header-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.multiform-add-record-button {
+  white-space: nowrap;
+}
+
+/* 2026-09-19: melléklaplista és új melléklap piszkozat külön nézete. */
+.multiform-repeating-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #d6e2f2);
+}
+
+.multiform-repeating-view-tab {
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color, #cbd8e8);
+  border-radius: 8px;
+  background: var(--nav-theme-surface, #fff);
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.multiform-repeating-view-tab.active {
+  border-color: var(--nav-theme-primary, #155acb);
+  background: var(--nav-theme-subtle, #f4f7fb);
+  color: var(--nav-theme-primary, #155acb);
+}
+
+.multiform-draft-form-host {
+  width: 100%;
+}
+
+.multiform-detail-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.multiform-draft-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.multiform-draft-index-missing {
+  border-color: var(--error-color, #b42318) !important;
+  box-shadow: 0 0 0 1px var(--error-color, #b42318);
+}
+
+.multiform-draft-index-missing input,
+.multiform-draft-index-missing select,
+.multiform-draft-index-missing textarea {
+  border-color: var(--error-color, #b42318) !important;
+}
+
+.multiform-detail-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 2026-09-19: a megnyitott melléklap külön belső tabon jelenik meg. */
+.multiform-detail-tab-host {
+  width: 100%;
+}

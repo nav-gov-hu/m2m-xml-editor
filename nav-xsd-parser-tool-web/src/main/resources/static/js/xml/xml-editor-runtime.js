@@ -1614,6 +1614,9 @@ function bindFormValueSync(){
 const delegate = event => {
     const input = event.target.closest?.('.form-field input[data-field-id], .form-field select[data-field-id], .form-field textarea[data-field-id]');
     if(!input || !formContainer.contains(input)) return;
+    // Az új multiform melléklap piszkozata a saját Mentés műveletéig nem része az XML-nek.
+    // A közös form value sync ezért nem materializálhatja a draft mezőit gépelés közben.
+    if(input.closest('.multiform-draft-form-host')) return;
     handleFormValueChange(event);
   };
   formContainer.addEventListener('input', delegate);
@@ -2742,6 +2745,7 @@ Object.assign(globalThis, {
   parseXmlString,
   serializeXml,
   parsePathSegment,
+  clearXmlNodePathCache,
   findNodeByPath,
   getXmlValueByPath,
   setXmlValueByPath,

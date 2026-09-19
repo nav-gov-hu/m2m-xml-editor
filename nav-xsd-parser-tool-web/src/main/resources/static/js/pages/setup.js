@@ -398,6 +398,23 @@ function render() {
         });
 
 
+    /**
+     * Az alkalmazás sikeres újraindulása után megpróbálja bezárni a setup böngészőlapját.
+     *
+     * <p>A desktop indítás új böngészőlapot nyit az új alkalmazáspéldányhoz. A régi setup lapot
+     * ezért bezárjuk. Ha a böngésző biztonsági szabályai ezt nem engedik, a lap a bejelentkezési
+     * oldalra irányítódik át, így nem marad használhatatlan setup nézetben.</p>
+     */
+    function closeSetupWindowAfterRestart() {
+        showMessage('Az alkalmazás újraindult. A beállítási böngészőlap bezárása...', 'success');
+        window.close();
+        window.setTimeout(() => {
+            if (!window.closed) {
+                location.replace('/login.html');
+            }
+        }, 300);
+    }
+
     async function waitForPendingCompletion() {
         const deadline = Date.now() + 120000;
         let missingPendingSince = null;
@@ -476,7 +493,7 @@ async function waitForRestart(completedAfterRestart) {
                     continue;
                 }
                 if (completedAfterRestart || status.completed) {
-                    location.replace('/login.html');
+                    closeSetupWindowAfterRestart();
                     return;
                 }
                 if (status.pendingCompletion) {

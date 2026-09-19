@@ -16,10 +16,19 @@ class DateInputFrontendContractTest {
 
     @BeforeAll
     static void loadSources() throws Exception {
-        rendererSource = new ClassPathResource("static/js/form/form-renderer-runtime.js")
-                .getContentAsString(StandardCharsets.UTF_8);
-        xmlEditorSource = new ClassPathResource("static/js/xml/xml-editor-runtime.js")
-                .getContentAsString(StandardCharsets.UTF_8);
+        rendererSource = normalizeLineEndings(
+                new ClassPathResource("static/js/form/form-renderer-runtime.js")
+                        .getContentAsString(StandardCharsets.UTF_8)
+        );
+
+        xmlEditorSource = normalizeLineEndings(
+                new ClassPathResource("static/js/xml/xml-editor-runtime.js")
+                        .getContentAsString(StandardCharsets.UTF_8)
+        );
+    }
+
+    private static String normalizeLineEndings(String source) {
+        return source.replace("\r\n", "\n").replace('\r', '\n');
     }
 
     @Test
@@ -32,8 +41,14 @@ class DateInputFrontendContractTest {
 
     @Test
     void dateConversionDoesNotSwapMonthAndDay() {
-        assertTrue(rendererSource.contains("function uiDateToIsoDate(value){\n  return isoDateToUiDate(value);"));
-        assertTrue(rendererSource.contains("if(m) return `${m[1]}-${m[2]}-${m[3]}`;"));
-        assertFalse(rendererSource.contains("`${match[1]}-${match[3]}-${match[2]}`"));
+        assertTrue(rendererSource.contains(
+                "function uiDateToIsoDate(value){\n  return isoDateToUiDate(value);"
+        ));
+        assertTrue(rendererSource.contains(
+                "if(m) return `${m[1]}-${m[2]}-${m[3]}`;"
+        ));
+        assertFalse(rendererSource.contains(
+                "`${match[1]}-${match[3]}-${match[2]}`"
+        ));
     }
 }

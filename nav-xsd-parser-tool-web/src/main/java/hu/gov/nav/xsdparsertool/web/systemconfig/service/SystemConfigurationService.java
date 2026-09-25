@@ -16,6 +16,9 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import hu.gov.nav.xsdparsertool.web.secret.service.SystemSecretService;
 import hu.gov.nav.xsdparsertool.web.audit.AuditLogService;
 
@@ -163,6 +166,7 @@ public class SystemConfigurationService {
                     entity.setUpdatedBy(username);
                     repository.save(entity);
                     bindRuntimeDatabaseValue(spec.key(), newValue);
+                    applyRuntimeValue(spec.key(), newValue);
                     dbCount++;
                     changed.add(spec.key());
                     restart |= spec.restartRequired();
@@ -222,6 +226,7 @@ public class SystemConfigurationService {
             } else if (repository.existsById(key)) {
                 repository.deleteById(key);
                 removeRuntimeDatabaseValue(key);
+                applyRuntimeValue(key, environment.getProperty(key));
                 dbCount++; changed.add(key); restart |= spec.restartRequired();
             }
         }
@@ -285,6 +290,22 @@ public class SystemConfigurationService {
      * @param spec a művelet bemeneti {@code spec} értéke
      * @param value a művelet bemeneti {@code value} értéke
      */
+    /**
+     * Azonnal alkalmazza azokat a DATABASE konfigurációkat, amelyek futás közben
+     * biztonságosan módosíthatók.
+     *
+     * @param key konfigurációs kulcs
+     * @param value új érték
+     */
+    private void applyRuntimeValue(String key, String value) {
+        if (!"logging.level.root".equals(key) || !StringUtils.hasText(value)) {
+            return;
+        }
+        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        context.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
+                .setLevel(Level.toLevel(value, Level.INFO));
+    }
+
     private void validate(ConfigurationCatalog.Spec spec, String value) {
         if (!ConfigurationCatalog.isOptionalIntegrationKey(spec.key())
                 && !("nav.xsdparsertool.api-key.value".equals(spec.key())

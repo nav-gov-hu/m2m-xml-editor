@@ -10,6 +10,8 @@ import hu.gov.nav.xsdparsertool.schemaregistry.service.SchemaRegistryStatus;
 import hu.gov.nav.xsdparsertool.web.config.PathConfigurationProperties;
 import hu.gov.nav.xsdparsertool.web.xmlfile.config.XmlFileStorageProperties;
 import hu.gov.nav.xsdparsertool.web.xpath.config.XPathValidatorProperties;
+import hu.gov.nav.xsdparsertool.web.systemconfig.service.SystemConfigurationService;
+import org.springframework.security.core.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -111,6 +113,7 @@ public class AdminController {
     private final XmlFileStorageProperties storageProperties;
     private final XPathValidatorProperties xpathValidatorProperties;
     private final ConfigurableEnvironment configurableEnvironment;
+    private final SystemConfigurationService systemConfigurationService;
     private final Instant startedAt = Instant.now();
 
     /**
@@ -129,13 +132,15 @@ public class AdminController {
                            XmlFileStorageProperties storageProperties,
                            XPathValidatorProperties xpathValidatorProperties,
                            Environment environment,
-                           ConfigurableEnvironment configurableEnvironment) {
+                           ConfigurableEnvironment configurableEnvironment,
+                           SystemConfigurationService systemConfigurationService) {
         this.schemaRegistryService = schemaRegistryService;
         this.pathProperties = pathProperties;
         this.storageProperties = storageProperties;
         this.xpathValidatorProperties = xpathValidatorProperties;
         this.environment = environment;
         this.configurableEnvironment = configurableEnvironment;
+        this.systemConfigurationService = systemConfigurationService;
     }
 
     
@@ -263,15 +268,22 @@ public class AdminController {
  * @param payload a {@code payload} paraméter átadott értéke
  * @return a metódus által előállított eredmény
  */
-    public Map<String, Object> updateLogging(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "HU: Kérés törzse. EN: Request body.") @RequestBody Map<String, Object> payload) {
+    public Map<String, Object> updateLogging(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "HU: Kérés törzse. EN: Request body.") @RequestBody Map<String, Object> payload,
+                                             Authentication authentication) {
         String rootLevel = normalizeLevel((String) payload.get("rootLevel"));
         boolean saveToExternalConfig = Boolean.TRUE.equals(payload.get("saveToExternalConfig"));
 
         if (rootLevel != null) {
             setLoggerLevel(org.slf4j.Logger.ROOT_LOGGER_NAME, rootLevel);
         }
-        if (saveToExternalConfig) {
-            saveLoggingSettings(rootLevel);
+        if (saveToExternalConfig && rootLevel != null) {
+            String username = authentication == null ? "system" : authentication.getName();
+            try {
+                systemConfigurationService.save(Map.of("logging.level.root", rootLevel), java.util.Set.of(), username);
+                saveLoggingSettings(rootLevel);
+            } catch (IOException ex) {
+                throw new IllegalStateException("A naplózási szint tartós mentése sikertelen: " + ex.getMessage(), ex);
+            }
         }
         return loggingInfo();
     }

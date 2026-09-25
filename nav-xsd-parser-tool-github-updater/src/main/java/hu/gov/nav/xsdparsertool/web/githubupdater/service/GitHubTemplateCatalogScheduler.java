@@ -1,6 +1,7 @@
 package hu.gov.nav.xsdparsertool.web.githubupdater.service;
 
 import hu.gov.nav.xsdparsertool.web.githubupdater.config.GitHubSchemaUpdaterProperties;
+import hu.gov.nav.xsdparsertool.web.githubupdater.config.GitHubCatalogSourceMode;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -31,7 +32,9 @@ public class GitHubTemplateCatalogScheduler {
             initialDelayString = "${nav.xsdparsertool.github-schema-updater.catalog-check-initial-delay:PT1M}",
             fixedDelayString = "${nav.xsdparsertool.github-schema-updater.catalog-check-interval:PT15M}")
     public void checkForChanges() {
-        if (!properties.isEnabled() || !properties.hasToken() || properties.getCatalogCheckInterval() == null
+        boolean tokenRequiredAndMissing = properties.getCatalogSourceMode() == GitHubCatalogSourceMode.GITHUB_API
+                && !properties.hasToken();
+        if (!properties.isEnabled() || tokenRequiredAndMissing || properties.getCatalogCheckInterval() == null
                 || properties.getCatalogCheckInterval().isZero() || properties.getCatalogCheckInterval().isNegative()) {
             return;
         }

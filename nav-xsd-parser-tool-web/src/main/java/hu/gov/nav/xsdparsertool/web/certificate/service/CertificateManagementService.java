@@ -1,6 +1,20 @@
 package hu.gov.nav.xsdparsertool.web.certificate.service;
 
 import hu.gov.nav.xsdparsertool.web.support.RepositoryAccess;
+import hu.gov.nav.xsdparsertool.web.network.SystemTableM2mProxySettingsService;
+import hu.nav.m2m.submitter.domain.ProxySettings;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.auth.CredentialsProviderBuilder;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.util.Timeout;
 
 import hu.gov.nav.xsdparsertool.web.audit.AuditLogService;
 import hu.gov.nav.xsdparsertool.web.certificate.dto.CertificateDto;
@@ -20,7 +34,7 @@ import javax.net.ssl.*; import java.io.*; import java.net.Socket; import java.se
 @Service
 public class CertificateManagementService {
  private static final Logger log=LoggerFactory.getLogger(CertificateManagementService.class);
- private final TrustedCertificateRepository repository; private final AuditLogService audit; private final TrustedCertificateSslContextInitializer sslContextInitializer;
+ private final TrustedCertificateRepository repository; private final AuditLogService audit; private final TrustedCertificateSslContextInitializer sslContextInitializer; private final SystemTableM2mProxySettingsService proxySettingsService;
  /**
   * Létrehozza a {@code CertificateManagementService} példányt, és eltárolja a működéshez szükséges együttműködő komponenseket.
   *
@@ -29,7 +43,7 @@ public class CertificateManagementService {
   * @param audit a művelet bemeneti {@code audit} értéke
   * @param sslContextInitializer a központi TLS trust context újratöltő komponense
   */
- public CertificateManagementService(TrustedCertificateRepository repository,AuditLogService audit,TrustedCertificateSslContextInitializer sslContextInitializer){this.repository=repository;this.audit=audit;this.sslContextInitializer=sslContextInitializer;}
+ public CertificateManagementService(TrustedCertificateRepository repository,AuditLogService audit,TrustedCertificateSslContextInitializer sslContextInitializer,SystemTableM2mProxySettingsService proxySettingsService){this.repository=repository;this.audit=audit;this.sslContextInitializer=sslContextInitializer;this.proxySettingsService=proxySettingsService;}
  /**
   * A {@code list} művelet a komponens felelősségi körébe tartozó feldolgozási lépést hajtja végre.
   *
@@ -124,27 +138,66 @@ public class CertificateManagementService {
   * @return a művelet eredményeként előállított elemek listája
   * @throws Exception ha a művelet a deklarált technikai vagy üzleti feltétel miatt nem hajtható végre
   */
- private List<X509Certificate> capture(String host,int port)throws Exception{List<X509Certificate> captured=new ArrayList<>();X509TrustManager tm=new X509TrustManager(){ /**
-  * A {@code getAcceptedIssuers} művelet lekéri vagy feloldja a kért adatot a rendelkezésre álló forrásokból.
-  *
-  * <p>A művelet a alkalmazási komponens hívási kontextusában fut; az eredményét a következő réteg közvetlenül használhatja, miközben a komponens saját ellenőrzési és fallback szabályai érvényben maradnak.</p>
-  * @return a feloldott vagy lekért érték
-  */
- public X509Certificate[] getAcceptedIssuers(){return new X509Certificate[0];} /**
-  * A {@code checkClientTrusted} művelet ellenőrzi a művelethez tartozó feltételeket és invariánsokat.
-  *
-  * <p>A művelet a alkalmazási komponens hívási kontextusában fut; az eredményét a következő réteg közvetlenül használhatja, miközben a komponens saját ellenőrzési és fallback szabályai érvényben maradnak.</p>
-  * @param c a művelet bemeneti {@code c} értéke
-  * @param a a művelet bemeneti {@code a} értéke
-  */
- public void checkClientTrusted(X509Certificate[] c,String a){} /**
-  * A {@code checkServerTrusted} művelet ellenőrzi a művelethez tartozó feltételeket és invariánsokat.
-  *
-  * <p>A művelet a alkalmazási komponens hívási kontextusában fut; az eredményét a következő réteg közvetlenül használhatja, miközben a komponens saját ellenőrzési és fallback szabályai érvényben maradnak.</p>
-  * @param c a művelet bemeneti {@code c} értéke
-  * @param a a művelet bemeneti {@code a} értéke
-  */
- public void checkServerTrusted(X509Certificate[] c,String a){captured.addAll(Arrays.asList(c));}};SSLContext ctx=SSLContext.getInstance("TLS");ctx.init(null,new TrustManager[]{tm},new SecureRandom());try(SSLSocket socket=(SSLSocket)ctx.getSocketFactory().createSocket(host,port)){socket.setSoTimeout(10000);socket.startHandshake();}return captured;}
+ private List<X509Certificate> capture(String host,int port)throws Exception{
+  List<X509Certificate> captured=new ArrayList<>();
+  X509TrustManager tm=new X509TrustManager(){
+   public X509Certificate[] getAcceptedIssuers(){return new X509Certificate[0];}
+   public void checkClientTrusted(X509Certificate[] c,String a){}
+   public void checkServerTrusted(X509Certificate[] c,String a){captured.addAll(Arrays.asList(c));}
+  };
+  SSLContext ctx=SSLContext.getInstance("TLS");ctx.init(null,new TrustManager[]{tm},new SecureRandom());
+  ProxySettings settings=proxySettingsService.getEntity();
+  RequestConfig.Builder requestConfig=RequestConfig.custom()
+          .setConnectTimeout(Timeout.ofSeconds(10))
+          .setConnectionRequestTimeout(Timeout.ofSeconds(10))
+          .setResponseTimeout(Timeout.ofSeconds(10));
+  var clientBuilder=HttpClients.custom();
+  if(settings!=null&&settings.isEnabled()){
+   String proxyHost=normalizeProxyHost(settings.getProxyUrl());
+   Integer proxyPort=settings.getProxyPort();
+   if(proxyHost==null||proxyHost.isBlank()||proxyPort==null||proxyPort<1||proxyPort>65535)throw new IllegalStateException("A tanúsítvány lekéréséhez beállított általános proxy host/port hibás.");
+   requestConfig.setProxy(new HttpHost("http",proxyHost,proxyPort));
+   if(settings.getUsername()!=null&&!settings.getUsername().isBlank()&&settings.getPassword()!=null&&!settings.getPassword().isBlank()){
+    clientBuilder.setDefaultCredentialsProvider(CredentialsProviderBuilder.create()
+            .add(new AuthScope(proxyHost,proxyPort),new UsernamePasswordCredentials(settings.getUsername(),settings.getPassword().toCharArray()))
+            .build());
+    log.info("TLS tanúsítványlánc lekérése az általános, hitelesített proxyn keresztül. proxyPort={}",proxyPort);
+   }else{
+    log.info("TLS tanúsítványlánc lekérése az általános proxyn keresztül. proxyPort={}",proxyPort);
+   }
+  }
+  var connectionManager=PoolingHttpClientConnectionManagerBuilder.create()
+          .setSSLSocketFactory(SSLConnectionSocketFactoryBuilder.create()
+                  .setSslContext(ctx)
+                  .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                  .build())
+          .build();
+  clientBuilder.setConnectionManager(connectionManager).setDefaultRequestConfig(requestConfig.build());
+  String url="https://"+host+":"+port+"/";
+  try(CloseableHttpClient client=clientBuilder.build()){
+   HttpGet request=new HttpGet(url);
+   request.addHeader("User-Agent","M2M-XML-EDITOR-CERTIFICATE-FETCH");
+   client.execute(request,response->{
+    if(response.getCode()==407){
+     String challenge=response.getFirstHeader("Proxy-Authenticate")==null?"":response.getFirstHeader("Proxy-Authenticate").getValue();
+     throw new IOException("A proxy hitelesítést kért a tanúsítvány lekérésekor (HTTP 407, Proxy-Authenticate="+challenge+").");
+    }
+    return null;
+   });
+  }catch(Exception ex){
+   if(captured.isEmpty())throw ex;
+   log.debug("A TLS lánc lekérése után a HTTP kérés hibával zárult, de a tanúsítványlánc már rendelkezésre áll: {}",ex.getMessage());
+  }
+  if(captured.isEmpty())throw new IOException("A távoli szolgáltatás nem adott vissza X.509 tanúsítványláncot.");
+  return captured;
+ }
+
+ private String normalizeProxyHost(String raw){
+  if(raw==null||raw.isBlank())return null;
+  String value=raw.trim();
+  try{java.net.URI uri=value.contains("://")?java.net.URI.create(value):java.net.URI.create("http://"+value);if(uri.getHost()!=null&&!uri.getHost().isBlank())return uri.getHost();}catch(IllegalArgumentException ignored){}
+  String host=value.replace("http://","").replace("https://","");int slash=host.indexOf('/');if(slash>=0)host=host.substring(0,slash);int colon=host.indexOf(':');if(colon>=0)host=host.substring(0,colon);return host;
+ }
  /**
   * A {@code safeStoredCertificateText} művelet a komponens felelősségi körébe tartozó feldolgozási lépést hajtja végre.
   *
@@ -166,18 +219,21 @@ public class CertificateManagementService {
   * @return a művelet feldolgozási eredménye
   * @throws Exception ha a művelet a deklarált technikai vagy üzleti feltétel miatt nem hajtható végre
   */
- private TrustedCertificateEntity storeWithMetadata(X509Certificate cert,String alias,String host,Integer port,String username)throws Exception{String fp=fingerprint(cert);Optional<TrustedCertificateEntity> existing=repository.findBySha256Fingerprint(fp);if(existing.isPresent())return existing.get();String storedAlias=safeStoredCertificateText(alias,256);String storedHost=safeStoredCertificateText(host,253);TrustedCertificateEntity e=storeCertificate(cert,fp,username);if(e.getId()!=null){repository.updateMetadata(e.getId(),storedAlias,storedHost,port);e.setAlias(storedAlias);e.setSourceHost(storedHost);e.setSourcePort(port);}return e;}
+ private TrustedCertificateEntity storeWithMetadata(X509Certificate cert,String alias,String host,Integer port,String username)throws Exception{String fp=fingerprint(cert);Optional<TrustedCertificateEntity> existing=repository.findBySha256Fingerprint(fp);if(existing.isPresent())return existing.get();String storedAlias=safeStoredCertificateText(alias,255);if(storedAlias==null)storedAlias="certificate-"+fp.replace(":","").substring(0,12);String storedHost=safeStoredCertificateText(host,253);return storeCertificate(cert,fp,storedAlias,storedHost,port,username);}
  /**
   * A {@code storeCertificate} művelet a komponens felelősségi körébe tartozó feldolgozási lépést hajtja végre.
   *
   * <p>A művelet a alkalmazási komponens hívási kontextusában fut; az eredményét a következő réteg közvetlenül használhatja, miközben a komponens saját ellenőrzési és fallback szabályai érvényben maradnak.</p>
-  * @param cert a művelet bemeneti {@code cert} értéke
-  * @param fp a művelet bemeneti {@code fp} értéke
+  * @param cert a tárolandó X.509 tanúsítvány
+  * @param fp a tanúsítvány SHA-256 ujjlenyomata
+  * @param alias a nem null tanúsítvány alias
+  * @param sourceHost a távoli forrás host neve, ha ismert
+  * @param sourcePort a távoli forrás portja, ha ismert
   * @param username a művelet felhasználói kontextusa vagy felhasználóneve
   * @return a művelet feldolgozási eredménye
   * @throws Exception ha a művelet a deklarált technikai vagy üzleti feltétel miatt nem hajtható végre
   */
- private TrustedCertificateEntity storeCertificate(X509Certificate cert,String fp,String username)throws Exception{TrustedCertificateEntity e=new TrustedCertificateEntity();e.setAlias(null);e.setSubjectDn(cert.getSubjectX500Principal().getName());e.setIssuerDn(cert.getIssuerX500Principal().getName());e.setSerialNumber(cert.getSerialNumber().toString(16));e.setSha256Fingerprint(fp);e.setValidFrom(cert.getNotBefore().toInstant());e.setValidUntil(cert.getNotAfter().toInstant());e.setSourceHost(null);e.setSourcePort(null);e.setStatus(cert.getNotAfter().toInstant().isBefore(Instant.now())?"EXPIRED":cert.getNotAfter().toInstant().isBefore(Instant.now().plusSeconds(30L*86400))?"EXPIRING":"VALID");e.setCertificateDer(cert.getEncoded());e.setCreatedAt(Instant.now());e.setCreatedBy(username);return repository.save(e);}
+ private TrustedCertificateEntity storeCertificate(X509Certificate cert,String fp,String alias,String sourceHost,Integer sourcePort,String username)throws Exception{TrustedCertificateEntity e=new TrustedCertificateEntity();e.setAlias(alias);e.setSubjectDn(cert.getSubjectX500Principal().getName());e.setIssuerDn(cert.getIssuerX500Principal().getName());e.setSerialNumber(cert.getSerialNumber().toString(16));e.setSha256Fingerprint(fp);e.setValidFrom(cert.getNotBefore().toInstant());e.setValidUntil(cert.getNotAfter().toInstant());e.setSourceHost(sourceHost);e.setSourcePort(sourcePort);e.setStatus(cert.getNotAfter().toInstant().isBefore(Instant.now())?"EXPIRED":cert.getNotAfter().toInstant().isBefore(Instant.now().plusSeconds(30L*86400))?"EXPIRING":"VALID");e.setCertificateDer(cert.getEncoded());e.setCreatedAt(Instant.now());e.setCreatedBy(username);return repository.save(e);}
  /**
   * A {@code preview} művelet a komponens felelősségi körébe tartozó feldolgozási lépést hajtja végre.
   *

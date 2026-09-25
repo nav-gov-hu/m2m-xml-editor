@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hu.gov.nav.xsdparsertool.web.githubupdater.config.GitHubSchemaDownloadMode;
 import hu.gov.nav.xsdparsertool.web.githubupdater.config.GitHubSchemaUpdaterProperties;
 import hu.gov.nav.xsdparsertool.web.githubupdater.domain.GitHubProxySettings;
+import hu.gov.nav.xsdparsertool.web.githubupdater.spi.GitHubNetworkSettingsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -15,15 +16,30 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
+import org.apache.http.Header;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.auth.NTCredentials;
+import org.apache.http.client.config.AuthSchemes;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.auth.win.WindowsCredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.WinHttpClients;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FilterInputStream;
 import java.net.URI;
 import java.net.Authenticator;
 import java.net.InetSocketAddress;
 import java.net.PasswordAuthentication;
 import java.net.ProxySelector;
-import java.net.Proxy;
-import java.net.SocketAddress;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -40,10 +56,15 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import javax.net.ssl.SSLSession;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 /**
@@ -55,21 +76,22 @@ public class GitHubApiClient {
 
     private final GitHubSchemaUpdaterProperties properties;
     private final ObjectMapper objectMapper;
-    private final GitHubProxySettingsService proxySettingsService;
+    private final GitHubNetworkSettingsProvider networkSettingsProvider;
+    private final AtomicReference<ProxyAuthCacheEntry> proxyAuthCache = new AtomicReference<>();
 
     /**
      * Létrehozza a(z) {@code GitHubApiClient} példányt a működéshez szükséges kezdeti állapottal és függőségekkel.
      *
      * @param properties a művelethez átadott {@code properties} érték
      * @param objectMapper a művelethez átadott {@code objectMapper} érték
-     * @param proxySettingsService a művelethez átadott {@code proxySettingsService} érték
+     * @param networkSettingsProvider az alkalmazás általános proxy/TLS beállításait biztosító provider
      */
     public GitHubApiClient(GitHubSchemaUpdaterProperties properties,
                            ObjectMapper objectMapper,
-                           GitHubProxySettingsService proxySettingsService) {
+                           GitHubNetworkSettingsProvider networkSettingsProvider) {
         this.properties = properties;
         this.objectMapper = objectMapper;
-        this.proxySettingsService = proxySettingsService;
+        this.networkSettingsProvider = networkSettingsProvider;
     }
 
     /**
@@ -80,11 +102,11 @@ public class GitHubApiClient {
     private HttpClient currentHttpClient() {
         // Minden GitHub kérés az adatbázis aktuális SYSTEM_CONFIGURATION / SYSTEM_SECRET
         // értékeiből felépített klienst használja, ezért mentés után nem kell újraindítás.
-        return buildHttpClient(proxySettingsService.getEntity());
+        return buildHttpClient(networkSettingsProvider.load());
     }
 
     /**
-     * A megadott proxy-, hitelesítési, timeout- és TLS/truststore-beállításokból konfigurált {@link java.net.http.HttpClient} példányt épít. Hibás TLS-konfiguráció esetén nem nyeli el a problémát, hanem konfigurációs hibát jelez.
+     * A megadott általános proxy-, hitelesítési, timeout- és TLS/truststore-beállításokból a korábban bevált JDK {@link java.net.http.HttpClient} példányt épít. A proxy hitelesítését a {@link java.net.Authenticator} kezeli; interaktív Kerberos/JAAS bejelentkezést nem indít.
      *
      * @param settings az aktuális proxy/TLS beállítások
      * @return a művelet eredménye
@@ -95,8 +117,6 @@ public class GitHubApiClient {
                 .connectTimeout(safeTimeout(properties.getRequestTimeout()));
 
         try {
-            // A GitHub kliens soha ne essen vissza a JVM globális (M2M) proxyjára.
-            builder.proxy(noProxySelector());
             if (settings != null && settings.isEnabled() && settings.getProxyUrl() != null && !settings.getProxyUrl().isBlank()) {
                 String host = normalizeProxyHost(settings.getProxyUrl());
                 int port = settings.getProxyPort() == null ? 0 : settings.getProxyPort();
@@ -115,58 +135,28 @@ public class GitHubApiClient {
                                     return new PasswordAuthentication(settings.getUsername(), settings.getPassword().toCharArray());
                                 }
                             });
-                            LOGGER.info("GitHub schema updater HTTP proxy authentication enabled for user '{}'.", settings.getUsername());
+                            LOGGER.info("GitHub schema updater JDK HttpClient proxyhitelesítést használ.");
+                            LOGGER.debug("GitHub schema updater proxyhitelesítési részletek: username={}", settings.getUsername());
                         } else {
-                            LOGGER.warn("GitHub proxy username is configured, but no proxy password is stored; the connection will be attempted without proxy authentication.");
+                            LOGGER.warn("A GitHub proxyhitelesítés nincs teljesen konfigurálva; a kapcsolat proxyhitelesítés nélkül kerül megkísérlésre.");
                         }
                     } else {
-                        LOGGER.info("GitHub proxy username is empty; the connection will be attempted without proxy authentication.");
+                        LOGGER.info("GitHub proxyhitelesítés nincs konfigurálva; a kapcsolat proxyhitelesítés nélkül kerül megkísérlésre.");
                     }
-                    LOGGER.info("GitHub schema updater HTTP proxy enabled from SYSTEM_CONFIGURATION/SYSTEM_SECRET: {}:{}", host, port);
+                    LOGGER.info("GitHub schema updater az általános HTTP proxy beállítást használja.");
+                    LOGGER.debug("GitHub schema updater proxy részletek: host={}, port={}", host, port);
                 }
             }
             SSLContext sslContext = buildSslContext(settings);
             if (sslContext != null) {
                 builder.sslContext(sslContext);
-                LOGGER.info("GitHub schema updater custom TLS settings enabled from SYSTEM_CONFIGURATION/SYSTEM_SECRET.");
+                LOGGER.info("GitHub schema updater az általános TLS/truststore beállítást használja.");
             }
         } catch (Exception ex) {
             LOGGER.warn("GitHub schema updater proxy/TLS settings could not be applied. Direct HTTP client will be used. Cause: {}", ex.getMessage());
         }
 
         return builder.build();
-    }
-
-    /**
-     * Olyan ProxySelector példányt hoz létre, amely minden URI-hoz közvetlen kapcsolatot választ. Ezzel a GitHub kliens megakadályozza, hogy konfigurált GitHub-proxy hiányában a JVM globális, más integrációhoz tartozó proxyjára essen vissza.
-     *
-     * @return a művelet eredménye
-     */
-    private ProxySelector noProxySelector() {
-        return new ProxySelector() {
-            /**
-             * Minden cél URI esetén kizárólag a {@link java.net.Proxy#NO_PROXY} közvetlen kapcsolatot adja vissza.
-             *
-             * @param uri a művelethez átadott {@code uri} érték
-             * @return a művelet eredménye
-             */
-            @Override
-            public List<Proxy> select(URI uri) {
-                return List.of(Proxy.NO_PROXY);
-            }
-
-            /**
-             * A közvetlen GitHub kapcsolat sikertelenségét debug szinten naplózza az URI, socket cím és hibaüzenet megadásával; alternatív proxyt nem választ.
-             *
-             * @param uri a művelethez átadott {@code uri} érték
-             * @param sa a művelethez átadott {@code sa} érték
-             * @param ioe a művelethez átadott {@code ioe} érték
-             */
-            @Override
-            public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
-                LOGGER.debug("Direct GitHub kapcsolat sikertelen. uri={}, address={}, reason={}", uri, sa, ioe == null ? "" : ioe.getMessage());
-            }
-        };
     }
 
     /**
@@ -357,6 +347,34 @@ public class GitHubApiClient {
         return tags;
     }
 
+    /** Közvetlenül lekéri a catalog repository content/artifact-catalog.xml állományát. */
+    public String fetchArtifactCatalogXml() throws IOException, InterruptedException {
+        String template = StringUtils.hasText(properties.getCatalogXmlUrlTemplate())
+                ? properties.getCatalogXmlUrlTemplate()
+                : "https://raw.githubusercontent.com/{owner}/{repo}/{branch}/content/artifact-catalog.xml";
+        String url = template
+                .replace("{owner}", encodePathSegment(properties.getOrganization()))
+                .replace("{repo}", encodePathSegment(properties.getCatalogRepository()))
+                .replace("{branch}", encodePathSegment(properties.getCatalogBranch()));
+        URI uri = URI.create(url);
+        HttpResponse<String> response = sendStringWithRateLimit(() -> {
+            HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
+                    .timeout(safeTimeout(properties.getRequestTimeout()))
+                    .header("Accept", "application/xml,text/xml,*/*")
+                    .header("User-Agent", "M2M-XML-EDITOR")
+                    .GET();
+            if (properties.hasToken()) builder.header("Authorization", "Bearer " + properties.getToken());
+            return builder.build();
+        }, "GitHub artifact catalog download", properties.getCatalogRepository());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("Az artifact-catalog.xml letöltése sikertelen: HTTP " + response.statusCode());
+        }
+        LOGGER.info("GitHub artifact catalog downloaded: repository={}, branch={}, bytes={}",
+                properties.getCatalogRepository(), properties.getCatalogBranch(),
+                response.body() == null ? 0 : response.body().getBytes(StandardCharsets.UTF_8).length);
+        return response.body();
+    }
+
     /**
      * Downloads a repository tag archive according to the configured download mode.
      *
@@ -536,7 +554,8 @@ public class GitHubApiClient {
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             HttpRequest request = requestFactory.get();
             try {
-                lastResponse = currentHttpClient().send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                GitHubProxySettings settings = networkSettingsProvider.load();
+                lastResponse = sendStringWithAutomaticProxyAuthentication(request, settings);
             } catch (IOException ex) {
                 throw detailedTransportException(ex, request, operation, subject, attempt, maxAttempts);
             }
@@ -566,7 +585,8 @@ public class GitHubApiClient {
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             HttpRequest request = requestFactory.get();
             try {
-                lastResponse = currentHttpClient().send(request, HttpResponse.BodyHandlers.ofInputStream());
+                GitHubProxySettings settings = networkSettingsProvider.load();
+                lastResponse = sendStreamWithAutomaticProxyAuthentication(request, settings);
             } catch (IOException ex) {
                 throw detailedTransportException(ex, request, operation, subject, attempt, maxAttempts);
             }
@@ -579,6 +599,599 @@ public class GitHubApiClient {
         return lastResponse;
     }
 
+    /**
+     * A proxyhitelesítést automatikusan kezeli. Elsőként a platformfüggetlen JDK kliens fut.
+     * Csak HTTP 407 válasz esetén olvassa ki a proxy által meghirdetett hitelesítési sémákat,
+     * majd egyszer próbálkozik explicit felhasználónév/jelszó alapú NTLM/Digest/Basic hitelesítéssel,
+     * végül Windows alatt egyszer az aktuális Windows biztonsági kontextussal Negotiate/NTLM módban.
+     * Egyetlen hitelesítési út sem ismétlődik korlátlanul.
+     */
+    private HttpResponse<String> sendStringWithAutomaticProxyAuthentication(HttpRequest request,
+                                                                             GitHubProxySettings settings)
+            throws IOException, InterruptedException {
+        HttpResponse<String> response;
+        Optional<ProxyAuthCacheEntry> cached = cachedProxyAuth(settings);
+        if (cached.isPresent()) {
+            response = sendStringWithCachedProxyAuthentication(request, settings, cached.get());
+            if (response.statusCode() != 407) {
+                return response;
+            }
+            invalidateProxyAuthCache(cached.get(), settings);
+            LOGGER.info("A korábban bevált GitHub proxy-auth stratégia ismét 407 választ kapott; az auth capability újrafelderítése következik.");
+        } else {
+            response = buildHttpClient(settings).send(
+                    request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 407 || !isProxyEnabled(settings)) {
+                if (isProxyEnabled(settings)) {
+                    rememberProxyAuth(settings, ProxyAuthStrategy.JDK, ProxyAuthCapabilities.none());
+                }
+                return response;
+            }
+        }
+
+        ProxyAuthCapabilities capabilities = proxyAuthCapabilities(response.headers());
+        logProxyAuthenticationChallenge(settings, capabilities);
+
+        if (hasExplicitProxyCredentials(settings) && capabilities.supportsExplicitCredentials()) {
+            HttpResponse<String> explicitResponse = sendExplicitProxyString(request, settings, capabilities);
+            if (explicitResponse.statusCode() != 407) {
+                rememberProxyAuth(settings, ProxyAuthStrategy.EXPLICIT, capabilities);
+                return explicitResponse;
+            }
+            response = explicitResponse;
+            LOGGER.warn("A proxy elutasította a konfigurált felhasználónév/jelszó alapú hitelesítést; Windows-integrált fallback vizsgálata következik.");
+        }
+
+        if (capabilities.supportsWindowsIntegrated() && canUseWindowsIntegratedProxy()) {
+            HttpResponse<String> windowsResponse = sendWindowsIntegratedString(request, settings, capabilities);
+            if (windowsResponse.statusCode() != 407) {
+                rememberProxyAuth(settings, ProxyAuthStrategy.WINDOWS_INTEGRATED, capabilities);
+                return windowsResponse;
+            }
+            response = windowsResponse;
+        }
+        return response;
+    }
+
+    /**
+     * Az automatikus proxyhitelesítés streamelt válaszokra alkalmazott változata.
+     */
+    private HttpResponse<InputStream> sendStreamWithAutomaticProxyAuthentication(HttpRequest request,
+                                                                                  GitHubProxySettings settings)
+            throws IOException, InterruptedException {
+        HttpResponse<InputStream> response;
+        Optional<ProxyAuthCacheEntry> cached = cachedProxyAuth(settings);
+        if (cached.isPresent()) {
+            response = sendStreamWithCachedProxyAuthentication(request, settings, cached.get());
+            if (response.statusCode() != 407) {
+                return response;
+            }
+            ProxyAuthCapabilities refreshedCapabilities = proxyAuthCapabilities(response.headers());
+            closeQuietly(response.body());
+            invalidateProxyAuthCache(cached.get(), settings);
+            LOGGER.info("A korábban bevált GitHub proxy-auth stratégia ismét 407 választ kapott; az auth capability újrafelderítése következik.");
+            response = new SimpleHttpResponse<>(request, 407, response.headers(), InputStream.nullInputStream());
+            if (!refreshedCapabilities.isEmpty()) {
+                return retryStreamAfterProxyChallenge(request, settings, response, refreshedCapabilities);
+            }
+        } else {
+            response = buildHttpClient(settings).send(
+                    request, HttpResponse.BodyHandlers.ofInputStream());
+            if (response.statusCode() != 407 || !isProxyEnabled(settings)) {
+                if (isProxyEnabled(settings)) {
+                    rememberProxyAuth(settings, ProxyAuthStrategy.JDK, ProxyAuthCapabilities.none());
+                }
+                return response;
+            }
+        }
+
+        ProxyAuthCapabilities capabilities = proxyAuthCapabilities(response.headers());
+        closeQuietly(response.body());
+        return retryStreamAfterProxyChallenge(request, settings, response, capabilities);
+    }
+
+    private HttpResponse<InputStream> retryStreamAfterProxyChallenge(HttpRequest request,
+                                                                      GitHubProxySettings settings,
+                                                                      HttpResponse<InputStream> response,
+                                                                      ProxyAuthCapabilities capabilities)
+            throws IOException {
+        logProxyAuthenticationChallenge(settings, capabilities);
+
+        boolean tryExplicit = hasExplicitProxyCredentials(settings) && capabilities.supportsExplicitCredentials();
+        boolean tryWindows = capabilities.supportsWindowsIntegrated() && canUseWindowsIntegratedProxy();
+        if (!tryExplicit && !tryWindows) {
+            return response;
+        }
+
+        if (tryExplicit) {
+            HttpResponse<InputStream> explicitResponse = sendExplicitProxyStream(request, settings, capabilities);
+            if (explicitResponse.statusCode() != 407) {
+                rememberProxyAuth(settings, ProxyAuthStrategy.EXPLICIT, capabilities);
+                return explicitResponse;
+            }
+            response = explicitResponse;
+            if (!tryWindows) {
+                return response;
+            }
+            closeQuietly(explicitResponse.body());
+            LOGGER.warn("A proxy elutasította a konfigurált felhasználónév/jelszó alapú hitelesítést; Windows-integrált fallback vizsgálata következik.");
+        }
+
+        HttpResponse<InputStream> windowsResponse = sendWindowsIntegratedStream(request, settings, capabilities);
+        if (windowsResponse.statusCode() != 407) {
+            rememberProxyAuth(settings, ProxyAuthStrategy.WINDOWS_INTEGRATED, capabilities);
+        }
+        return windowsResponse;
+    }
+
+    private HttpResponse<String> sendStringWithCachedProxyAuthentication(HttpRequest request,
+                                                                          GitHubProxySettings settings,
+                                                                          ProxyAuthCacheEntry cached)
+            throws IOException, InterruptedException {
+        LOGGER.debug("GitHub proxy-auth cache találat: {}:{} stratégia={}",
+                cached.key().host(), cached.key().port(), cached.strategy());
+        return switch (cached.strategy()) {
+            case JDK -> buildHttpClient(settings).send(
+                    request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            case EXPLICIT -> sendExplicitProxyString(request, settings, cached.capabilities());
+            case WINDOWS_INTEGRATED -> sendWindowsIntegratedString(request, settings, cached.capabilities());
+        };
+    }
+
+    private HttpResponse<InputStream> sendStreamWithCachedProxyAuthentication(HttpRequest request,
+                                                                               GitHubProxySettings settings,
+                                                                               ProxyAuthCacheEntry cached)
+            throws IOException, InterruptedException {
+        LOGGER.debug("GitHub proxy-auth cache találat: {}:{} stratégia={}",
+                cached.key().host(), cached.key().port(), cached.strategy());
+        return switch (cached.strategy()) {
+            case JDK -> buildHttpClient(settings).send(
+                    request, HttpResponse.BodyHandlers.ofInputStream());
+            case EXPLICIT -> sendExplicitProxyStream(request, settings, cached.capabilities());
+            case WINDOWS_INTEGRATED -> sendWindowsIntegratedStream(request, settings, cached.capabilities());
+        };
+    }
+
+    private Optional<ProxyAuthCacheEntry> cachedProxyAuth(GitHubProxySettings settings) {
+        if (!isProxyEnabled(settings)) {
+            return Optional.empty();
+        }
+        ProxyAuthCacheKey key = proxyAuthCacheKey(settings);
+        ProxyAuthCacheEntry entry = proxyAuthCache.get();
+        if (entry == null || !entry.key().equals(key)) {
+            return Optional.empty();
+        }
+        return Optional.of(entry);
+    }
+
+    private void rememberProxyAuth(GitHubProxySettings settings,
+                                   ProxyAuthStrategy strategy,
+                                   ProxyAuthCapabilities capabilities) {
+        if (!isProxyEnabled(settings)) {
+            return;
+        }
+        ProxyAuthCacheEntry entry = new ProxyAuthCacheEntry(
+                proxyAuthCacheKey(settings), strategy, capabilities);
+        proxyAuthCache.set(entry);
+        LOGGER.info("GitHub proxy-auth stratégia megjegyezve ehhez a futáshoz: stratégia={}", strategy);
+        LOGGER.debug("GitHub proxy-auth cache részletek: host={}, port={}, username={}, stratégia={}",
+                entry.key().host(), entry.key().port(), entry.key().username(), strategy);
+    }
+
+    private void invalidateProxyAuthCache(ProxyAuthCacheEntry expected, GitHubProxySettings settings) {
+        proxyAuthCache.compareAndSet(expected, null);
+        LOGGER.debug("GitHub proxy-auth cache törölve: {}:{}",
+                normalizeProxyHost(settings.getProxyUrl()), settings.getProxyPort());
+    }
+
+    private ProxyAuthCacheKey proxyAuthCacheKey(GitHubProxySettings settings) {
+        return new ProxyAuthCacheKey(
+                normalizeProxyHost(settings.getProxyUrl()),
+                settings.getProxyPort() == null ? 0 : settings.getProxyPort(),
+                StringUtils.hasText(settings.getUsername()) ? settings.getUsername().trim() : "",
+                hasExplicitProxyCredentials(settings));
+    }
+
+    private boolean isProxyEnabled(GitHubProxySettings settings) {
+        return settings != null
+                && settings.isEnabled()
+                && StringUtils.hasText(settings.getProxyUrl())
+                && settings.getProxyPort() != null
+                && settings.getProxyPort() > 0;
+    }
+
+    private boolean hasExplicitProxyCredentials(GitHubProxySettings settings) {
+        return settings != null
+                && StringUtils.hasText(settings.getUsername())
+                && StringUtils.hasText(settings.getPassword());
+    }
+
+    /**
+     * A HTTP 407 válasz Proxy-Authenticate fejléceiből meghatározza a ténylegesen támogatott sémákat.
+     */
+    private ProxyAuthCapabilities proxyAuthCapabilities(HttpHeaders headers) {
+        String combined = String.join(",", headers.allValues("Proxy-Authenticate"))
+                .toLowerCase(java.util.Locale.ROOT);
+        return new ProxyAuthCapabilities(
+                combined.contains("negotiate"),
+                combined.contains("ntlm"),
+                combined.contains("digest"),
+                combined.contains("basic"));
+    }
+
+    private void logProxyAuthenticationChallenge(GitHubProxySettings settings,
+                                                  ProxyAuthCapabilities capabilities) {
+        String host = normalizeProxyHost(settings.getProxyUrl());
+        LOGGER.info("GitHub proxy HTTP 407 választ adott; támogatott auth sémák: {}. Automatikus hitelesítés indul.",
+                capabilities.summary());
+        LOGGER.debug("GitHub proxy 407 részletek: host={}, port={}", host, settings.getProxyPort());
+    }
+
+    /**
+     * Explicit proxy credentialdel használható Apache HTTP klienst épít. A kliens csak a proxy által
+     * meghirdetett NTLM, Digest és Basic sémák közül próbálkozik, ebben a sorrendben.
+     */
+    private CloseableHttpClient buildExplicitProxyHttpClient(GitHubProxySettings settings,
+                                                               ProxyAuthCapabilities capabilities) throws Exception {
+        String host = normalizeProxyHost(settings.getProxyUrl());
+        int port = settings.getProxyPort() == null ? 0 : settings.getProxyPort();
+        if (!StringUtils.hasText(host) || port <= 0) {
+            throw new IOException("Érvénytelen proxy host vagy port az explicit GitHub proxyhitelesítéshez.");
+        }
+
+        BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        UsernamePasswordCredentials userPassword = new UsernamePasswordCredentials(
+                settings.getUsername(), settings.getPassword());
+        if (capabilities.digest()) {
+            credentialsProvider.setCredentials(
+                    new AuthScope(host, port, AuthScope.ANY_REALM, AuthSchemes.DIGEST), userPassword);
+        }
+        if (capabilities.basic()) {
+            credentialsProvider.setCredentials(
+                    new AuthScope(host, port, AuthScope.ANY_REALM, AuthSchemes.BASIC), userPassword);
+        }
+        if (capabilities.ntlm()) {
+            credentialsProvider.setCredentials(
+                    new AuthScope(host, port, AuthScope.ANY_REALM, AuthSchemes.NTLM), ntCredentials(settings));
+        }
+
+        List<String> preferredSchemes = new ArrayList<>();
+        if (capabilities.ntlm()) preferredSchemes.add(AuthSchemes.NTLM);
+        if (capabilities.digest()) preferredSchemes.add(AuthSchemes.DIGEST);
+        if (capabilities.basic()) preferredSchemes.add(AuthSchemes.BASIC);
+
+        int timeoutMs = durationToMillis(safeTimeout(properties.getRequestTimeout()));
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(timeoutMs)
+                .setConnectionRequestTimeout(timeoutMs)
+                .setSocketTimeout(timeoutMs)
+                .setProxyPreferredAuthSchemes(preferredSchemes)
+                .build();
+
+        org.apache.http.impl.client.HttpClientBuilder builder = HttpClients.custom()
+                .setProxy(new HttpHost(host, port, "http"))
+                .setDefaultCredentialsProvider(credentialsProvider)
+                .setDefaultRequestConfig(requestConfig)
+                .disableAutomaticRetries();
+
+        SSLContext sslContext = buildSslContext(settings);
+        if (sslContext != null) {
+            builder.setSSLContext(sslContext);
+        }
+        LOGGER.info("GitHub proxy explicit credential próbálkozás indul; sémák={}", preferredSchemes);
+        LOGGER.debug("GitHub proxy explicit credential részletek: host={}, port={}, username={}",
+                host, port, settings.getUsername());
+        return builder.build();
+    }
+
+    private NTCredentials ntCredentials(GitHubProxySettings settings) {
+        String configured = settings.getUsername().trim();
+        String user = configured;
+        String domain = null;
+        int slash = configured.indexOf('\\');
+        if (slash > 0 && slash < configured.length() - 1) {
+            domain = configured.substring(0, slash);
+            user = configured.substring(slash + 1);
+        } else {
+            int at = configured.lastIndexOf('@');
+            if (at > 0 && at < configured.length() - 1) {
+                user = configured.substring(0, at);
+                domain = configured.substring(at + 1);
+            }
+        }
+        String workstation = System.getenv("COMPUTERNAME");
+        return new NTCredentials(user, settings.getPassword(),
+                StringUtils.hasText(workstation) ? workstation : null, domain);
+    }
+
+    private HttpResponse<String> sendExplicitProxyString(HttpRequest request,
+                                                          GitHubProxySettings settings,
+                                                          ProxyAuthCapabilities capabilities) throws IOException {
+        try (CloseableHttpClient client = buildExplicitProxyHttpClient(settings, capabilities);
+             CloseableHttpResponse response = executeApacheRequest(client, request)) {
+            String body = response.getEntity() == null
+                    ? ""
+                    : EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+            return new SimpleHttpResponse<>(request, response.getStatusLine().getStatusCode(),
+                    toJdkHeaders(response.getAllHeaders()), body);
+        } catch (IOException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new IOException("Explicit GitHub proxyhitelesítés sikertelen: " + ex.getMessage(), ex);
+        }
+    }
+
+    private HttpResponse<InputStream> sendExplicitProxyStream(HttpRequest request,
+                                                               GitHubProxySettings settings,
+                                                               ProxyAuthCapabilities capabilities) throws IOException {
+        CloseableHttpClient client = null;
+        CloseableHttpResponse response = null;
+        try {
+            client = buildExplicitProxyHttpClient(settings, capabilities);
+            response = executeApacheRequest(client, request);
+            InputStream raw = response.getEntity() == null
+                    ? InputStream.nullInputStream()
+                    : response.getEntity().getContent();
+            InputStream body = new ManagedApacheInputStream(raw, response, client);
+            return new SimpleHttpResponse<>(request, response.getStatusLine().getStatusCode(),
+                    toJdkHeaders(response.getAllHeaders()), body);
+        } catch (Exception ex) {
+            if (response != null) {
+                try { response.close(); } catch (IOException ignored) { }
+            }
+            if (client != null) {
+                try { client.close(); } catch (IOException ignored) { }
+            }
+            if (ex instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw new IOException("Explicit GitHub proxyhitelesítés sikertelen: " + ex.getMessage(), ex);
+        }
+    }
+
+    private boolean canUseWindowsIntegratedProxy() {
+        String osName = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+        if (!osName.contains("win")) {
+            return false;
+        }
+        try {
+            return WinHttpClients.isWinAuthAvailable();
+        } catch (LinkageError ex) {
+            LOGGER.error("A Windows SSPI proxyhitelesítéshez szükséges JNA/httpclient-win binárisan nem kompatibilis: {}",
+                    ex.toString());
+            return false;
+        }
+    }
+
+    /**
+     * Windows SSPI támogatású HTTP klienst készít. Ezt csak akkor használjuk, ha a proxy 407 válaszában
+     * Negotiate vagy NTLM sémát hirdetett meg és az explicit credential próbálkozás nem oldotta meg a kapcsolatot.
+     * A kliens az aktuális Windows process/service identitását használja, interaktív Kerberos prompt nélkül.
+     */
+    private CloseableHttpClient buildWindowsIntegratedHttpClient(GitHubProxySettings settings,
+                                                                   ProxyAuthCapabilities capabilities) throws Exception {
+        String host = normalizeProxyHost(settings.getProxyUrl());
+        int port = settings.getProxyPort() == null ? 0 : settings.getProxyPort();
+        if (!StringUtils.hasText(host) || port <= 0) {
+            throw new IOException("Érvénytelen proxy host vagy port a Windows-integrált GitHub kapcsolathoz.");
+        }
+
+        BasicCredentialsProvider fallbackCredentials = new BasicCredentialsProvider();
+        if (hasExplicitProxyCredentials(settings)) {
+            fallbackCredentials.setCredentials(
+                    new AuthScope(host, port),
+                    new UsernamePasswordCredentials(settings.getUsername(), settings.getPassword()));
+        }
+        WindowsCredentialsProvider credentialsProvider = new WindowsCredentialsProvider(fallbackCredentials);
+
+        List<String> preferredSchemes = new ArrayList<>();
+        if (capabilities.negotiate()) preferredSchemes.add(AuthSchemes.SPNEGO);
+        if (capabilities.ntlm()) preferredSchemes.add(AuthSchemes.NTLM);
+
+        int timeoutMs = durationToMillis(safeTimeout(properties.getRequestTimeout()));
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(timeoutMs)
+                .setConnectionRequestTimeout(timeoutMs)
+                .setSocketTimeout(timeoutMs)
+                .setProxyPreferredAuthSchemes(preferredSchemes)
+                .build();
+
+        org.apache.http.impl.client.HttpClientBuilder builder = WinHttpClients.custom()
+                .setProxy(new HttpHost(host, port, "http"))
+                .setDefaultCredentialsProvider(credentialsProvider)
+                .setDefaultRequestConfig(requestConfig)
+                .disableAutomaticRetries();
+
+        SSLContext sslContext = buildSslContext(settings);
+        if (sslContext != null) {
+            builder.setSSLContext(sslContext);
+        }
+
+        LOGGER.info("GitHub proxy Windows-integrált fallback indul; sémák={}; process/service Windows credential használatával.",
+                preferredSchemes);
+        LOGGER.debug("GitHub proxy Windows-integrált fallback részletek: host={}, port={}", host, port);
+        return builder.build();
+    }
+
+    private HttpResponse<String> sendWindowsIntegratedString(HttpRequest request,
+                                                              GitHubProxySettings settings,
+                                                              ProxyAuthCapabilities capabilities) throws IOException {
+        try (CloseableHttpClient client = buildWindowsIntegratedHttpClient(settings, capabilities);
+             CloseableHttpResponse response = executeApacheRequest(client, request)) {
+            String body = response.getEntity() == null
+                    ? ""
+                    : EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+            return new SimpleHttpResponse<>(request, response.getStatusLine().getStatusCode(),
+                    toJdkHeaders(response.getAllHeaders()), body);
+        } catch (LinkageError ex) {
+            throw new IOException("Windows SSPI/JNA proxyhitelesítés bináris kompatibilitási hibába futott: "
+                    + ex.getMessage(), ex);
+        } catch (IOException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new IOException("Windows SSPI GitHub proxykapcsolat sikertelen: " + ex.getMessage(), ex);
+        }
+    }
+
+    private HttpResponse<InputStream> sendWindowsIntegratedStream(HttpRequest request,
+                                                                   GitHubProxySettings settings,
+                                                                   ProxyAuthCapabilities capabilities) throws IOException {
+        CloseableHttpClient client = null;
+        CloseableHttpResponse response = null;
+        try {
+            client = buildWindowsIntegratedHttpClient(settings, capabilities);
+            response = executeApacheRequest(client, request);
+            InputStream raw = response.getEntity() == null
+                    ? InputStream.nullInputStream()
+                    : response.getEntity().getContent();
+            InputStream body = new ManagedApacheInputStream(raw, response, client);
+            return new SimpleHttpResponse<>(request, response.getStatusLine().getStatusCode(),
+                    toJdkHeaders(response.getAllHeaders()), body);
+        } catch (LinkageError ex) {
+            if (response != null) {
+                try { response.close(); } catch (IOException ignored) { }
+            }
+            if (client != null) {
+                try { client.close(); } catch (IOException ignored) { }
+            }
+            throw new IOException("Windows SSPI/JNA proxyhitelesítés bináris kompatibilitási hibába futott: "
+                    + ex.getMessage(), ex);
+        } catch (Exception ex) {
+            if (response != null) {
+                try { response.close(); } catch (IOException ignored) { }
+            }
+            if (client != null) {
+                try { client.close(); } catch (IOException ignored) { }
+            }
+            if (ex instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw new IOException("Windows SSPI GitHub proxykapcsolat sikertelen: " + ex.getMessage(), ex);
+        }
+    }
+
+    private CloseableHttpResponse executeApacheRequest(CloseableHttpClient client, HttpRequest request) throws IOException {
+        HttpGet get = new HttpGet(request.uri());
+        request.headers().map().forEach((name, values) -> {
+            for (String value : values) {
+                get.addHeader(name, value);
+            }
+        });
+        return client.execute(get);
+    }
+
+    private HttpHeaders toJdkHeaders(Header[] apacheHeaders) {
+        Map<String, List<String>> headers = new LinkedHashMap<>();
+        if (apacheHeaders != null) {
+            for (Header header : apacheHeaders) {
+                headers.computeIfAbsent(header.getName(), ignored -> new ArrayList<>()).add(header.getValue());
+            }
+        }
+        return HttpHeaders.of(headers, (name, value) -> true);
+    }
+
+    private record ProxyAuthCapabilities(boolean negotiate, boolean ntlm, boolean digest, boolean basic) {
+        static ProxyAuthCapabilities none() {
+            return new ProxyAuthCapabilities(false, false, false, false);
+        }
+
+        boolean isEmpty() {
+            return !negotiate && !ntlm && !digest && !basic;
+        }
+
+        boolean supportsExplicitCredentials() {
+            return ntlm || digest || basic;
+        }
+
+        boolean supportsWindowsIntegrated() {
+            return negotiate || ntlm;
+        }
+
+        String summary() {
+            List<String> schemes = new ArrayList<>();
+            if (negotiate) schemes.add("Negotiate");
+            if (ntlm) schemes.add("NTLM");
+            if (digest) schemes.add("Digest");
+            if (basic) schemes.add("Basic");
+            return schemes.isEmpty() ? "ismeretlen/nincs" : String.join(", ", schemes);
+        }
+    }
+
+    private int durationToMillis(Duration duration) {
+        long millis = duration == null ? 60_000L : duration.toMillis();
+        if (millis <= 0L) return 60_000;
+        return (int) Math.min(Integer.MAX_VALUE, millis);
+    }
+
+    private enum ProxyAuthStrategy {
+        JDK,
+        EXPLICIT,
+        WINDOWS_INTEGRATED
+    }
+
+    private record ProxyAuthCacheKey(String host, int port, String username, boolean explicitCredentials) { }
+
+    private record ProxyAuthCacheEntry(ProxyAuthCacheKey key,
+                                       ProxyAuthStrategy strategy,
+                                       ProxyAuthCapabilities capabilities) { }
+
+    private static final class ManagedApacheInputStream extends FilterInputStream {
+        private final CloseableHttpResponse response;
+        private final CloseableHttpClient client;
+        private boolean closed;
+
+        private ManagedApacheInputStream(InputStream input, CloseableHttpResponse response, CloseableHttpClient client) {
+            super(input);
+            this.response = response;
+            this.client = client;
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (closed) return;
+            closed = true;
+            IOException failure = null;
+            try {
+                super.close();
+            } catch (IOException ex) {
+                failure = ex;
+            }
+            try {
+                response.close();
+            } catch (IOException ex) {
+                if (failure == null) failure = ex;
+            }
+            try {
+                client.close();
+            } catch (IOException ex) {
+                if (failure == null) failure = ex;
+            }
+            if (failure != null) throw failure;
+        }
+    }
+
+    private static final class SimpleHttpResponse<T> implements HttpResponse<T> {
+        private final HttpRequest request;
+        private final int statusCode;
+        private final HttpHeaders headers;
+        private final T body;
+
+        private SimpleHttpResponse(HttpRequest request, int statusCode, HttpHeaders headers, T body) {
+            this.request = request;
+            this.statusCode = statusCode;
+            this.headers = headers;
+            this.body = body;
+        }
+
+        @Override public int statusCode() { return statusCode; }
+        @Override public HttpRequest request() { return request; }
+        @Override public Optional<HttpResponse<T>> previousResponse() { return Optional.empty(); }
+        @Override public HttpHeaders headers() { return headers; }
+        @Override public T body() { return body; }
+        @Override public Optional<SSLSession> sslSession() { return Optional.empty(); }
+        @Override public URI uri() { return request.uri(); }
+        @Override public HttpClient.Version version() { return HttpClient.Version.HTTP_1_1; }
+    }
 
 
     /**
@@ -715,6 +1328,10 @@ public class GitHubApiClient {
                 headers.firstValue("retry-after").orElse(""),
                 headers.firstValue("github-authentication-token-expiration").orElse(""),
                 headers.firstValue("x-github-request-id").orElse(""));
+        if (response.statusCode() == 407) {
+            LOGGER.warn("A proxy hitelesítést kér a GitHub kapcsolathoz. Proxy-Authenticate={}",
+                    sanitizeForLog(headers.firstValue("proxy-authenticate").orElse("")));
+        }
     }
 
     /**

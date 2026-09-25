@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FlywayH2MigrationIntegrationTest {
 
-    private static final int EXPECTED_LATEST_VERSION = 29;
+    private static final int EXPECTED_LATEST_VERSION = 30;
 
     @Test
     void allH2MigrationsMustRunAndCreateCurrentSchema() throws Exception {
@@ -49,6 +49,11 @@ class FlywayH2MigrationIntegrationTest {
             assertColumnExists(connection, "XML_FILE", "PARTNER_ID");
             assertColumnExists(connection, "XML_FILE", "PARTNER_IMPORT_STATUS");
             assertColumnExists(connection, "XML_FILE", "PARTNER_IMPORT_MESSAGE");
+            assertColumnExists(connection, "GITHUB_TEMPLATE_RELEASE", "FORM_NAME");
+            assertColumnExists(connection, "GITHUB_TEMPLATE_RELEASE", "VALID_FROM");
+            assertColumnExists(connection, "GITHUB_TEMPLATE_RELEASE", "VALID_TO");
+            assertColumnExists(connection, "GITHUB_TEMPLATE_RELEASE", "DISABLED_FLAG");
+            assertColumnExists(connection, "GITHUB_TEMPLATE_RELEASE", "LOCAL_IMPORTED_FLAG");
             assertColumnMissing(connection, "APP_USER", "AUTHENTICATION_SOURCE");
         }
     }

@@ -5,6 +5,7 @@ import hu.gov.nav.xsdparsertool.core.support.ExceptionSafeOperations;
 import hu.gov.nav.xsdparsertool.web.githubupdater.support.RepositoryAccess;
 
 import hu.gov.nav.xsdparsertool.web.githubupdater.config.GitHubSchemaUpdaterProperties;
+import hu.gov.nav.xsdparsertool.web.githubupdater.config.GitHubCatalogSourceMode;
 import hu.gov.nav.xsdparsertool.web.githubupdater.domain.GitHubTemplateRelease;
 import hu.gov.nav.xsdparsertool.web.githubupdater.domain.GitHubTemplateRepository;
 import hu.gov.nav.xsdparsertool.web.githubupdater.domain.GitHubTemplateSyncState;
@@ -23,6 +24,7 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -45,6 +47,7 @@ public class GitHubTemplateCatalogService {
     private static final String XPATH_RULE_DIR = "nav.xsdparsertool.xpath-validator.rule-root-dir";
     private static final String XSL_ROOT_DIR = "nav.xsdparsertool.xpath-validator.xsl-root-dir";
     private static final String FULL_CHECK_CORE_PUBLIC_XSL = "full_check_core_public.xsl";
+    private static final String INSTALLATION_MARKER_FILE = ".m2m-installation-complete";
     private static final long SYNC_STATE_ID = 1L;
     private static final Duration INSPECTION_CACHE_DURATION = Duration.ofMinutes(5);
 
@@ -57,6 +60,8 @@ public class GitHubTemplateCatalogService {
     private final GitHubTemplateReleaseRepository releaseStore;
     private final GitHubTemplateSyncStateRepository syncStateStore;
     private final GitHubTemplateCatalogPersistenceService persistenceService;
+    private final ArtifactCatalogParser artifactCatalogParser;
+
 
     private volatile Inspection latestInspection;
     private volatile GitHubTemplateCatalogDtos.ChangeCheckResponse latestChangeCheck;
@@ -83,7 +88,8 @@ public class GitHubTemplateCatalogService {
                                         GitHubTemplateRepositoryRepository repositoryStore,
                                         GitHubTemplateReleaseRepository releaseStore,
                                         GitHubTemplateSyncStateRepository syncStateStore,
-                                        GitHubTemplateCatalogPersistenceService persistenceService) {
+                                        GitHubTemplateCatalogPersistenceService persistenceService,
+                                        ArtifactCatalogParser artifactCatalogParser) {
         this.apiClient = apiClient;
         this.updaterService = updaterService;
         this.properties = properties;
@@ -93,6 +99,7 @@ public class GitHubTemplateCatalogService {
         this.releaseStore = releaseStore;
         this.syncStateStore = syncStateStore;
         this.persistenceService = persistenceService;
+        this.artifactCatalogParser = artifactCatalogParser;
     }
 
     /**
@@ -107,6 +114,7 @@ public class GitHubTemplateCatalogService {
         List<GitHubTemplateCatalogDtos.TemplateRow> rows = new ArrayList<>();
         List<GitHubTemplateRepository> repositories = RepositoryAccess.findAll(repositoryStore).stream()
                 .filter(repo -> !repo.isArchived())
+                .filter(repo -> !repo.getRepositoryName().equalsIgnoreCase(properties.getCatalogRepository()))
                 .sorted(Comparator.comparing(GitHubTemplateRepository::getRepositoryUpdatedAt,
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
@@ -119,14 +127,14 @@ public class GitHubTemplateCatalogService {
             List<GitHubTemplateRelease> releases = new ArrayList<>(releaseStore.findByRepositoryNameOrderByReleaseTagAsc(repository.getRepositoryName()));
             releases.sort((left, right) -> versionComparator.reversed().compare(left.getReleaseTag(), right.getReleaseTag()));
             if (releases.isEmpty()) {
-                rows.add(toRow(repository, "", known));
+                rows.add(toRow(repository, null, known));
             } else {
-                for (GitHubTemplateRelease release : releases) rows.add(toRow(repository, release.getReleaseTag(), known));
+                for (GitHubTemplateRelease release : releases) rows.add(toRow(repository, release, known));
             }
         }
         GitHubTemplateSyncState state = RepositoryAccess.findById(syncStateStore, SYNC_STATE_ID).orElse(null);
         return new GitHubTemplateCatalogDtos.CatalogResponse(
-                properties.getOrganization(), properties.hasToken(), preferredOnly, includedRepositories, rows.size(),
+                properties.getOrganization(), properties.hasToken(), properties.getCatalogSourceMode().name(), preferredOnly, includedRepositories, rows.size(),
                 state == null ? null : state.getLastSuccessfulSyncAt(), state != null && state.getLastSuccessfulSyncAt() != null, rows);
     }
 
@@ -138,9 +146,13 @@ public class GitHubTemplateCatalogService {
      * @throws InterruptedException ha a művelet végrehajtása közben a jelzett hiba bekövetkezik
      */
     public synchronized GitHubTemplateCatalogDtos.ChangeCheckResponse checkForChanges() throws IOException, InterruptedException {
+        if (properties.getCatalogSourceMode() == GitHubCatalogSourceMode.CATALOG) {
+            return checkForCatalogChanges();
+        }
         requireToken("GitHub változásellenőrzés");
         List<GitHubApiClient.RepositorySummary> remote = apiClient.listOrganizationRepositorySummaries().stream()
                 .filter(repo -> !repo.archived())
+                .filter(repo -> !repo.name().equalsIgnoreCase(properties.getCatalogRepository()))
                 .toList();
         Map<String, GitHubTemplateRepository> local = new HashMap<>();
         RepositoryAccess.findAll(repositoryStore).forEach(repo -> local.put(repo.getRepositoryName(), repo));
@@ -156,15 +168,76 @@ public class GitHubTemplateCatalogService {
                 changed.add(repository);
             }
         }
-        List<String> removed = local.keySet().stream().filter(name -> !remoteNames.contains(name)).sorted().toList();
-        Instant checkedAt = Instant.now();
-        latestInspection = new Inspection(checkedAt, remote.size(), changed, removed);
-        updateLastChecked(checkedAt, remote.size());
+        List<String> removed = local.keySet().stream()
+                .filter(name -> !remoteNames.contains(name))
+                .filter(this::shouldRemoveMissingRepository)
+                .sorted().toList();
+        return finishInspection(remote.size(), changed, removed, null);
+    }
 
+    private GitHubTemplateCatalogDtos.ChangeCheckResponse checkForCatalogChanges() throws IOException, InterruptedException {
+        String xml = apiClient.fetchArtifactCatalogXml();
+        ArtifactCatalogParser.ArtifactCatalog catalog = artifactCatalogParser.parse(xml);
+        Map<String, GitHubTemplateRepository> local = new HashMap<>();
+        RepositoryAccess.findAll(repositoryStore).forEach(repo -> local.put(repo.getRepositoryName(), repo));
+        List<GitHubApiClient.RepositorySummary> changed = new ArrayList<>();
+        Set<String> remoteNames = new LinkedHashSet<>();
+        for (ArtifactCatalogParser.FormEntry form : catalog.forms()) {
+            remoteNames.add(form.formId());
+            if (catalogFormChanged(form, local.get(form.formId()))) {
+                changed.add(new GitHubApiClient.RepositorySummary(form.formId(), form.formName(), catalog.generatedAt(),
+                        repositoryUrl(form.formId()), false));
+            }
+        }
+        List<String> removed = local.keySet().stream()
+                .filter(name -> !isCommonRepository(name) && !isFullCheckCorePublicRepository(name))
+                .filter(name -> !name.equalsIgnoreCase(properties.getCatalogRepository()))
+                .filter(name -> !remoteNames.contains(name))
+                .filter(this::shouldRemoveMissingRepository)
+                .sorted().toList();
+        LOGGER.info("Artifact catalog change check completed: forms={}, changed={}, removed={}, generatedAt={}",
+                catalog.forms().size(), changed.size(), removed.size(), catalog.generatedAt());
+        return finishInspection(catalog.forms().size(), changed, removed, catalog);
+    }
+
+    private boolean shouldRemoveMissingRepository(String repositoryName) {
+        List<GitHubTemplateRelease> releases = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(repositoryName);
+        return releases.isEmpty() || releases.stream().anyMatch(release -> !release.isLocalImported());
+    }
+
+    private boolean catalogFormChanged(ArtifactCatalogParser.FormEntry form, GitHubTemplateRepository saved) {
+        if (saved == null || !Objects.equals(saved.getDescription(), form.formName())) return true;
+        List<GitHubTemplateRelease> releases = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(form.formId());
+        Map<String, GitHubTemplateRelease> localByTag = new HashMap<>();
+        releases.forEach(release -> localByTag.put(release.getReleaseTag(), release));
+        Set<String> remoteTags = form.versions().stream()
+                .map(ArtifactCatalogParser.VersionEntry::formVersion)
+                .collect(java.util.stream.Collectors.toSet());
+        if (releases.stream().anyMatch(release -> !release.isLocalImported() && !remoteTags.contains(release.getReleaseTag()))) {
+            return true;
+        }
+        for (ArtifactCatalogParser.VersionEntry version : form.versions()) {
+            GitHubTemplateRelease release = localByTag.get(version.formVersion());
+            if (release == null
+                    || !Objects.equals(release.getFormName(), form.formName())
+                    || !Objects.equals(release.getValidFrom(), version.validFrom())
+                    || !Objects.equals(release.getValidTo(), version.validTo())
+                    || release.isDisabled() != version.disabled()) return true;
+        }
+        return false;
+    }
+
+    private GitHubTemplateCatalogDtos.ChangeCheckResponse finishInspection(int repositoryCount,
+                                                                            List<GitHubApiClient.RepositorySummary> changed,
+                                                                            List<String> removed,
+                                                                            ArtifactCatalogParser.ArtifactCatalog catalog) {
+        Instant checkedAt = Instant.now();
+        latestInspection = new Inspection(checkedAt, repositoryCount, changed, removed, catalog);
+        updateLastChecked(checkedAt, repositoryCount);
         GitHubTemplateSyncState state = RepositoryAccess.findById(syncStateStore, SYNC_STATE_ID).orElse(null);
         boolean initialized = state != null && state.getLastSuccessfulSyncAt() != null;
         GitHubTemplateCatalogDtos.ChangeCheckResponse response = new GitHubTemplateCatalogDtos.ChangeCheckResponse(
-                properties.getOrganization(), initialized, !changed.isEmpty() || !removed.isEmpty(), remote.size(), changed.size(), removed.size(),
+                properties.getOrganization(), initialized, !changed.isEmpty() || !removed.isEmpty(), repositoryCount, changed.size(), removed.size(),
                 state == null ? null : state.getLastSuccessfulSyncAt(), checkedAt,
                 changed.stream().map(GitHubApiClient.RepositorySummary::name).toList(), removed);
         latestChangeCheck = response;
@@ -177,9 +250,9 @@ public class GitHubTemplateCatalogService {
      * @return a háttérfrissítés indításának eredménye
      */
     public synchronized GitHubTemplateCatalogDtos.RefreshStartResponse startRefresh() {
-        if (!properties.hasToken()) {
+        if (properties.getCatalogSourceMode() == GitHubCatalogSourceMode.GITHUB_API && !properties.hasToken()) {
             return new GitHubTemplateCatalogDtos.RefreshStartResponse(false,
-                    "A katalógusfrissítéshez GitHub token beállítása szükséges.");
+                    "A GitHub API alapú katalógusfrissítéshez GitHub token beállítása szükséges.");
         }
         if (progress.running) return new GitHubTemplateCatalogDtos.RefreshStartResponse(false, "A katalógus frissítése már folyamatban van.");
         progress = RefreshProgress.starting();
@@ -212,13 +285,22 @@ public class GitHubTemplateCatalogService {
 
             int processedChanged = 0;
             int releaseCount = 0;
+            Map<String, ArtifactCatalogParser.FormEntry> catalogForms = new HashMap<>();
+            if (inspection.catalog != null) inspection.catalog.forms().forEach(form -> catalogForms.put(form.formId(), form));
             for (GitHubApiClient.RepositorySummary repository : inspection.changed) {
                 progress = progress.processing(repository.name(), processedChanged, releaseCount);
-                List<String> tags = new ArrayList<>(apiClient.listRepositoryTags(repository.name()));
-                tags.sort(versionComparator.reversed());
-                saveRepositorySnapshot(repository, tags);
+                if (inspection.catalog != null) {
+                    ArtifactCatalogParser.FormEntry form = catalogForms.get(repository.name());
+                    if (form == null) throw new IllegalStateException("A katalógusbejegyzés nem található: " + repository.name());
+                    persistenceService.replaceCatalogSnapshot(form, inspection.catalog.generatedAt(), repositoryUrl(form.formId()));
+                    releaseCount += form.versions().size();
+                } else {
+                    List<String> tags = new ArrayList<>(apiClient.listRepositoryTags(repository.name()));
+                    tags.sort(versionComparator.reversed());
+                    saveRepositorySnapshot(repository, tags);
+                    releaseCount += tags.size();
+                }
                 processedChanged++;
-                releaseCount += tags.size();
                 progress = progress.processing(repository.name(), processedChanged, releaseCount);
             }
 
@@ -324,8 +406,8 @@ public class GitHubTemplateCatalogService {
 
 
     /**
-     * A kijelölt release-ek helyi fájljait törli, majd az érintett repository-k teljes lokális katalógus-snapshotját eltávolítja.
-     * Így a következő változásellenőrzés hiányzó repositoryként érzékeli őket, a katalógusfrissítés pedig újra felépíti a tageket.
+     * A kijelölt release-ek helyi fájljait és a hozzájuk tartozó lokális release-regisztrációt törli.
+     * A többi release és repository-metaadat változatlan marad.
      *
      * @param request a kijelölt repository/release párok
      * @return az eltávolítás összesített eredménye
@@ -342,11 +424,11 @@ public class GitHubTemplateCatalogService {
             if (item == null || !StringUtils.hasText(item.repository()) || !StringUtils.hasText(item.tag())) continue;
             repositories.add(item.repository());
             int count = updaterService.deleteLocalRelease(item.repository(), item.tag());
+            persistenceService.removeReleaseRegistration(item.repository(), item.tag());
             deletedFileSystemEntries += count;
             deletedReleases++;
             messages.add(item.repository() + " / " + item.tag() + ": " + count + " helyi bejegyzés törölve.");
         }
-        for (String repository : repositories) persistenceService.removeRepositorySnapshot(repository);
         latestInspection = null;
         latestChangeCheck = null;
         return new GitHubTemplateCatalogDtos.LocalDeleteResponse(
@@ -395,15 +477,80 @@ public class GitHubTemplateCatalogService {
 
         try (ZipOutputStream zip = new ZipOutputStream(output)) {
             Set<String> entries = new HashSet<>();
-            addFlatDirectoryTree(zip, entries, commonRoot, null);
-            addFormDirectory(zip, entries, schemaRoot, repositorySegment, legacyFormName, versionSegment, null);
-            addFormDirectory(zip, entries, uiModelRoot, repositorySegment, legacyFormName, versionSegment, null);
-            addFormDirectory(zip, entries, xpathRoot, repositorySegment, legacyFormName, versionSegment, null);
+            if (isCommonRepository(repositoryName)) {
+                addFlatDirectoryTree(zip, entries, commonRoot, null);
+            } else {
+                boolean markerResolved = addInstalledArtifactsFromMarker(
+                        zip, entries, schemaRoot, repositorySegment, releaseTag, versionSegment,
+                        List.of(schemaRoot, uiModelRoot, xpathRoot));
+                if (!markerResolved) {
+                    addFormDirectory(zip, entries, schemaRoot, repositorySegment, legacyFormName, versionSegment, null);
+                    addFormDirectory(zip, entries, uiModelRoot, repositorySegment, legacyFormName, versionSegment, null);
+                    addFormDirectory(zip, entries, xpathRoot, repositorySegment, legacyFormName, versionSegment, null);
+                }
+                if (entries.isEmpty()) {
+                    throw new IllegalStateException("A kiválasztott helyi release saját XSD/UIModel/XPath állományai nem találhatók: "
+                            + repositoryName + " / " + releaseTag);
+                }
+                // A helyi csomag lapos. Az űrlapsablon saját állományai elsőbbséget kapnak,
+                // majd a common készletből csak a még nem szereplő fájlneveket tesszük melléjük.
+                addFlatDirectoryTreeSkippingExisting(zip, entries, commonRoot);
+            }
             if (entries.isEmpty()) {
-                throw new IllegalStateException("A helyi csomaghoz nem található egyetlen releváns állomány sem: "
+                throw new IllegalStateException("A helyi csomaghoz nem található exportálható állomány: "
                         + repositoryName + " / " + releaseTag);
             }
         }
+    }
+
+
+    /**
+     * A release telepítési markeréből a ténylegesen telepített állományokat teszi a ZIP-be.
+     * Így a lokális csomag mindig a kiválasztott repository/release artefaktumait tartalmazza,
+     * és nem függ a célkönyvtárak elnevezési konvenciójától.
+     *
+     * @return {@code true}, ha létezett használható telepítési marker
+     */
+    private boolean addInstalledArtifactsFromMarker(ZipOutputStream zip, Set<String> entries,
+                                                     Path schemaRoot, String repository, String tag,
+                                                     String normalizedVersion, List<Path> allowedRoots) throws IOException {
+        Path releaseRoot = GitHubPathSafety.resolveInside(schemaRoot, repository, tag);
+        Path marker = releaseRoot.resolve(INSTALLATION_MARKER_FILE).toAbsolutePath().normalize();
+        if (!ExceptionSafeOperations.isRegularFile(marker) && StringUtils.hasText(normalizedVersion)) {
+            Path normalizedReleaseRoot = GitHubPathSafety.resolveInside(schemaRoot, repository, normalizedVersion);
+            Path normalizedMarker = normalizedReleaseRoot.resolve(INSTALLATION_MARKER_FILE).toAbsolutePath().normalize();
+            if (ExceptionSafeOperations.isRegularFile(normalizedMarker)) {
+                marker = normalizedMarker;
+            }
+        }
+        if (!ExceptionSafeOperations.isRegularFile(marker)) return false;
+
+        boolean added = false;
+        for (String line : Files.readAllLines(marker, StandardCharsets.UTF_8)) {
+            int separator = line.indexOf('=');
+            if (separator <= 0 || line.startsWith("installedAt=")) continue;
+            String rawPath = line.substring(separator + 1).trim();
+            if (!StringUtils.hasText(rawPath)) continue;
+            Path target = Path.of(rawPath).toAbsolutePath().normalize();
+            boolean allowed = allowedRoots.stream()
+                    .map(root -> root.toAbsolutePath().normalize())
+                    .anyMatch(target::startsWith);
+            if (!allowed || !ExceptionSafeOperations.isRegularFile(target)) continue;
+            addFile(zip, entries, target, target.getFileName().toString());
+            added = true;
+        }
+        return added;
+    }
+
+    /** Egyetlen lokális fájlt biztonságosan hozzáad a lapos export ZIP-hez. */
+    private void addFile(ZipOutputStream zip, Set<String> entries, Path file, String entryName) throws IOException {
+        if (!entries.add(entryName)) {
+            throw new IllegalStateException(
+                    "Azonos fájlnév többször szerepelne a lapos helyi csomagban: " + entryName);
+        }
+        zip.putNextEntry(new ZipEntry(entryName));
+        Files.copy(file, zip);
+        zip.closeEntry();
     }
 
     /**
@@ -476,13 +623,27 @@ public class GitHubTemplateCatalogService {
                 if (StringUtils.hasText(canonicalSingleFileName) && relative.getNameCount() == 1) {
                     entryName = canonicalSingleFileName;
                 }
-                if (!entries.add(entryName)) {
-                    throw new IllegalStateException(
-                            "Azonos fájlnév többször szerepelne a lapos helyi csomagban: " + entryName);
+                addFile(zip, entries, file, entryName);
+            }
+        }
+    }
+
+
+    /**
+     * A common könyvtár reguláris fájljait hozzáadja a lapos ZIP-hez úgy, hogy a már
+     * szereplő fájlneveket nem írja felül. Ez azért szükséges, mert a kiválasztott
+     * űrlapsablon saját állományai elsőbbséget élveznek az azonos nevű common fájlokkal szemben.
+     */
+    private void addFlatDirectoryTreeSkippingExisting(ZipOutputStream zip, Set<String> entries, Path sourceRoot) throws IOException {
+        if (!ExceptionSafeOperations.isDirectory(sourceRoot)) return;
+        try (Stream<Path> files = Files.walk(sourceRoot)) {
+            for (Path file : files.filter(Files::isRegularFile).sorted().toList()) {
+                String entryName = file.getFileName().toString();
+                if (entries.contains(entryName)) {
+                    LOGGER.debug("A common fájl kihagyva a lapos helyi csomagból névütközés miatt: {}", entryName);
+                    continue;
                 }
-                zip.putNextEntry(new ZipEntry(entryName));
-                Files.copy(file, zip);
-                zip.closeEntry();
+                addFile(zip, entries, file, entryName);
             }
         }
     }
@@ -545,14 +706,25 @@ public class GitHubTemplateCatalogService {
      * @param known a művelethez átadott {@code known} érték
      * @return a művelet eredménye
      */
-    private GitHubTemplateCatalogDtos.TemplateRow toRow(GitHubTemplateRepository repo, String tag, boolean known) {
+    private GitHubTemplateCatalogDtos.TemplateRow toRow(GitHubTemplateRepository repo, GitHubTemplateRelease release, boolean known) {
+        String tag = release == null ? "" : release.getReleaseTag();
         String type = repo.getRepositoryName();
-        String title = StringUtils.hasText(repo.getDescription()) ? repo.getDescription() : type + " űrlapsablon";
+        String title = release != null && StringUtils.hasText(release.getFormName())
+                ? release.getFormName()
+                : (StringUtils.hasText(repo.getDescription()) ? repo.getDescription() : type + " űrlapsablon");
         boolean local = isReleaseAvailableLocally(repo.getRepositoryName(), tag);
         String readmeUrl = StringUtils.hasText(tag) && StringUtils.hasText(repo.getRepositoryUrl())
                 ? repo.getRepositoryUrl() + "/blob/" + tag + "/README.md" : repo.getRepositoryUrl();
         return new GitHubTemplateCatalogDtos.TemplateRow(repo.getRepositoryName(), type, deriveFormVersion(tag), tag,
-                repo.getRepositoryUpdatedAt(), title, "", "", known, local, repo.getRepositoryUrl(), readmeUrl);
+                repo.getRepositoryUpdatedAt(), title,
+                release == null || release.getValidFrom() == null ? "" : release.getValidFrom().toString(),
+                release == null || release.getValidTo() == null ? "" : release.getValidTo().toString(),
+                release != null && release.isDisabled(),
+                known, local, repo.getRepositoryUrl(), readmeUrl);
+    }
+
+    private String repositoryUrl(String repositoryName) {
+        return "https://github.com/" + properties.getOrganization() + "/" + repositoryName;
     }
 
     /**
@@ -758,7 +930,8 @@ public class GitHubTemplateCatalogService {
      * Egy GitHub organization-változásellenőrzés rövid ideig cache-elt eredménye: a vizsgált repository-k száma, a megváltozott repository-k és az eltávolított nevek.
      */
     private record Inspection(Instant checkedAt, int organizationRepositoryCount,
-                              List<GitHubApiClient.RepositorySummary> changed, List<String> removed) { }
+                              List<GitHubApiClient.RepositorySummary> changed, List<String> removed,
+                              ArtifactCatalogParser.ArtifactCatalog catalog) { }
 
     /**
      * A háttérben futó katalógusfrissítés aktuális progresszét és befejezési állapotát hordozó belső immutable állapotobjektum.

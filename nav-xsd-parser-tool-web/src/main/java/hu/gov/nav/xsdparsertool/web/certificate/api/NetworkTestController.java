@@ -30,7 +30,7 @@ public class NetworkTestController{
   */
  @PostMapping("/test") public Map<String,Object> test(@RequestBody NetworkTestRequest req,Authentication auth)throws Exception{
   URI uri=URI.create(req.url());HttpClient.Builder b=HttpClient.newBuilder().connectTimeout(Duration.ofMillis(env.getProperty("nav.xsdparsertool.network.connect-timeout-ms",Long.class,10000L))).followRedirects(HttpClient.Redirect.NORMAL);
-  if(env.getProperty("nav.xsdparsertool.network.proxy.enabled",Boolean.class,false)){String host=env.getProperty("nav.xsdparsertool.network.proxy.host","");int port=env.getProperty("nav.xsdparsertool.network.proxy.port",Integer.class,8080);if(!host.isBlank())b.proxy(ProxySelector.of(new InetSocketAddress(host,port)));String user=env.getProperty("nav.xsdparsertool.network.proxy.username","");String pass=secrets.read("nav.xsdparsertool.network.proxy.password").orElse("");if(!user.isBlank())b.authenticator(new Authenticator(){  /**
+  if(env.getProperty("nav.xsdparsertool.network.proxy.enabled",Boolean.class,false)){String host=normalizeProxyHost(env.getProperty("nav.xsdparsertool.network.proxy.host",""));int port=env.getProperty("nav.xsdparsertool.network.proxy.port",Integer.class,8080);if(!host.isBlank())b.proxy(ProxySelector.of(new InetSocketAddress(host,port)));String user=env.getProperty("nav.xsdparsertool.network.proxy.username","");String pass=secrets.read("nav.xsdparsertool.network.proxy.password").orElse("");if(!user.isBlank())b.authenticator(new Authenticator(){  /**
    * A {@code getPasswordAuthentication} művelet lekéri vagy feloldja a kért adatot a rendelkezésre álló forrásokból.
    *
    * <p>A felhasználói és jogosultsági kontextust szerveroldali kontrollként kezeli; a kliensoldali állapot nem helyettesíti ezt az ellenőrzést.</p>
@@ -40,4 +40,11 @@ public class NetworkTestController{
   long start=System.nanoTime();HttpResponse<Void> response=b.build().send(HttpRequest.newBuilder(uri).timeout(Duration.ofMillis(env.getProperty("nav.xsdparsertool.network.read-timeout-ms",Long.class,30000L))).method("HEAD",HttpRequest.BodyPublishers.noBody()).build(),HttpResponse.BodyHandlers.discarding());long ms=(System.nanoTime()-start)/1_000_000;
   String user=auth==null?"system":auth.getName();audit.log("NETWORK_CONNECTION_TEST",user,"SUCCESS","HTTP HEAD request completed");log.info("Hálózati kapcsolat teszt sikeres.");return Map.of("success",true,"status",response.statusCode(),"elapsedMs",ms,"url",uri.toString());
  }
+ private String normalizeProxyHost(String rawValue){
+  String raw=rawValue==null?"":rawValue.trim();
+  if(raw.isBlank())return "";
+  try{URI proxyUri=raw.contains("://")?URI.create(raw):URI.create("http://"+raw);String host=proxyUri.getHost();if(host!=null&&!host.isBlank())return host;}catch(IllegalArgumentException ignored){}
+  String host=raw.replaceFirst("(?i)^https?://","");int slash=host.indexOf('/');if(slash>=0)host=host.substring(0,slash);int colon=host.indexOf(':');if(colon>=0)host=host.substring(0,colon);return host.trim();
+ }
+
 }

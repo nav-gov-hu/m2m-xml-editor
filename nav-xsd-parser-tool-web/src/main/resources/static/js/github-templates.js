@@ -4,7 +4,11 @@
  * A GitHub űrlapsablon-katalógus működéshez tartozó ES modul. A fájl a hozzá tartozó UI-állapotot, eseménykezelést és backend-kommunikációt a modul felelősségi határán belül tartja.
  */
 
-const state={rows:[],filtered:[],selected:new Map(),page:0,pageSize:20,lastCatalog:null,pollTimer:null,tokenConfigured:false,pendingRefreshDownloadItems:[]};
+const state={rows:[],filtered:[],selected:new Map(),page:0,pageSize:20,lastCatalog:null,pollTimer:null,refreshStartedAt:0,tokenConfigured:false,pendingRefreshDownloadItems:[],packageImportFiles:[],catalogSourceMode:'GITHUB_API'};
+const GITHUB_REQUEST_TIMEOUT_MS=90000;
+const GITHUB_STATUS_TIMEOUT_MS=15000;
+const GITHUB_REFRESH_TOTAL_TIMEOUT_MS=15*60*1000;
+const GITHUB_LONG_OPERATION_TIMEOUT_MS=10*60*1000;
 /**
  * A <code>$</code> függvény a GitHub űrlapsablon-katalógus folyamat egy önálló feldolgozási lépését valósítja meg.
  *
@@ -42,6 +46,27 @@ const localBundleHref=r=>`/api/github-templates/local-bundle?repository=${encode
  * @param {*} counter a függvény counter bemeneti értéke
  */
 function processing(show,message='Feldolgozás folyamatban...',counter='-'){ $('templateProcessingDialog').hidden=!show; $('templateProcessingMessage').textContent=message; $('templateProcessingCounter').textContent=counter; }
+
+/**
+ * Fetch hívást végez explicit kliensoldali időkorláttal. Az AbortController biztosítja,
+ * hogy hálózati/proxy elakadás esetén a felület ne maradjon végtelen feldolgozás állapotban.
+ * @param {string} url a meghívandó URL
+ * @param {RequestInit} options fetch opciók
+ * @param {number} timeoutMs időkorlát ezredmásodpercben
+ * @returns {Promise<Response>} HTTP válasz
+ */
+async function fetchWithTimeout(url,options={},timeoutMs=GITHUB_REQUEST_TIMEOUT_MS){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+    return await fetch(url,{...options,signal:controller.signal});
+  }catch(error){
+    if(error?.name==='AbortError') throw new Error(`A művelet időtúllépés miatt megszakadt (${Math.round(timeoutMs/1000)} másodperc).`);
+    throw error;
+  }finally{
+    clearTimeout(timer);
+  }
+}
 /**
  * Szinkronizálja vagy frissíti a set progress által kezelt állapotot a megadott adatok alapján.
  *
@@ -84,7 +109,7 @@ async function showGithubConnectionError(error){
   console.warn('GitHub katalóguskapcsolati hiba:', error);
   const options={
     title:'GitHub kapcsolat sikertelen',
-    message:'A katalóguslekérdezés sikertelen, mert nem lehet elérni a GitHub szervert. Kérem, ellenőrizze az internetkapcsolatot.',
+    message:String(error?.message||'').toLowerCase().includes('időtúllépés')?'A GitHub művelet nem fejeződött be a megengedett időn belül. A feldolgozás megszakadt; ellenőrizze a proxy- és hálózati kapcsolatot.':'A katalóguslekérdezés sikertelen, mert nem lehet elérni a GitHub szervert. Kérem, ellenőrizze az internetkapcsolatot.',
     eyebrow:'Hiba',
     variant:'warning',
     cancelText:'Bezárás'
@@ -238,7 +263,7 @@ function hideDownloadResult(){$('templateDownloadResultDialog').hidden=true;}
  * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
  * @param {*} data a függvény data bemeneti értéke
  */
-function sourceState(data){const sync=data.lastSuccessfulSyncAt?`utolsó frissítés: ${fmt(data.lastSuccessfulSyncAt)}`:'még nincs DB-katalógus';$('templateSourceState').textContent=`${data.organization} · ${data.repositoryCount} repo · ${data.rowCount} release tag · ${sync} · PAT: ${data.tokenConfigured?'beállítva':'nincs'}`;}
+function sourceState(data){const sync=data.lastSuccessfulSyncAt?`utolsó frissítés: ${fmt(data.lastSuccessfulSyncAt)}`:'még nincs DB-katalógus';const source=String(data.catalogSourceMode||'GITHUB_API')==='CATALOG'?'Catalog repo':'GitHub API';$('templateSourceState').textContent=`${data.organization} · ${data.repositoryCount} repo · ${data.rowCount} release tag · ${sync} · forrás: ${source} · PAT: ${data.tokenConfigured?'beállítva':'nincs'}`;}
 /**
  * Betölti vagy lekéri a load cached művelethez szükséges adatot a rendelkezésre álló kliens- vagy szerveroldali forrásból.
  *
@@ -246,21 +271,21 @@ function sourceState(data){const sync=data.lastSuccessfulSyncAt?`utolsó frissí
  * @param {*} showMessage a megjelenítendő vagy feldolgozandó üzenet
  * @returns {Promise<*>} a feldolgozás eredménye
  */
-async function loadCached(showMessage=false){try{const r=await fetch('/api/github-templates/catalog?preferredOnly=false',{cache:'no-store'});if(!r.ok)throw new Error(await r.text());const data=await r.json();state.lastCatalog=data;state.rows=data.rows||[];state.tokenConfigured=Boolean(data.tokenConfigured);state.selected.clear();sourceState(data);updateGithubActions();void updateLocalDeletePermission();buildFilters();apply();if(showMessage)message('A helyi űrlapsablon-lista újratöltése sikeres.');return data;}catch(e){state.rows=[];apply();message(`Betöltési hiba: ${e.message}`,true);throw e;}}
+async function loadCached(showMessage=false){try{const r=await fetch('/api/github-templates/catalog?preferredOnly=false',{cache:'no-store'});if(!r.ok)throw new Error(await r.text());const data=await r.json();state.lastCatalog=data;state.rows=data.rows||[];state.tokenConfigured=Boolean(data.tokenConfigured);state.catalogSourceMode=String(data.catalogSourceMode||'GITHUB_API');state.selected.clear();sourceState(data);updateGithubActions();void updateLocalDeletePermission();buildFilters();apply();if(showMessage)message('A helyi űrlapsablon-lista újratöltése sikeres.');return data;}catch(e){state.rows=[];apply();message(`Betöltési hiba: ${e.message}`,true);throw e;}}
 /**
  * Szinkronizálja vagy frissíti a update github actions által kezelt állapotot a megadott adatok alapján.
  *
  * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
  */
 async function updateLocalDeletePermission(){const button=$('deleteSelectedLocalTemplatesButton');if(!button)return;try{const response=await fetch('/api/security/current-user',{cache:'no-store'});if(!response.ok)return;const user=await response.json();const roles=Array.isArray(user?.roles)?user.roles.map(role=>String(role).toUpperCase()):[];button.hidden=!(roles.includes('ROLE_ADMIN')||roles.includes('ADMIN'));}catch(_ignored){button.hidden=true;}}
-function updateGithubActions(){const disabled=!state.tokenConfigured;$('manualGithubRefreshButton').disabled=disabled;$('manualGithubRefreshButton').title=disabled?'A GitHub token nincs beállítva':'Kézi GitHub frissítésellenőrzés';if(disabled)state.selected.clear();}
+function updateGithubActions(){const catalogMode=state.catalogSourceMode==='CATALOG';const disabled=!catalogMode&&!state.tokenConfigured;$('manualGithubRefreshButton').disabled=disabled;$('manualGithubRefreshButton').title=disabled?'A GitHub API alapú frissítéshez token szükséges':(catalogMode?'Catalog repository frissítésellenőrzése':'Kézi GitHub frissítésellenőrzés');if(disabled)state.selected.clear();}
 /**
  * A <code>reloadLocalList</code> függvény a GitHub űrlapsablon-katalógus folyamat egy önálló feldolgozási lépését valósítja meg.
  *
  * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
  * @returns {Promise<void>} a folyamat befejeződését jelző Promise
  */
-async function reloadLocalList(){processing(true,'A helyi űrlapsablon-lista újratöltése...','Adatbázis-katalógus betöltése');setProgress(25);try{await loadCached(false);setProgress(100);message(state.tokenConfigured?'A helyi űrlapsablon-lista újratöltése sikeres.':'A helyi lista betöltődött, de GitHub token nélkül külső lekérés és letöltés nem indítható.',state.tokenConfigured?'success':'warning');}catch(e){message(`Lista újratöltési hiba: ${e.message}`,true);}finally{processing(false);}}
+async function reloadLocalList(){processing(true,'A helyi űrlapsablon-lista újratöltése...','Adatbázis-katalógus betöltése');setProgress(25);try{await loadCached(false);setProgress(100);const catalogWithoutToken=state.catalogSourceMode==='CATALOG'&&!state.tokenConfigured;message(catalogWithoutToken?'A helyi lista betöltődött. A Catalog ellenőrzés token nélkül is használható; GitHub release letöltéshez továbbra is token szükséges.':(state.tokenConfigured?'A helyi űrlapsablon-lista újratöltése sikeres.':'A helyi lista betöltődött, de GitHub token nélkül külső API-lekérés és release-letöltés nem indítható.'),catalogWithoutToken?'success':(state.tokenConfigured?'success':'warning'));}catch(e){message(`Lista újratöltési hiba: ${e.message}`,true);}finally{processing(false);}}
 /**
  * Megjeleníti vagy újrarendereli a show no changes állapotát a felhasználói felületen.
  *
@@ -280,14 +305,14 @@ function hideNoChanges(){$('templateNoChangesDialog').hidden=true;}
  * @param {*} automatic a függvény automatic bemeneti értéke
  * @returns {Promise<*>} a feldolgozás eredménye
  */
-async function checkChanges(automatic=false){if(!state.tokenConfigured){if(!automatic)showGithubTokenMissingDialog();return null;}processing(true,'GitHub repositoryk ellenőrzése...','Változások keresése');setProgress(20);try{const r=await fetch('/api/github-templates/changes',{cache:'no-store'});if(!r.ok)throw new Error(await r.text());setProgress(100);const d=await r.json();processing(false);if(d.changesDetected){showRefreshConfirm(d);}else if(!automatic){showNoChanges();}return d;}catch(e){processing(false);if(!automatic)await showGithubConnectionError(e);else console.warn('Automatikus GitHub változásellenőrzés sikertelen:',e);return null;}}
+async function checkChanges(automatic=false){if(state.catalogSourceMode!=='CATALOG'&&!state.tokenConfigured){if(!automatic)showGithubTokenMissingDialog();return null;}processing(true,state.catalogSourceMode==='CATALOG'?'Catalog repository ellenőrzése...':'GitHub repositoryk ellenőrzése...','Változások keresése');setProgress(20);try{const r=await fetchWithTimeout('/api/github-templates/changes',{cache:'no-store'});if(!r.ok)throw new Error(await r.text());setProgress(100);const d=await r.json();processing(false);if(d.changesDetected){showRefreshConfirm(d);}else if(!automatic){showNoChanges();}return d;}catch(e){processing(false);if(!automatic)await showGithubConnectionError(e);else console.warn('Automatikus GitHub változásellenőrzés sikertelen:',e);return null;}}
 /**
  * Megjeleníti vagy újrarendereli a show refresh confirm állapotát a felhasználói felületen.
  *
  * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
  * @param {*} d a függvény d bemeneti értéke
  */
-function showRefreshConfirm(d){const initial=!d.initialized;const changed=d.changedRepositoryCount||0,removed=d.removedRepositoryCount||0;$('templateRefreshConfirmMessage').textContent=initial?`A helyi katalógus még üres. A GitHub organizációban ${d.organizationRepositoryCount} aktív repository található. Letöltöd a katalógust?`:`Az utolsó frissítés óta ${changed} repository változott és ${removed} repository került ki az aktív listából. Az organizációban összesen ${d.organizationRepositoryCount} aktív repository van. Frissíted a listát?`;$('templateRefreshConfirmDialog').hidden=false;}
+function showRefreshConfirm(d){const initial=!d.initialized;const changed=d.changedRepositoryCount||0,removed=d.removedRepositoryCount||0;const catalogMode=state.catalogSourceMode==='CATALOG';$('templateRefreshConfirmMessage').textContent=initial?(catalogMode?`A helyi katalógus még üres. A Catalog repository ${d.organizationRepositoryCount} űrlap-repositoryt tartalmaz. Betöltöd a katalógust?`:`A helyi katalógus még üres. A GitHub organizációban ${d.organizationRepositoryCount} aktív repository található. Letöltöd a katalógust?`):(catalogMode?`Az utolsó frissítés óta a Catalog szerint ${changed} repository változott és ${removed} repository került ki a katalógusból. A Catalog összesen ${d.organizationRepositoryCount} űrlap-repositoryt tartalmaz. Frissíted a listát?`:`Az utolsó frissítés óta ${changed} repository változott és ${removed} repository került ki az aktív listából. Az organizációban összesen ${d.organizationRepositoryCount} aktív repository van. Frissíted a listát?`);$('templateRefreshConfirmDialog').hidden=false;}
 /**
  * Elrejti vagy lezárja a hide refresh confirm felületi állapotát, és szükség esetén rendezi a kapcsolódó UI-state-et.
  *
@@ -300,14 +325,14 @@ function hideRefreshConfirm(){$('templateRefreshConfirmDialog').hidden=true;}
  * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
  * @returns {Promise<void>} a folyamat befejeződését jelző Promise
  */
-async function startRefresh(){hideRefreshConfirm();processing(true,'A katalógusfrissítés indítása...','Repositorylista előkészítése');setProgress(0);try{const r=await fetch('/api/github-templates/refresh',{method:'POST'});if(!r.ok)throw new Error(await r.text());const d=await r.json();if(!d.started)throw new Error(d.message||'A frissítés nem indult el.');pollRefresh();}catch(e){processing(false);await showGithubConnectionError(e);}}
+async function startRefresh(){hideRefreshConfirm();processing(true,'A katalógusfrissítés indítása...','Repositorylista előkészítése');setProgress(0);try{const r=await fetchWithTimeout('/api/github-templates/refresh',{method:'POST'});if(!r.ok)throw new Error(await r.text());const d=await r.json();if(!d.started)throw new Error(d.message||'A frissítés nem indult el.');state.refreshStartedAt=Date.now();pollRefresh();}catch(e){processing(false);await showGithubConnectionError(e);}}
 /**
  * A <code>pollRefresh</code> függvény a GitHub űrlapsablon-katalógus folyamat egy önálló feldolgozási lépését valósítja meg.
  *
  * <p>A függvény mellékhatása lehet DOM- vagy runtime-state módosítás; a hívó a visszatérési értéket és az aszinkron befejeződést a konkrét hívási kontextus szerint kezeli.</p>
  * @returns {Promise<void>} a folyamat befejeződését jelző Promise
  */
-async function pollRefresh(){clearTimeout(state.pollTimer);try{const r=await fetch('/api/github-templates/refresh/status',{cache:'no-store'});if(!r.ok)throw new Error(await r.text());const d=await r.json();const changed=d.changedRepositoryCount||0,processed=d.processedChangedRepositoryCount||0,removed=d.removedRepositoryCount||0,removedDone=d.processedRemovedRepositoryCount||0,totalWork=changed+removed,done=processed+removedDone;const percent=totalWork?Math.round(done*100/totalWork):(d.completed?100:5);setProgress(percent);let text='Repositorylista ellenőrzése...';if(d.phase==='REFRESHING')text=d.currentRepository?`Release tagek lekérése: ${d.currentRepository}`:'Változott repositoryk feldolgozása...';if(d.phase==='REMOVING')text=`Törölt vagy archivált repository eltávolítása: ${d.currentRepository}`;if(d.phase==='COMPLETED')text='A katalógus frissítése elkészült.';if(d.phase==='FAILED')text='A katalógus frissítése hibával leállt.';const counter=d.organizationRepositoryCount?`${processed}/${changed} változott repo · ${removedDone}/${removed} eltávolítás · ${d.releaseCount||0} release tag · ${d.organizationRepositoryCount} repo az organizációban`:'Repositorylista lekérése';processing(true,text,counter);if(d.running){state.pollTimer=setTimeout(pollRefresh,600);return;}processing(false);if(d.successful){await loadCached(false);state.pendingRefreshDownloadItems=buildLatestMissingDownloadItems();showRefreshResult(d,state.pendingRefreshDownloadItems.length);}else{state.pendingRefreshDownloadItems=[];await showGithubConnectionError(new Error(d.errorMessage||'A katalógusfrissítés sikertelen.'));}}catch(e){processing(false);state.pendingRefreshDownloadItems=[];await showGithubConnectionError(e);}}
+async function pollRefresh(){clearTimeout(state.pollTimer);if(state.refreshStartedAt&&Date.now()-state.refreshStartedAt>GITHUB_REFRESH_TOTAL_TIMEOUT_MS){state.refreshStartedAt=0;processing(false);state.pendingRefreshDownloadItems=[];await showGithubConnectionError(new Error('A katalógusfrissítés teljes időkorlátja lejárt (15 perc).'));return;}try{const r=await fetchWithTimeout('/api/github-templates/refresh/status',{cache:'no-store'},GITHUB_STATUS_TIMEOUT_MS);if(!r.ok)throw new Error(await r.text());const d=await r.json();const changed=d.changedRepositoryCount||0,processed=d.processedChangedRepositoryCount||0,removed=d.removedRepositoryCount||0,removedDone=d.processedRemovedRepositoryCount||0,totalWork=changed+removed,done=processed+removedDone;const percent=totalWork?Math.round(done*100/totalWork):(d.completed?100:5);setProgress(percent);let text='Repositorylista ellenőrzése...';if(d.phase==='REFRESHING')text=d.currentRepository?`Release tagek lekérése: ${d.currentRepository}`:'Változott repositoryk feldolgozása...';if(d.phase==='REMOVING')text=`Törölt vagy archivált repository eltávolítása: ${d.currentRepository}`;if(d.phase==='COMPLETED')text='A katalógus frissítése elkészült.';if(d.phase==='FAILED')text='A katalógus frissítése hibával leállt.';const counter=d.organizationRepositoryCount?`${processed}/${changed} változott repo · ${removedDone}/${removed} eltávolítás · ${d.releaseCount||0} release tag · ${d.organizationRepositoryCount} repo az organizációban`:'Repositorylista lekérése';processing(true,text,counter);if(d.running){state.pollTimer=setTimeout(pollRefresh,600);return;}processing(false);state.refreshStartedAt=0;if(d.successful){await loadCached(false);state.pendingRefreshDownloadItems=buildLatestMissingDownloadItems();showRefreshResult(d,state.pendingRefreshDownloadItems.length);}else{state.pendingRefreshDownloadItems=[];await showGithubConnectionError(new Error(d.errorMessage||'A katalógusfrissítés sikertelen.'));}}catch(e){processing(false);state.refreshStartedAt=0;state.pendingRefreshDownloadItems=[];await showGithubConnectionError(e);}}
 /**
  * Feldolgozza a build filters bemenetét, és a következő feldolgozási lépés számára normalizált reprezentációt készít.
  *
@@ -431,7 +456,7 @@ async function download(items,{automatic=false,forceOverride=null}={}){
       processing(true,`Letöltés, kicsomagolás és telepítés: ${item.repository} · ${item.tag}`,automatic?`${position}/${total} repository`:`${position}/${total} kijelölt release`);
       setProgress(Math.round(index*100/total));
       try{
-        const r=await fetch('/api/github-templates/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:[item],force})});
+        const r=await fetchWithTimeout('/api/github-templates/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:[item],force})},GITHUB_LONG_OPERATION_TIMEOUT_MS);
         if(!r.ok)throw new Error(await r.text());
         mergeDownloadResult(aggregate,await r.json());
       }catch(e){
@@ -449,7 +474,89 @@ async function download(items,{automatic=false,forceOverride=null}={}){
     processing(false);
   }
 }
+function closePackageMenu(){
+  const panel=$('templatePackageMenuPanel');
+  const button=$('templatePackageMenuButton');
+  if(panel) panel.hidden=true;
+  if(button) button.setAttribute('aria-expanded','false');
+}
+function togglePackageMenu(){
+  const panel=$('templatePackageMenuPanel');
+  const button=$('templatePackageMenuButton');
+  if(!panel||!button) return;
+  const opening=panel.hidden;
+  panel.hidden=!opening;
+  button.setAttribute('aria-expanded',String(opening));
+}
+function openPackageImport(){
+  closePackageMenu();
+  state.packageImportFiles=[];
+  $('templatePackageImportFiles').value='';
+  $('templatePackageImportForce').checked=false;
+  $('templatePackageImportResult').hidden=true;
+  $('templatePackageImportResult').innerHTML='';
+  renderPackageImportSelection();
+  $('templatePackageImportDialog').hidden=false;
+}
+function closePackageImport(){
+  $('templatePackageImportDialog').hidden=true;
+}
+function formatFileSize(bytes){
+  const value=Number(bytes)||0;
+  if(value<1024) return `${value} B`;
+  if(value<1024*1024) return `${(value/1024).toFixed(1)} KB`;
+  return `${(value/(1024*1024)).toFixed(1)} MB`;
+}
+function renderPackageImportSelection(){
+  const files=state.packageImportFiles;
+  $('templatePackageImportSelectionSummary').textContent=files.length?`${files.length} ZIP kiválasztva`:'Nincs kiválasztott ZIP.';
+  $('templatePackageImportFileList').innerHTML=files.map(file=>`<div class="template-package-import-file"><span>${esc(file.name)}</span><span class="template-package-import-file-size">${esc(formatFileSize(file.size))}</span></div>`).join('');
+  $('importTemplatePackagesButton').disabled=files.length===0;
+}
+function packageImportFilesChanged(event){
+  state.packageImportFiles=[...(event.target.files||[])].filter(file=>String(file.name||'').toLowerCase().endsWith('.zip'));
+  renderPackageImportSelection();
+}
+function renderPackageImportResult(result){
+  const box=$('templatePackageImportResult');
+  box.hidden=false;
+  const summary=`${result.importedCount||0} importálva, ${result.skippedCount||0} kihagyva, ${result.failedCount||0} hibás.`;
+  box.innerHTML=`<strong>${esc(summary)}</strong>`+(result.items||[]).map(item=>`<div class="template-package-import-result-item"><strong>${esc(item.fileName||'')}</strong> — ${esc(item.status||'')} ${item.repository?`· ${esc(item.repository)} / ${esc(item.releaseTag||'')}`:''}<br><span>${esc(item.message||'')}</span></div>`).join('');
+}
+async function importTemplatePackages(){
+  if(!state.packageImportFiles.length) return;
+  const formData=new FormData();
+  state.packageImportFiles.forEach(file=>formData.append('files',file,file.name));
+  const force=$('templatePackageImportForce').checked;
+  $('importTemplatePackagesButton').disabled=true;
+  processing(true,'Lokális űrlapsablon csomagok importálása...',`0/${state.packageImportFiles.length} csomag`);
+  setProgress(10);
+  try{
+    const response=await fetch(`/api/github-templates/import?force=${force?'true':'false'}`,{method:'POST',body:formData});
+    if(!response.ok) throw new Error(await response.text());
+    setProgress(100);
+    const result=await response.json();
+    renderPackageImportResult(result);
+    await loadCached(false);
+    message(`Csomag import kész: ${result.importedCount||0} importálva, ${result.skippedCount||0} kihagyva, ${result.failedCount||0} hibás.`,(result.failedCount||0)>0);
+  }catch(error){
+    renderPackageImportResult({importedCount:0,skippedCount:0,failedCount:state.packageImportFiles.length,items:[{fileName:'Import',status:'FAILED',message:error.message}]});
+    message(`Csomag import hiba: ${error.message}`,true);
+  }finally{
+    processing(false);
+    $('importTemplatePackagesButton').disabled=state.packageImportFiles.length===0;
+  }
+}
+
 document.addEventListener('change',e=>{if(e.target.matches('.template-row-check')){const key=e.target.dataset.key;const [repository,tag]=key.split('@@');e.target.checked?state.selected.set(key,{repository,tag}):state.selected.delete(key);render();}});
 document.addEventListener('click',e=>{const b=e.target.closest('.template-download-button');if(b)download([{repository:b.dataset.repo,tag:b.dataset.tag}]);});
-$('deleteSelectedLocalTemplatesButton')?.addEventListener('click',showLocalDeleteConfirm);$('cancelTemplateLocalDeleteButton')?.addEventListener('click',hideLocalDeleteConfirm);$('confirmTemplateLocalDeleteButton')?.addEventListener('click',deleteSelectedLocal);$('closeGithubTokenMissingButton')?.addEventListener('click',hideGithubTokenMissingDialog);$('githubTokenQuickInput')?.addEventListener('input',updateGithubTokenQuickButton);$('githubTokenQuickInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();saveGithubTokenFromDialog();}});$('saveGithubTokenQuickButton')?.addEventListener('click',saveGithubTokenFromDialog);$('closeTemplateDownloadResultButton').addEventListener('click',hideDownloadResult);$('closeTemplateRefreshResultButton')?.addEventListener('click',closeRefreshResult);$('cancelTemplateRefreshDownloadOfferButton')?.addEventListener('click',hideRefreshDownloadOffer);$('confirmTemplateRefreshDownloadOfferButton')?.addEventListener('click',confirmRefreshDownloadOffer);$('closeTemplateNoChangesButton').addEventListener('click',hideNoChanges);$('downloadSelectedTemplatesButton').addEventListener('click',()=>download([...state.selected.values()]));$('refreshTemplatesButton').addEventListener('click',reloadLocalList);$('manualGithubRefreshButton').addEventListener('click',()=>checkChanges(false));$('localOnlyCheckbox').addEventListener('change',()=>{state.page=0;apply();});$('confirmTemplateRefreshButton').addEventListener('click',startRefresh);$('cancelTemplateRefreshButton').addEventListener('click',hideRefreshConfirm);$('templateSearchInput').addEventListener('input',()=>{state.page=0;apply();});$('templateTypeFilter').addEventListener('change',()=>{updateVersions();state.page=0;apply();});$('templateVersionFilter').addEventListener('change',()=>{state.page=0;apply();});$('templatePageSizeSelect').addEventListener('change',e=>{state.pageSize=Number(e.target.value)||20;state.page=0;render();});$('selectAllTemplatesCheckbox').addEventListener('change',e=>{const start=state.page*state.pageSize;state.filtered.slice(start,start+state.pageSize).filter(r=>r.releaseTag).forEach(r=>{const key=`${r.repository}@@${r.releaseTag}`;e.target.checked?state.selected.set(key,{repository:r.repository,tag:r.releaseTag}):state.selected.delete(key);});render();});$('templateFirstPageButton').onclick=()=>{state.page=0;render();};$('templatePrevPageButton').onclick=()=>{state.page=Math.max(0,state.page-1);render();};$('templateNextPageButton').onclick=()=>{state.page++;render();};$('templateLastPageButton').onclick=()=>{state.page=Math.max(0,Math.ceil(state.filtered.length/state.pageSize)-1);render();};
-loadCached(false).then(data=>{if(!data.tokenConfigured)showGithubTokenMissingDialogOnce();});
+$('templatePackageMenuButton')?.addEventListener('click',e=>{e.stopPropagation();togglePackageMenu();});
+$('templatePackageMenuPanel')?.addEventListener('click',e=>e.stopPropagation());
+document.addEventListener('click',closePackageMenu);
+$('openPackageImportButton')?.addEventListener('click',openPackageImport);
+$('browseTemplatePackagesButton')?.addEventListener('click',()=>$('templatePackageImportFiles').click());
+$('templatePackageImportFiles')?.addEventListener('change',packageImportFilesChanged);
+$('closeTemplatePackageImportButton')?.addEventListener('click',closePackageImport);
+$('importTemplatePackagesButton')?.addEventListener('click',importTemplatePackages);
+$('deleteSelectedLocalTemplatesButton')?.addEventListener('click',showLocalDeleteConfirm);$('cancelTemplateLocalDeleteButton')?.addEventListener('click',hideLocalDeleteConfirm);$('confirmTemplateLocalDeleteButton')?.addEventListener('click',deleteSelectedLocal);$('closeGithubTokenMissingButton')?.addEventListener('click',hideGithubTokenMissingDialog);$('githubTokenQuickInput')?.addEventListener('input',updateGithubTokenQuickButton);$('githubTokenQuickInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();saveGithubTokenFromDialog();}});$('saveGithubTokenQuickButton')?.addEventListener('click',saveGithubTokenFromDialog);$('closeTemplateDownloadResultButton').addEventListener('click',hideDownloadResult);$('closeTemplateRefreshResultButton')?.addEventListener('click',closeRefreshResult);$('cancelTemplateRefreshDownloadOfferButton')?.addEventListener('click',hideRefreshDownloadOffer);$('confirmTemplateRefreshDownloadOfferButton')?.addEventListener('click',confirmRefreshDownloadOffer);$('closeTemplateNoChangesButton').addEventListener('click',hideNoChanges);$('downloadSelectedTemplatesButton').addEventListener('click',()=>download([...state.selected.values()]));$('refreshTemplatesButton').addEventListener('click',reloadLocalList);$('manualGithubRefreshButton').addEventListener('click',()=>{closePackageMenu();checkChanges(false);});$('localOnlyCheckbox').addEventListener('change',()=>{state.page=0;apply();});$('confirmTemplateRefreshButton').addEventListener('click',startRefresh);$('cancelTemplateRefreshButton').addEventListener('click',hideRefreshConfirm);$('templateSearchInput').addEventListener('input',()=>{state.page=0;apply();});$('templateTypeFilter').addEventListener('change',()=>{updateVersions();state.page=0;apply();});$('templateVersionFilter').addEventListener('change',()=>{state.page=0;apply();});$('templatePageSizeSelect').addEventListener('change',e=>{state.pageSize=Number(e.target.value)||20;state.page=0;render();});$('selectAllTemplatesCheckbox').addEventListener('change',e=>{const start=state.page*state.pageSize;state.filtered.slice(start,start+state.pageSize).filter(r=>r.releaseTag).forEach(r=>{const key=`${r.repository}@@${r.releaseTag}`;e.target.checked?state.selected.set(key,{repository:r.repository,tag:r.releaseTag}):state.selected.delete(key);});render();});$('templateFirstPageButton').onclick=()=>{state.page=0;render();};$('templatePrevPageButton').onclick=()=>{state.page=Math.max(0,state.page-1);render();};$('templateNextPageButton').onclick=()=>{state.page++;render();};$('templateLastPageButton').onclick=()=>{state.page=Math.max(0,Math.ceil(state.filtered.length/state.pageSize)-1);render();};
+loadCached(false).then(data=>{if(!data.tokenConfigured&&String(data.catalogSourceMode||'GITHUB_API')!=='CATALOG')showGithubTokenMissingDialogOnce();});

@@ -188,6 +188,10 @@ public final class ConfigurationCatalog {
 
         d("nav.xsdparsertool.github-schema-updater.enabled","GitHub frissítő","GitHub sablonkatalógus-frissítő engedélyezése.","GITHUB","BOOLEAN","true",false,false,false),
         d("nav.xsdparsertool.github-schema-updater.organization","GitHub szervezet","A sablonrepository-k GitHub szervezete.","GITHUB","TEXT","nav-gov-hu-templates",false,false,false),
+        d("nav.xsdparsertool.github-schema-updater.catalog-source-mode","Katalógus forrása","A változásfigyelés forrása: hagyományos GitHub REST API vagy a dedikált Catalog repository.","GITHUB","SELECT","GITHUB_API",false,false,false,"GITHUB_API","CATALOG"),
+        d("nav.xsdparsertool.github-schema-updater.catalog-repository","Catalog repository","Az artifact-catalog.xml állományt tartalmazó repository neve.","GITHUB","TEXT","catalog",false,true,false),
+        d("nav.xsdparsertool.github-schema-updater.catalog-branch","Catalog branch","A Catalog repository olvasott branch-e.","GITHUB","TEXT","main",false,true,false),
+        d("nav.xsdparsertool.github-schema-updater.catalog-xml-url-template","Catalog XML URL sablon","Az artifact-catalog.xml közvetlen URL-sablonja.","GITHUB","TEXT","https://raw.githubusercontent.com/{owner}/{repo}/{branch}/content/artifact-catalog.xml",false,true,false),
         d("nav.xsdparsertool.github-schema-updater.token","GitHub hozzáférési token","GitHub Personal Access Token az API-lekérésekhez és release-letöltésekhez. Az érték titkosítva kerül tárolásra.","GITHUB","PASSWORD","",true,true,false),
         d("nav.xsdparsertool.github-schema-updater.api-base-url","GitHub API alap URL","A GitHub REST API alap URL-je.","GITHUB","TEXT","https://api.github.com",false,true,false),
         d("nav.xsdparsertool.github-schema-updater.download-mode","Letöltési mód","A release archívum letöltési módja.","GITHUB","SELECT","API_ZIPBALL",false,true,false,"API_ZIPBALL","WEB_ARCHIVE"),

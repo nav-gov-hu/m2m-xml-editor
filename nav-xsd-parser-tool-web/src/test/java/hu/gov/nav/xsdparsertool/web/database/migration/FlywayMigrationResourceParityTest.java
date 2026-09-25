@@ -49,7 +49,7 @@ class FlywayMigrationResourceParityTest {
             assertFalse(versions.isEmpty(), "Nincs migráció: " + database);
 
             int latest = versions.get(versions.size() - 1);
-            assertEquals(29, latest, "A konfigurációs baseline legfrissebb migrációja V29.");
+            assertEquals(30, latest, "A konfigurációs baseline legfrissebb migrációja V30.");
             assertEquals(latest, versions.size(), "Hiányzó vagy duplikált Flyway verzió: " + database);
             for (int expected = 1; expected <= latest; expected++) {
                 assertTrue(migrations.containsKey(expected), "Hiányzó V" + expected + " migráció: " + database);

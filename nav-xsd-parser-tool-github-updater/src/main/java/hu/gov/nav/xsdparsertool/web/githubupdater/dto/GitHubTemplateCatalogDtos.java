@@ -24,6 +24,7 @@ public final class GitHubTemplateCatalogDtos {
             String title,
             String validityStart,
             String validityEnd,
+            boolean disabled,
             boolean locallyKnown,
             boolean locallyAvailable,
             String repositoryUrl,
@@ -35,6 +36,7 @@ public final class GitHubTemplateCatalogDtos {
     public record CatalogResponse(
             String organization,
             boolean tokenConfigured,
+            String catalogSourceMode,
             boolean preferredOnly,
             int repositoryCount,
             int rowCount,

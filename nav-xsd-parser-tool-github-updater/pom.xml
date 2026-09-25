@@ -39,6 +39,26 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient-win</artifactId>
+            <version>4.5.14</version>
+        </dependency>
+        <!--
+            A httpclient-win 4.5.14 a JNA 4.5.2 API-jára épül. A verziókat közvetlenül
+            rögzítjük, hogy a Spring Boot dependency management ne emelje őket binárisan
+            inkompatibilis újabb JNA verzióra (SecBufferDesc konstruktor eltérés).
+        -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>4.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>4.5.2</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>

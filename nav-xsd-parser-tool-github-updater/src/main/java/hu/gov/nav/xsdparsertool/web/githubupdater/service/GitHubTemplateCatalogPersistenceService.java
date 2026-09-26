@@ -54,31 +54,142 @@ public class GitHubTemplateCatalogPersistenceService {
         target.setLastSyncedAt(now);
         repositoryStore.save(target);
 
+        List<GitHubTemplateRelease> localImports = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(source.name()).stream()
+                .filter(GitHubTemplateRelease::isLocalImported).toList();
         try {
             releaseStore.deleteByRepositoryName(source.name());
         } catch (RuntimeException ex) {
             throw new IllegalStateException("A GitHub release-snapshot törlése sikertelen: " + source.name(), ex);
         }
 
-        List<GitHubTemplateRelease> releases = tags.stream()
-                .distinct()
-                .map(tag -> newRelease(source.name(), tag, now))
-                .toList();
-        if (!releases.isEmpty()) {
-            releaseStore.saveAll(releases);
+        java.util.LinkedHashMap<String, GitHubTemplateRelease> merged = new java.util.LinkedHashMap<>();
+        tags.stream().distinct().forEach(tag -> merged.put(tag, newRelease(source.name(), tag, now)));
+        for (GitHubTemplateRelease local : localImports) {
+            GitHubTemplateRelease release = merged.get(local.getReleaseTag());
+            if (release == null) {
+                GitHubTemplateRelease preserved = newRelease(source.name(), local.getReleaseTag(), now);
+                preserved.setFormName(local.getFormName());
+                preserved.setValidFrom(local.getValidFrom());
+                preserved.setValidTo(local.getValidTo());
+                preserved.setDisabled(local.isDisabled());
+                preserved.setLocalImported(true);
+                merged.put(local.getReleaseTag(), preserved);
+            } else {
+                release.setLocalImported(true);
+            }
         }
+        if (!merged.isEmpty()) releaseStore.saveAll(merged.values());
         releaseStore.flush();
+    }
+
+    /** A catalog repository egy űrlapbejegyzéséből teljes repository/release snapshotot ment. */
+    @Transactional
+    public void replaceCatalogSnapshot(ArtifactCatalogParser.FormEntry form, Instant generatedAt, String repositoryUrl) {
+        Instant now = Instant.now();
+        GitHubTemplateRepository target = RepositoryAccess.findById(repositoryStore, form.formId())
+                .orElseGet(GitHubTemplateRepository::new);
+        target.setRepositoryName(form.formId());
+        target.setDescription(form.formName());
+        target.setRepositoryUpdatedAt(generatedAt);
+        target.setRepositoryUrl(repositoryUrl);
+        target.setArchived(false);
+        target.setLastSyncedAt(now);
+        repositoryStore.save(target);
+        List<GitHubTemplateRelease> localImports = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(form.formId()).stream()
+                .filter(GitHubTemplateRelease::isLocalImported).toList();
+        releaseStore.deleteByRepositoryName(form.formId());
+        java.util.LinkedHashMap<String, GitHubTemplateRelease> merged = new java.util.LinkedHashMap<>();
+        form.versions().forEach(version -> {
+            GitHubTemplateRelease release = newRelease(form.formId(), version.formVersion(), now);
+            release.setFormName(form.formName());
+            release.setValidFrom(version.validFrom());
+            release.setValidTo(version.validTo());
+            release.setDisabled(version.disabled());
+            merged.put(version.formVersion(), release);
+        });
+        for (GitHubTemplateRelease local : localImports) {
+            GitHubTemplateRelease release = merged.get(local.getReleaseTag());
+            if (release == null) {
+                GitHubTemplateRelease preserved = newRelease(form.formId(), local.getReleaseTag(), now);
+                preserved.setFormName(local.getFormName());
+                preserved.setValidFrom(local.getValidFrom());
+                preserved.setValidTo(local.getValidTo());
+                preserved.setDisabled(local.isDisabled());
+                preserved.setLocalImported(true);
+                merged.put(local.getReleaseTag(), preserved);
+            } else {
+                release.setLocalImported(true);
+            }
+        }
+        if (!merged.isEmpty()) releaseStore.saveAll(merged.values());
+        releaseStore.flush();
+    }
+
+    /** Lokális import után hiány esetén regisztrálja a repository/release párost, meglévő metaadat felülírása nélkül. */
+    @Transactional
+    public void registerLocalRelease(String repositoryName, String releaseTag, String repositoryUrl) {
+        Instant now = Instant.now();
+        GitHubTemplateRepository repository = RepositoryAccess.findById(repositoryStore, repositoryName).orElse(null);
+        if (repository == null) {
+            repository = new GitHubTemplateRepository();
+            repository.setRepositoryName(repositoryName);
+            repository.setDescription(repositoryName + " űrlapsablon");
+            repository.setRepositoryUrl(repositoryUrl);
+            repository.setArchived(false);
+            repository.setLastSyncedAt(now);
+            repositoryStore.save(repository);
+        }
+        GitHubTemplateRelease existing = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(repositoryName).stream()
+                .filter(release -> releaseTag.equals(release.getReleaseTag())).findFirst().orElse(null);
+        if (existing == null) {
+            existing = newRelease(repositoryName, releaseTag, now);
+        }
+        existing.setLocalImported(true);
+        existing.setLastSyncedAt(now);
+        releaseStore.save(existing);
+        releaseStore.flush();
+    }
+
+    /** Egy konkrét release lokális regisztrációját törli; üres repository esetén a repository rekordot is eltávolítja. */
+    @Transactional
+    public void removeReleaseRegistration(String repositoryName, String releaseTag) {
+        List<GitHubTemplateRelease> releases = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(repositoryName);
+        releases.stream()
+                .filter(release -> releaseTag.equals(release.getReleaseTag()))
+                .findFirst()
+                .ifPresent(releaseStore::delete);
+        releaseStore.flush();
+        if (releaseStore.findByRepositoryNameOrderByReleaseTagAsc(repositoryName).isEmpty()) {
+            repositoryStore.deleteById(repositoryName);
+        }
     }
 
     /** Egy eltávolított repository release- és repository-rekordjait egy tranzakcióban törli. */
     @Transactional
     public void removeRepositorySnapshot(String repositoryName) {
+        List<GitHubTemplateRelease> localImports = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(repositoryName).stream()
+                .filter(GitHubTemplateRelease::isLocalImported).toList();
         try {
             releaseStore.deleteByRepositoryName(repositoryName);
         } catch (RuntimeException ex) {
             throw new IllegalStateException("A GitHub release-snapshot törlése sikertelen: " + repositoryName, ex);
         }
-        repositoryStore.deleteById(repositoryName);
+        if (localImports.isEmpty()) {
+            repositoryStore.deleteById(repositoryName);
+        } else {
+            Instant now = Instant.now();
+            List<GitHubTemplateRelease> preserved = localImports.stream().map(local -> {
+                GitHubTemplateRelease copy = newRelease(repositoryName, local.getReleaseTag(), now);
+                copy.setFormName(local.getFormName());
+                copy.setValidFrom(local.getValidFrom());
+                copy.setValidTo(local.getValidTo());
+                copy.setDisabled(local.isDisabled());
+                copy.setLocalImported(true);
+                return copy;
+            }).toList();
+            releaseStore.saveAll(preserved);
+            releaseStore.flush();
+        }
     }
 
     /**

@@ -16,6 +16,16 @@ public class GitHubTemplateRelease {
     private String repositoryName;
     @Column(name = "release_tag", length = 255, nullable = false)
     private String releaseTag;
+    @Column(name = "form_name", length = 2000)
+    private String formName;
+    @Column(name = "valid_from")
+    private Instant validFrom;
+    @Column(name = "valid_to")
+    private Instant validTo;
+    @Column(name = "disabled_flag", nullable = false)
+    private boolean disabled;
+    @Column(name = "local_imported_flag", nullable = false)
+    private boolean localImported;
     @Column(name = "last_synced_at", nullable = false)
     private Instant lastSyncedAt;
 
@@ -49,6 +59,17 @@ public class GitHubTemplateRelease {
      * @param releaseTag a művelethez átadott {@code releaseTag} érték
      */
     public void setReleaseTag(String releaseTag) { this.releaseTag = releaseTag; }
+
+    public String getFormName() { return formName; }
+    public void setFormName(String formName) { this.formName = formName; }
+    public Instant getValidFrom() { return validFrom; }
+    public void setValidFrom(Instant validFrom) { this.validFrom = validFrom; }
+    public Instant getValidTo() { return validTo; }
+    public void setValidTo(Instant validTo) { this.validTo = validTo; }
+    public boolean isDisabled() { return disabled; }
+    public void setDisabled(boolean disabled) { this.disabled = disabled; }
+    public boolean isLocalImported() { return localImported; }
+    public void setLocalImported(boolean localImported) { this.localImported = localImported; }
     /**
      * Visszaadja a(z) utolsó szinkron időpontja aktuális értékét.
      *

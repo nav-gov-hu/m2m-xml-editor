@@ -24,7 +24,19 @@ public class GitHubSchemaUpdaterProperties {
     /** A GitHub REST API alap URL-je. */
     private String apiBaseUrl = "https://api.github.com";
 
-    /** A release-archívum letöltési módja; a repository- és taglisták lekérése ettől függetlenül továbbra is a GitHub API-t használja. */
+    /** A katalógus változásfigyelésének forrása. Alapértelmezésben a korábbi GitHub API-s működés marad aktív. */
+    private GitHubCatalogSourceMode catalogSourceMode = GitHubCatalogSourceMode.GITHUB_API;
+
+    /** A dedikált artifact-katalógust tartalmazó repository neve. */
+    private String catalogRepository = "catalog";
+
+    /** A catalog repository olvasott branch-e. */
+    private String catalogBranch = "main";
+
+    /** Az artifact-catalog.xml közvetlen URL-sablonja. */
+    private String catalogXmlUrlTemplate = "https://raw.githubusercontent.com/{owner}/{repo}/{branch}/content/artifact-catalog.xml";
+
+    /** A release-archívum letöltési módja; a katalógus forrását a catalogSourceMode külön szabályozza. */
     private GitHubSchemaDownloadMode downloadMode = GitHubSchemaDownloadMode.API_ZIPBALL;
 
     /** A webes archívum URL-sablonja; támogatott helyőrzők: {@code {owner}}, {@code {repo}}, {@code {tag}}. */
@@ -127,6 +139,39 @@ public class GitHubSchemaUpdaterProperties {
      */
     public void setApiBaseUrl(String apiBaseUrl) {
         this.apiBaseUrl = apiBaseUrl;
+    }
+
+
+    public GitHubCatalogSourceMode getCatalogSourceMode() {
+        return catalogSourceMode;
+    }
+
+    public void setCatalogSourceMode(GitHubCatalogSourceMode catalogSourceMode) {
+        this.catalogSourceMode = catalogSourceMode == null ? GitHubCatalogSourceMode.GITHUB_API : catalogSourceMode;
+    }
+
+    public String getCatalogRepository() {
+        return catalogRepository;
+    }
+
+    public void setCatalogRepository(String catalogRepository) {
+        this.catalogRepository = catalogRepository;
+    }
+
+    public String getCatalogBranch() {
+        return catalogBranch;
+    }
+
+    public void setCatalogBranch(String catalogBranch) {
+        this.catalogBranch = catalogBranch;
+    }
+
+    public String getCatalogXmlUrlTemplate() {
+        return catalogXmlUrlTemplate;
+    }
+
+    public void setCatalogXmlUrlTemplate(String catalogXmlUrlTemplate) {
+        this.catalogXmlUrlTemplate = catalogXmlUrlTemplate;
     }
 
     /**

@@ -38,6 +38,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipFile;
 
 /**
  * A GitHub repository-k release-einek letöltését, biztonságos kicsomagolását és típus szerinti telepítését koordináló szolgáltatás. A normál Űrlapsablon repository-k mellett külön kezeli a közvetlenül legfrissebbként telepítendő technikai repository-kat.
@@ -915,10 +916,11 @@ public class GitHubSchemaUpdaterService {
             String downloadSource = gitHubApiClient.downloadArchive(repositoryName, tagName, archive);
             LOGGER.info("Downloaded direct GitHub archive for {}/{} using {}.", repositoryName, tagName, downloadSource);
             extractZipStrippingRoot(archive, extractDir);
+            Path payloadRoot = resolvePayloadRoot(extractDir);
             if (isFullCheckCorePublicRepository(repositoryName)) {
-                installFullCheckCorePublicXsl(extractDir, targetDirectory);
+                installFullCheckCorePublicXsl(payloadRoot, targetDirectory);
             } else {
-                synchronizeDirectRelease(extractDir, targetDirectory);
+                synchronizeDirectRelease(payloadRoot, targetDirectory);
             }
             return downloadSource;
         } finally {
@@ -1030,6 +1032,84 @@ public class GitHubSchemaUpdaterService {
     }
 
     /**
+     * Egy lokálisan feltöltött ZIP-et a GitHub-letöltéssel azonos kicsomagolási és telepítési pipeline-on dolgoz fel.
+     */
+    public TagUpdateResult importLocalArchive(Path archive, String repositoryName, String tagName, boolean force) {
+        Path schemaRoot = resolveTargetSchemaDir();
+        Path repositoryDir = GitHubPathSafety.resolveInside(schemaRoot, repositoryName);
+        Path tagTargetDir = GitHubPathSafety.resolveInside(repositoryDir, tagName);
+        if (!force && isInstalledTagDirectory(tagTargetDir)) {
+            return new TagUpdateResult(tagName, "SKIPPED", tagTargetDir.toString(),
+                    "A release már helyben megtalálható; felülírás csak Force módban engedélyezett.");
+        }
+        Path tempRoot = schemaRoot.resolve(properties.getTempDirectoryName());
+        Path workDir = tempRoot.resolve("local-import-" + UUID.randomUUID());
+        Path extractDir = workDir.resolve("extract");
+        try {
+            ExceptionSafeOperations.createDirectories(extractDir);
+            extractZipStrippingRoot(archive, extractDir);
+            Path payloadRoot = resolvePayloadRoot(extractDir);
+            if (!force) {
+                List<Path> existingTargets = findExistingImportTargets(repositoryName, tagName, payloadRoot, schemaRoot);
+                if (!existingTargets.isEmpty()) {
+                    String firstTarget = existingTargets.get(0).toString();
+                    return new TagUpdateResult(tagName, "SKIPPED", tagTargetDir.toString(),
+                            "Már létező telepített állomány található (" + firstTarget
+                                    + "). Felülírás csak Force módban engedélyezett.");
+                }
+            }
+            if (ExceptionSafeOperations.fileExists(tagTargetDir)) {
+                if (!force) {
+                    return new TagUpdateResult(tagName, "SKIPPED", tagTargetDir.toString(),
+                            "A cél release könyvtár már létezik; felülírás nem történt.");
+                }
+                deleteRecursively(tagTargetDir);
+            }
+            ExceptionSafeOperations.createDirectories(tagTargetDir.getParent());
+            try {
+                SecureFileOperations.movePrivate(payloadRoot, tagTargetDir, StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException ex) {
+                SecureFileOperations.movePrivate(payloadRoot, tagTargetDir, StandardCopyOption.REPLACE_EXISTING);
+            }
+            List<InstalledArtifactResult> artifacts = installReleaseArtifacts(repositoryName, tagName, tagTargetDir, schemaRoot);
+            TagUpdateResult result = new TagUpdateResult(tagName, "IMPORTED", tagTargetDir.toString(),
+                    "A lokális csomag kicsomagolása és telepítése sikeres.");
+            result.setInstalledArtifacts(artifacts);
+            if (artifacts.stream().anyMatch(a -> "FAILED".equals(a.getStatus()))) {
+                result.setStatus("FAILED");
+                result.setMessage("A lokális csomag kicsomagolódott, de legalább egy artefaktum telepítése sikertelen.");
+            } else {
+                writeInstallationMarker(tagTargetDir, artifacts);
+            }
+            LOGGER.info("Local template package import completed: repository={}, tag={}, force={}, status={}",
+                    repositoryName, tagName, force, result.getStatus());
+            return result;
+        } catch (Exception ex) {
+            LOGGER.warn("Local template package import failed: repository={}, tag={}", repositoryName, tagName, ex);
+            return new TagUpdateResult(tagName, "FAILED", tagTargetDir.toString(), ex.getMessage());
+        } finally {
+            try { deleteRecursively(workDir); } catch (IOException ex) { LOGGER.debug("Import staging cleanup failed: {}", workDir, ex); }
+        }
+    }
+
+    /** A lokális import által érintett, már létező telepítési célokat gyűjti össze. */
+    private List<Path> findExistingImportTargets(String repositoryName, String tagName, Path releaseRoot, Path schemaRoot) throws IOException {
+        String formType = normalizeFormType(repositoryName);
+        String version = normalizeVersion(tagName);
+        boolean commonRepository = isCommonRepository(repositoryName);
+        List<Path> existingTargets = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(releaseRoot)) {
+            for (Path source : files.filter(Files::isRegularFile).toList()) {
+                ArtifactType artifactType = classifyArtifact(releaseRoot, source);
+                if (artifactType == ArtifactType.ARCHIVE_ONLY) continue;
+                Path target = resolveArtifactTarget(artifactType, formType, version, releaseRoot, source, schemaRoot, commonRepository);
+                if (ExceptionSafeOperations.fileExists(target)) existingTargets.add(target);
+            }
+        }
+        return existingTargets;
+    }
+
+    /**
      * A normál repository release ZIP-jét ideiglenes fájlba tölti, biztonságosan kibontja a tag célkönyvtárába, majd az ideiglenes állományt eltávolítja.
      *
      * @param repositoryName a GitHub repository neve
@@ -1051,19 +1131,38 @@ public class GitHubSchemaUpdaterService {
             String downloadSource = gitHubApiClient.downloadArchive(repositoryName, tagName, archive);
             LOGGER.info("Downloaded GitHub archive for {}/{} using {}.", repositoryName, tagName, downloadSource);
             extractZipStrippingRoot(archive, extractDir);
+            Path payloadRoot = resolvePayloadRoot(extractDir);
             if (ExceptionSafeOperations.fileExists(tagTargetDir)) {
                 deleteRecursively(tagTargetDir);
             }
             ExceptionSafeOperations.createDirectories(tagTargetDir.getParent());
             try {
-                SecureFileOperations.movePrivate(extractDir, tagTargetDir, StandardCopyOption.ATOMIC_MOVE);
+                SecureFileOperations.movePrivate(payloadRoot, tagTargetDir, StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException atomicMoveFailed) {
-                SecureFileOperations.movePrivate(extractDir, tagTargetDir, StandardCopyOption.REPLACE_EXISTING);
+                SecureFileOperations.movePrivate(payloadRoot, tagTargetDir, StandardCopyOption.REPLACE_EXISTING);
             }
             return downloadSource;
         } finally {
             deleteRecursively(workDir);
         }
+    }
+
+    /**
+     * Az új repository-formátumban kizárólag a content könyvtár tartalma telepítendő.
+     * Régi repository esetén a korábbi kicsomagolt gyökér marad érvényben.
+     */
+    private Path resolvePayloadRoot(Path extractedRoot) throws IOException {
+        Path content = extractedRoot.resolve("content").normalize();
+        if (content.startsWith(extractedRoot) && Files.isDirectory(content)) {
+            try (Stream<Path> children = Files.list(content)) {
+                if (children.findAny().isEmpty()) {
+                    throw new IOException("A release content könyvtára üres.");
+                }
+            }
+            LOGGER.info("New repository layout detected; only content/ will be installed: {}", content);
+            return content;
+        }
+        return extractedRoot;
     }
 
     /**
@@ -1074,23 +1173,32 @@ public class GitHubSchemaUpdaterService {
      * @throws IOException ha a művelet végrehajtása közben a jelzett hiba bekövetkezik
      */
     private void extractZipStrippingRoot(Path archive, Path targetDir) throws IOException {
+        ArchiveLayout layout = inspectArchiveLayout(archive);
         Set<String> createdDirs = new HashSet<>();
         try (InputStream fileInput = Files.newInputStream(archive);
              ZipInputStream zipInput = new ZipInputStream(fileInput)) {
             ZipEntry entry;
             int entryCount = 0;
-        long totalBytes = 0;
-        while ((entry = zipInput.getNextEntry()) != null) {
-            if (++entryCount > MAX_ZIP_ENTRY_COUNT) {
-                throw new IOException("A ZIP túl sok bejegyzést tartalmaz.");
-            }
-                String strippedName = stripFirstPathSegment(entry.getName());
-                if (!StringUtils.hasText(strippedName)) {
+            long totalBytes = 0;
+            while ((entry = zipInput.getNextEntry()) != null) {
+                if (++entryCount > MAX_ZIP_ENTRY_COUNT) {
+                    throw new IOException("A ZIP túl sok bejegyzést tartalmaz.");
+                }
+                String normalizedName = normalizeZipEntryName(entry.getName());
+                String relativeName = layout.stripRootSegment()
+                        ? stripFirstPathSegment(normalizedName)
+                        : normalizedName;
+                if (!StringUtils.hasText(relativeName)) {
+                    continue;
+                }
+                if (layout.contentLayout()
+                        && !("content".equals(relativeName) || relativeName.startsWith("content/"))) {
+                    zipInput.closeEntry();
                     continue;
                 }
                 Path output;
                 try {
-                    output = GitHubPathSafety.resolveRelativeInside(targetDir, Path.of(strippedName));
+                    output = GitHubPathSafety.resolveRelativeInside(targetDir, Path.of(relativeName));
                 } catch (IllegalArgumentException ex) {
                     throw new IOException("Unsafe ZIP entry path: " + entry.getName(), ex);
                 }
@@ -1101,23 +1209,63 @@ public class GitHubSchemaUpdaterService {
                 } else {
                     ExceptionSafeOperations.createDirectories(output.getParent());
                     try (java.io.OutputStream out = SecureFileOperations.newPrivateOutputStream(output)) {
-                    byte[] buffer = new byte[64 * 1024];
-                    long entryBytes = 0;
-                    int read;
-                    while ((read = zipInput.read(buffer)) >= 0) {
-                        entryBytes += read;
-                        totalBytes += read;
-                        if (entryBytes > MAX_ZIP_ENTRY_BYTES || totalBytes > MAX_ZIP_TOTAL_BYTES) {
-                            throw new IOException("A ZIP kibontott mérete meghaladja a biztonsági korlátot.");
+                        byte[] buffer = new byte[64 * 1024];
+                        long entryBytes = 0;
+                        int read;
+                        while ((read = zipInput.read(buffer)) >= 0) {
+                            entryBytes += read;
+                            totalBytes += read;
+                            if (entryBytes > MAX_ZIP_ENTRY_BYTES || totalBytes > MAX_ZIP_TOTAL_BYTES) {
+                                throw new IOException("A ZIP kibontott mérete meghaladja a biztonsági korlátot.");
+                            }
+                            out.write(buffer, 0, read);
                         }
-                        out.write(buffer, 0, read);
                     }
-                }
                 }
                 zipInput.closeEntry();
             }
         }
+        LOGGER.debug("ZIP layout inspected: stripRootSegment={}, contentLayout={}, archive={}",
+                layout.stripRootSegment(), layout.contentLayout(), archive);
     }
+
+    /** Meghatározza, hogy van-e közös GitHub gyökérkönyvtár és content/ alapú payload. */
+    private ArchiveLayout inspectArchiveLayout(Path archive) throws IOException {
+        String commonTopLevel = null;
+        boolean commonRoot = true;
+        List<String> names = new ArrayList<>();
+        try (ZipFile zipFile = new ZipFile(archive.toFile(), StandardCharsets.UTF_8)) {
+            var entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                String name = normalizeZipEntryName(entry.getName());
+                if (!StringUtils.hasText(name)) continue;
+                names.add(name);
+                int slash = name.indexOf('/');
+                if (slash <= 0) {
+                    commonRoot = false;
+                    continue;
+                }
+                String topLevel = name.substring(0, slash);
+                if (commonTopLevel == null) commonTopLevel = topLevel;
+                else if (!commonTopLevel.equals(topLevel)) commonRoot = false;
+            }
+        }
+        boolean stripRoot = commonRoot && StringUtils.hasText(commonTopLevel);
+        boolean contentLayout = names.stream()
+                .map(name -> stripRoot ? stripFirstPathSegment(name) : name)
+                .anyMatch(name -> "content".equals(name) || name.startsWith("content/"));
+        return new ArchiveLayout(stripRoot, contentLayout);
+    }
+
+    private String normalizeZipEntryName(String entryName) {
+        if (entryName == null) return "";
+        String normalized = entryName.replace('\\', '/');
+        while (normalized.startsWith("/")) normalized = normalized.substring(1);
+        return normalized;
+    }
+
+    private record ArchiveLayout(boolean stripRootSegment, boolean contentLayout) {}
 
     /**
      * Eltávolítja a ZIP-bejegyzés első útvonalszegmensét, hogy a GitHub zipball mesterséges gyökérkönyvtára ne kerüljön a telepített release struktúrába.

@@ -40,7 +40,15 @@
           <button type="button" class="xml-files-toolbar-button template-download-selected" id="downloadSelectedTemplatesButton" disabled title="Kijelölt release tagek letöltése">⇩</button>
           <button type="button" class="xml-files-toolbar-button danger" id="deleteSelectedLocalTemplatesButton" disabled hidden title="Kijelölt lokális release-ek törlése">🗑</button>
           <button type="button" class="xml-files-toolbar-button refresh" id="refreshTemplatesButton" title="Helyi lista újratöltése">↻</button>
-          <button type="button" class="xml-files-toolbar-button github-manual-refresh" id="manualGithubRefreshButton" title="Kézi GitHub frissítésellenőrzés">GitHub ↻</button>
+          <div class="template-package-menu" id="templatePackageMenu">
+            <button type="button" class="xml-files-toolbar-button template-package-menu-button" id="templatePackageMenuButton" title="Csomagkezelés" aria-label="Csomagkezelés" aria-haspopup="menu" aria-expanded="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5v-7ZM12 5.3l5.7 3.5L12 12.3 6.3 8.8 12 5.3Zm-7 5.2 6 3.7v4L5 14.5v-4Zm8 7.7v-4l6-3.7v4l-6 3.7Z"/></svg>
+            </button>
+            <div class="template-package-menu-panel" id="templatePackageMenuPanel" role="menu" hidden>
+              <button type="button" id="manualGithubRefreshButton" role="menuitem">GitHub frissítés</button>
+              <button type="button" id="openPackageImportButton" role="menuitem">Csomag import</button>
+            </div>
+          </div>
         </div>
         <div class="xml-files-filterbar">
           <input id="templateSearchInput" type="search" placeholder="Keresés a táblázat adatai között">
@@ -81,7 +89,7 @@
   <div class="template-processing-backdrop"></div>
   <section class="template-confirm-card" role="dialog" aria-modal="true" aria-labelledby="githubTokenMissingTitle">
     <h2 id="githubTokenMissingTitle">GitHub token nincs beállítva</h2>
-    <p>A helyi űrlapsablon-katalógus használható, de GitHub-ellenőrzés és release-letöltés csak hozzáférési token megadása után indítható.</p>
+    <p>A helyi űrlapsablon-katalógus használható. GitHub API alapú ellenőrzéshez és GitHub release-letöltéshez hozzáférési token szükséges; Catalog módú változásellenőrzés token nélkül is használható.</p>
     <div class="github-token-quick-config">
       <label for="githubTokenQuickInput">GitHub Personal Access Token</label>
       <input id="githubTokenQuickInput" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder="Token megadása">
@@ -105,6 +113,27 @@
     <div class="template-confirm-actions">
       <button type="button" class="secondary" id="cancelTemplateLocalDeleteButton">Mégse</button>
       <button type="button" class="danger" id="confirmTemplateLocalDeleteButton">Lokális törlés</button>
+    </div>
+  </section>
+</div>
+
+<div id="templatePackageImportDialog" class="template-confirm" hidden>
+  <div class="template-processing-backdrop"></div>
+  <section class="template-confirm-card template-package-import-card" role="dialog" aria-modal="true" aria-labelledby="templatePackageImportTitle">
+    <h2 id="templatePackageImportTitle">Űrlapsablon csomag import</h2>
+    <p>Régi vagy új, <code>content/</code> könyvtárat használó repository ZIP csomagok tölthetők be. Egyszerre több állomány is kiválasztható.</p>
+    <input id="templatePackageImportFiles" type="file" accept=".zip,application/zip" multiple hidden>
+    <div class="template-package-import-toolbar">
+      <button type="button" class="secondary" id="browseTemplatePackagesButton">Tallózás…</button>
+      <span id="templatePackageImportSelectionSummary" class="hint">Nincs kiválasztott ZIP.</span>
+    </div>
+    <div id="templatePackageImportFileList" class="template-package-import-file-list" aria-live="polite"></div>
+    <label class="template-package-import-force"><input id="templatePackageImportForce" type="checkbox"> Force kicsomagolás és felülírás</label>
+    <p class="hint">Alapértelmezésben a már létező release/verzió és a hozzá tartozó telepített állományok nem íródnak felül.</p>
+    <div id="templatePackageImportResult" class="template-package-import-result" hidden></div>
+    <div class="template-confirm-actions">
+      <button type="button" class="secondary" id="closeTemplatePackageImportButton">Bezárás</button>
+      <button type="button" id="importTemplatePackagesButton" disabled>Betöltés</button>
     </div>
   </section>
 </div>

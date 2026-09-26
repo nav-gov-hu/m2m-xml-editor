@@ -43,6 +43,7 @@ class GitHubTemplateCatalogServiceTest {
     @Mock GitHubTemplateReleaseRepository releaseStore;
     @Mock GitHubTemplateSyncStateRepository syncStateStore;
     @Mock GitHubTemplateCatalogPersistenceService persistenceService;
+    @Mock ArtifactCatalogParser artifactCatalogParser;
 
     @TempDir Path tempDir;
 
@@ -62,7 +63,8 @@ class GitHubTemplateCatalogServiceTest {
                 repositoryStore,
                 releaseStore,
                 syncStateStore,
-                persistenceService);
+                persistenceService,
+                artifactCatalogParser);
     }
 
     @Test
@@ -221,8 +223,10 @@ class GitHubTemplateCatalogServiceTest {
         Path uiRoot = Files.createDirectory(tempDir.resolve("ui"));
         Path xpathRoot = Files.createDirectory(tempDir.resolve("xpath"));
         Files.writeString(commonRoot.resolve("common.xsd"), "common");
+        Files.writeString(commonRoot.resolve("shared.xsd"), "common-version");
         Path formSchema = ExceptionSafeOperations.createDirectories(schemaRoot.resolve("NAV-2608").resolve("1.2.3"));
         Files.writeString(formSchema.resolve("form.xsd"), "xsd");
+        Files.writeString(formSchema.resolve("shared.xsd"), "form-version");
         Path formUi = ExceptionSafeOperations.createDirectories(uiRoot.resolve("NAV-2608").resolve("1.2.3"));
         Files.writeString(formUi.resolve("ui.xml"), "ui");
         Path formXpath = ExceptionSafeOperations.createDirectories(xpathRoot.resolve("NAV-2608").resolve("1.2.3"));
@@ -236,13 +240,66 @@ class GitHubTemplateCatalogServiceTest {
         service.writeLocalBundle("NAV-2608", "v1.2.3", output);
 
         var names = new java.util.HashSet<String>();
+        var contents = new java.util.HashMap<String, String>();
         try (ZipInputStream zip = new ZipInputStream(new java.io.ByteArrayInputStream(output.toByteArray()))) {
             for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
                 names.add(entry.getName());
+                contents.put(entry.getName(), new String(zip.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
             }
         }
-        assertEquals(java.util.Set.of("common.xsd", "form.xsd", "ui.xml", "rule.xsl"), names);
+        assertEquals(java.util.Set.of("common.xsd", "shared.xsd", "form.xsd", "ui.xml", "rule.xsl"), names);
+        assertEquals("form-version", contents.get("shared.xsd"));
         verifyNoInteractions(apiClient);
+    }
+
+    @Test
+    void localBundleFailsWhenSelectedReleaseIsMissingEvenIfCommonDirectoryContainsFiles() throws Exception {
+        Path schemaRoot = Files.createDirectory(tempDir.resolve("missing-xsd"));
+        Path commonRoot = Files.createDirectory(tempDir.resolve("missing-common"));
+        Path uiRoot = Files.createDirectory(tempDir.resolve("missing-ui"));
+        Path xpathRoot = Files.createDirectory(tempDir.resolve("missing-xpath"));
+        Files.writeString(commonRoot.resolve("common.xsd"), "common");
+        when(environment.getProperty("nav.xsdparsertool.paths.schema-dir")).thenReturn(schemaRoot.toString());
+        when(environment.getProperty("nav.xsdparsertool.paths.common-xsd-dir")).thenReturn(commonRoot.toString());
+        when(environment.getProperty("nav.xsdparsertool.paths.ui-model-dir")).thenReturn(uiRoot.toString());
+        when(environment.getProperty("nav.xsdparsertool.xpath-validator.rule-root-dir")).thenReturn(xpathRoot.toString());
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> service.writeLocalBundle("K91", "2.0", new ByteArrayOutputStream()));
+
+        assertTrue(error.getMessage().contains("K91 / 2.0"));
+    }
+
+    @Test
+    void localBundleUsesInstallationMarkerAndKeepsCommonFiles() throws Exception {
+        Path schemaRoot = Files.createDirectory(tempDir.resolve("marker-xsd"));
+        Path commonRoot = Files.createDirectory(tempDir.resolve("marker-common"));
+        Path uiRoot = Files.createDirectory(tempDir.resolve("marker-ui"));
+        Path xpathRoot = Files.createDirectory(tempDir.resolve("marker-xpath"));
+        Files.writeString(commonRoot.resolve("common.xsd"), "common");
+
+        Path installedXsd = ExceptionSafeOperations.createDirectories(schemaRoot.resolve("K91").resolve("2.0")).resolve("K91.xsd");
+        Path installedUi = ExceptionSafeOperations.createDirectories(uiRoot.resolve("K91").resolve("2.0")).resolve("uimodel.xml");
+        Files.writeString(installedXsd, "xsd");
+        Files.writeString(installedUi, "ui");
+
+        Path releaseRoot = ExceptionSafeOperations.createDirectories(schemaRoot.resolve("K91").resolve("release-2.0"));
+        Files.writeString(releaseRoot.resolve(".m2m-installation-complete"),
+                "installedAt=2026-09-25T00:00:00Z\nXSD=" + installedXsd + "\nUIMODEL=" + installedUi + "\n");
+
+        when(environment.getProperty("nav.xsdparsertool.paths.schema-dir")).thenReturn(schemaRoot.toString());
+        when(environment.getProperty("nav.xsdparsertool.paths.common-xsd-dir")).thenReturn(commonRoot.toString());
+        when(environment.getProperty("nav.xsdparsertool.paths.ui-model-dir")).thenReturn(uiRoot.toString());
+        when(environment.getProperty("nav.xsdparsertool.xpath-validator.rule-root-dir")).thenReturn(xpathRoot.toString());
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        service.writeLocalBundle("K91", "release-2.0", output);
+
+        var names = new java.util.HashSet<String>();
+        try (ZipInputStream zip = new ZipInputStream(new java.io.ByteArrayInputStream(output.toByteArray()))) {
+            for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) names.add(entry.getName());
+        }
+        assertEquals(java.util.Set.of("common.xsd", "K91.xsd", "uimodel.xml"), names);
     }
 
     @Test

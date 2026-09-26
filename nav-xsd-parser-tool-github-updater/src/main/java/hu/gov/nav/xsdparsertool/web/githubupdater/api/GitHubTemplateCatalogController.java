@@ -2,11 +2,14 @@ package hu.gov.nav.xsdparsertool.web.githubupdater.api;
 
 import hu.gov.nav.xsdparsertool.web.githubupdater.dto.GitHubSchemaUpdateResponse;
 import hu.gov.nav.xsdparsertool.web.githubupdater.dto.GitHubTemplateCatalogDtos;
+import hu.gov.nav.xsdparsertool.web.githubupdater.dto.PackageImportResponse;
 import hu.gov.nav.xsdparsertool.web.githubupdater.service.GitHubTemplateCatalogService;
+import hu.gov.nav.xsdparsertool.web.githubupdater.service.GitHubPackageImportService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.net.URLEncoder;
@@ -19,12 +22,17 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/github-templates")
 public class GitHubTemplateCatalogController {
     private final GitHubTemplateCatalogService service;
+    private final GitHubPackageImportService packageImportService;
     /**
      * Létrehozza a(z) {@code GitHubTemplateCatalogController} példányt a működéshez szükséges kezdeti állapottal és függőségekkel.
      *
      * @param service a művelethez átadott {@code service} érték
      */
-    public GitHubTemplateCatalogController(GitHubTemplateCatalogService service) { this.service = service; }
+    public GitHubTemplateCatalogController(GitHubTemplateCatalogService service,
+                                           GitHubPackageImportService packageImportService) {
+        this.service = service;
+        this.packageImportService = packageImportService;
+    }
 
     /**
      * Lekéri a perzisztált GitHub Űrlapsablon-katalógust; a {@code preferredOnly} jelzővel csak a lokálisan ismert űrlaptípusokhoz tartozó sorok kérhetők.
@@ -77,6 +85,16 @@ public class GitHubTemplateCatalogController {
     @GetMapping("/refresh/status")
     public ResponseEntity<GitHubTemplateCatalogDtos.RefreshStatusResponse> refreshStatus() {
         return ResponseEntity.ok(service.refreshStatus());
+    }
+
+    /** Több helyi repository ZIP feltöltése és regisztrálása a GitHub-letöltéssel azonos telepítési szabályokkal. */
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PackageImportResponse> importPackages(
+            @RequestPart("files") java.util.List<MultipartFile> files,
+            @RequestParam(defaultValue = "false") boolean force) {
+        if (files == null || files.isEmpty()) throw new IllegalArgumentException("Legalább egy ZIP állomány kiválasztása szükséges.");
+        if (files.size() > 50) throw new IllegalArgumentException("Egyszerre legfeljebb 50 ZIP állomány importálható.");
+        return ResponseEntity.ok(packageImportService.importPackages(files, force));
     }
 
     /**

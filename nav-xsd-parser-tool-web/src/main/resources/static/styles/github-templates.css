@@ -245,3 +245,20 @@ body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-too
 .github-templates-table th:nth-child(2){width:auto;min-width:220px}
 .template-form-cell{display:flex;min-width:0;white-space:normal;flex-wrap:wrap}
 .template-repo-link{min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+
+/* Csomagkezelés dropdown és lokális csomagimport. */
+.template-package-menu{position:relative;display:inline-flex;align-items:center}
+body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-toolbar-button.template-package-menu-button{display:inline-flex;align-items:center;justify-content:center;padding:0!important}
+.template-package-menu-button svg{width:20px;height:20px;fill:currentColor}
+.template-package-menu-panel{position:absolute;left:0;top:calc(100% + 6px);z-index:80;min-width:190px;padding:6px;border:1px solid var(--nav-theme-border);border-radius:10px;background:var(--nav-theme-surface,#fff);box-shadow:0 14px 34px rgba(15,23,42,.18)}
+.template-package-menu-panel button{display:block;width:100%;padding:.65rem .75rem;border:0;border-radius:7px;background:transparent;text-align:left;color:inherit;cursor:pointer}
+.template-package-menu-panel button:hover,.template-package-menu-panel button:focus-visible{background:var(--nav-theme-surface-muted,#eef2f7);outline:none}
+.template-package-import-card{width:min(860px,calc(100vw - 32px));margin:7vh auto 0;max-height:86vh;display:flex;flex-direction:column}
+.template-package-import-toolbar{display:flex;align-items:center;gap:.8rem;margin-top:1rem;flex-wrap:wrap}
+.template-package-import-file-list{min-height:120px;max-height:280px;overflow:auto;margin-top:.8rem;border:1px solid var(--nav-theme-border);border-radius:9px;background:var(--nav-theme-surface-muted,#f8fafc)}
+.template-package-import-file-list:empty::before{content:'A kiválasztott ZIP állományok itt jelennek meg.';display:block;padding:1rem;color:var(--nav-theme-muted);font-size:.86rem}
+.template-package-import-file{display:flex;justify-content:space-between;gap:1rem;padding:.7rem .85rem;border-bottom:1px solid var(--nav-theme-border);font-size:.86rem}
+.template-package-import-file:last-child{border-bottom:0}.template-package-import-file span:first-child{overflow-wrap:anywhere}.template-package-import-file-size{white-space:nowrap;color:var(--nav-theme-muted)}
+.template-package-import-force{display:flex;align-items:center;gap:.55rem;margin-top:1rem;font-weight:700}
+.template-package-import-result{margin-top:1rem;padding:.8rem;border-radius:9px;background:var(--nav-theme-surface-muted,#f8fafc);max-height:180px;overflow:auto;font-size:.84rem}
+.template-package-import-result-item{padding:.35rem 0;border-bottom:1px solid var(--nav-theme-border)}.template-package-import-result-item:last-child{border-bottom:0}

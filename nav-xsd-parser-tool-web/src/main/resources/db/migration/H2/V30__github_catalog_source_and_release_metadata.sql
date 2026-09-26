@@ -1,0 +1,9 @@
+alter table github_template_release add column if not exists form_name varchar(2000);
+alter table github_template_release add column if not exists valid_from timestamp;
+alter table github_template_release add column if not exists valid_to timestamp;
+alter table github_template_release add column if not exists disabled_flag boolean default false not null;
+alter table github_template_release add column if not exists local_imported_flag boolean default false not null;
+insert into system_configuration(config_key, config_value, updated_at, updated_by) select 'nav.xsdparsertool.github-schema-updater.catalog-source-mode','GITHUB_API',current_timestamp,'migration' where not exists (select 1 from system_configuration where config_key='nav.xsdparsertool.github-schema-updater.catalog-source-mode');
+insert into system_configuration(config_key, config_value, updated_at, updated_by) select 'nav.xsdparsertool.github-schema-updater.catalog-repository','catalog',current_timestamp,'migration' where not exists (select 1 from system_configuration where config_key='nav.xsdparsertool.github-schema-updater.catalog-repository');
+insert into system_configuration(config_key, config_value, updated_at, updated_by) select 'nav.xsdparsertool.github-schema-updater.catalog-branch','main',current_timestamp,'migration' where not exists (select 1 from system_configuration where config_key='nav.xsdparsertool.github-schema-updater.catalog-branch');
+insert into system_configuration(config_key, config_value, updated_at, updated_by) select 'nav.xsdparsertool.github-schema-updater.catalog-xml-url-template','https://raw.githubusercontent.com/{owner}/{repo}/{branch}/content/artifact-catalog.xml',current_timestamp,'migration' where not exists (select 1 from system_configuration where config_key='nav.xsdparsertool.github-schema-updater.catalog-xml-url-template');

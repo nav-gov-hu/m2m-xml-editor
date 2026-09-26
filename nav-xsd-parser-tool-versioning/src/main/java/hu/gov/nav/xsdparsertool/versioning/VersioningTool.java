@@ -29,7 +29,7 @@ import java.util.concurrent.CompletionException;
  */
 public final class VersioningTool {
 
-    private static final Pattern SEMVER_TAG = Pattern.compile("^v?(\\d+)\\.(\\d+)\\.(\\d+)(?:-\\d{8}-\\d{6})?$");
+    private static final Pattern SEMVER_TAG = Pattern.compile("^v?(\\d+)\\.(\\d+)\\.(\\d+)(?:-\\d{8}-\\d{6}(?:-RC\\d+)?)?$", Pattern.CASE_INSENSITIVE);
     private static final Pattern REST_MAPPING = Pattern.compile("@(Get|Post|Put|Patch|Delete|Request)Mapping\\b");
     private static final Pattern PUBLIC_API = Pattern.compile("^\\s*(public|protected)\\s+.*[({].*$");
     private static final Pattern PUBLIC_TYPE = Pattern.compile("\\bpublic\\s+(?:final\\s+|sealed\\s+|abstract\\s+)?(?:class|interface|enum|record)\\b");
@@ -521,7 +521,7 @@ public final class VersioningTool {
             out.append(" (az automatikus döntés: ").append(info.detected()).append(")");
         }
         out.append("\nKövetkező verzió: ").append(info.next()).append("\n");
-        out.append("Build azonosító: ").append(info.next()).append('+').append(info.timestamp().replace("-", ".")).append("\n");
+        out.append("Build azonosító: ").append(info.next()).append('-').append(info.timestamp().replace("-", "-")).append("\n");
         out.append("Commit: ").append(info.commit()).append(info.dirty() ? " (nem tiszta munkakönyvtár)" : "").append("\n");
         return out.toString();
     }

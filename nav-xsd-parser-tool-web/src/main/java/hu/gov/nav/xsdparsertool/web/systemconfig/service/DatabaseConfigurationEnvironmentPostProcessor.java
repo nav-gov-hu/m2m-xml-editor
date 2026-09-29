@@ -1,5 +1,7 @@
 package hu.gov.nav.xsdparsertool.web.systemconfig.service;
 
+import hu.gov.nav.xsdparsertool.web.setup.ManagedDataDirectoryPaths;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -73,7 +75,7 @@ public class DatabaseConfigurationEnvironmentPostProcessor implements Environmen
                     String key = resultSet.getString(1);
                     String value = resultSet.getString(2);
                     if (isRuntimeConfigurationKey(key) && value != null && !value.isBlank()) {
-                        values.put(key, value);
+                        values.put(key, rebaseManagedRuntimePath(environment, key, value));
                     }
                 }
             }
@@ -84,6 +86,19 @@ public class DatabaseConfigurationEnvironmentPostProcessor implements Environmen
         } catch (Exception ignored) {
             // Első induláskor a tábla még nem feltétlenül létezik; Flyway ezt később létrehozza.
         }
+    }
+
+    /**
+     * A korábbi verzió adatbázisából változtatás nélkül átmásolt belső útvonalakat csak
+     * futásidőben köti az aktuális app.data.dir gyökérhez. Külső útvonal és adatbázisérték nem módosul.
+     */
+    private String rebaseManagedRuntimePath(ConfigurableEnvironment environment, String key, String value) {
+        if (!ManagedDataDirectoryPaths.isManagedRuntimePathKey(key)) {
+            return value;
+        }
+        String legacyRoot = environment.getProperty(ManagedDataDirectoryPaths.LEGACY_DATA_DIRECTORY_PROPERTY);
+        String currentRoot = environment.getProperty("app.data.dir");
+        return ManagedDataDirectoryPaths.rebaseIfUnderLegacyRoot(value, legacyRoot, currentRoot);
     }
 
 

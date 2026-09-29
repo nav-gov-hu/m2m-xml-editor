@@ -37,6 +37,8 @@
         <revision>1.11.40-SNAPSHOT</revision>
         <app.release.version>${revision}</app.release.version>
         <app.build.timestamp>${maven.build.timestamp}</app.build.timestamp>
+        <!-- A DB release-lockhoz használt teljes release azonosító. A build/telepítő -Dapp.full.release paraméterrel felülírhatja, például RC tag esetén. -->
+        <app.full.release>${app.release.version}-${app.build.timestamp}</app.full.release>
         <app.display.version>${app.release.version} - build ${app.build.timestamp}</app.display.version>
         <build.asset.version>${app.release.version}-${app.build.timestamp}</build.asset.version>
         <maven.compiler.release>17</maven.compiler.release>

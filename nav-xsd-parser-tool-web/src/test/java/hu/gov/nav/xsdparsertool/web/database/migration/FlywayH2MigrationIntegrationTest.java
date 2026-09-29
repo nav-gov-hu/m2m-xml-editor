@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FlywayH2MigrationIntegrationTest {
 
-    private static final int EXPECTED_LATEST_VERSION = 30;
+    private static final int EXPECTED_LATEST_VERSION = 31;
 
     @Test
     void allH2MigrationsMustRunAndCreateCurrentSchema() throws Exception {

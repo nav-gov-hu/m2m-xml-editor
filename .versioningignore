@@ -3,3 +3,6 @@ documentation/**
 
 # Maga az ignore fájl se okozzon verzióemelést
 .versioningignore
+
+# A build-versioned.cmd altal generalt RELEASE fajl ne befolyasolja a verzioemelest
+RELEASE

@@ -59,9 +59,17 @@ class GitHubTemplateBulkDownloadFrontendContractTest {
     }
 
     @Test
-    void localDeleteUsesDedicatedAdminEndpointAndOnlySelectedLocalRows() {
+    void packageImportResultShowsInstalledArtifactTargetPaths() {
+        assertTrue(source.contains("function renderPackageImportArtifacts(item)"));
+        assertTrue(source.contains("artifact?.targetFile"));
+        assertTrue(source.contains("Telepítési célok:"));
+        assertTrue(source.contains("artifact.targetFile"));
+    }
+
+    @Test
+    void manualDeleteSupportsLocalAndCatalogOnlyReleases() {
         assertTrue(source.contains("selectedLocalDeleteItems"));
-        assertTrue(source.contains("row.locallyAvailable"));
+        assertTrue(source.contains("function selectedLocalDeleteItems(){return [...state.selected.values()].filter(item=>state.rows.some(row=>row.repository===item.repository&&row.releaseTag===item.tag));}"));
         assertTrue(source.contains("fetch('/api/github-templates/local-delete'"));
         assertTrue(source.contains("JSON.stringify({items})"));
     }

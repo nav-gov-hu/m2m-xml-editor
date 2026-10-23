@@ -9,9 +9,11 @@ import hu.gov.nav.xsdparsertool.web.githubupdater.dto.GitHubSchemaUpdateResponse
 import hu.gov.nav.xsdparsertool.web.githubupdater.dto.InstalledArtifactResult;
 import hu.gov.nav.xsdparsertool.web.githubupdater.dto.RepositoryUpdateResult;
 import hu.gov.nav.xsdparsertool.web.githubupdater.dto.TagUpdateResult;
+import hu.gov.nav.xsdparsertool.web.githubupdater.event.SchemaArtifactsChangedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -61,6 +63,7 @@ public class GitHubSchemaUpdaterService {
     private final GitHubApiClient gitHubApiClient;
     private final VersionTagComparator versionTagComparator;
     private final Environment environment;
+    private final ApplicationEventPublisher eventPublisher;
     private final ReentrantLock updateLock = new ReentrantLock();
 
     /**
@@ -70,15 +73,18 @@ public class GitHubSchemaUpdaterService {
      * @param gitHubApiClient a művelethez átadott {@code gitHubApiClient} érték
      * @param versionTagComparator a művelethez átadott {@code versionTagComparator} érték
      * @param environment a művelethez átadott {@code environment} érték
+     * @param eventPublisher a sikeres csomagváltozásokat továbbító alkalmazásesemény-küldő
      */
     public GitHubSchemaUpdaterService(GitHubSchemaUpdaterProperties properties,
                                       GitHubApiClient gitHubApiClient,
                                       VersionTagComparator versionTagComparator,
-                                      Environment environment) {
+                                      Environment environment,
+                                      ApplicationEventPublisher eventPublisher) {
         this.properties = properties;
         this.gitHubApiClient = gitHubApiClient;
         this.versionTagComparator = versionTagComparator;
         this.environment = environment;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -156,6 +162,9 @@ public class GitHubSchemaUpdaterService {
         } finally {
             response.setFinishedAt(Instant.now());
         }
+        if (!request.isDryRun() && response.getDownloadedCount() > 0) {
+            publishSchemaArtifactsChanged("github-update");
+        }
         return response;
     }
 
@@ -182,11 +191,21 @@ public class GitHubSchemaUpdaterService {
         if (StringUtils.hasText(prefix)) {
             String expected = prefix.toLowerCase(Locale.ROOT);
             result.removeIf(repo -> repo == null
+                    || isIgnoredTechnicalRepository(repo)
                     || (!repo.toLowerCase(Locale.ROOT).startsWith(expected) && !isDirectLatestRepository(repo)));
         } else {
-            result.removeIf(repo -> !StringUtils.hasText(repo));
+            result.removeIf(repo -> !StringUtils.hasText(repo) || isIgnoredTechnicalRepository(repo));
         }
         return new ArrayList<>(result);
+    }
+
+    /**
+     * A GitHub organization technikai repository-jait kiszűri a letöltési/frissítési folyamatból.
+     * A .github repository organization-szintű metaadatokat és workflow konfigurációt tartalmaz,
+     * ezért nem űrlapsablon és soha nem tölthető le sémaforrásként.
+     */
+    private boolean isIgnoredTechnicalRepository(String repositoryName) {
+        return StringUtils.hasText(repositoryName) && ".github".equalsIgnoreCase(repositoryName.trim());
     }
 
     /**
@@ -521,6 +540,45 @@ public class GitHubSchemaUpdaterService {
             throw new IllegalStateException("A GitHub telepítési marker nem olvasható: " + marker, ex);
         }
         return deleted;
+    }
+
+    /**
+     * Frissítés előtt eltávolítja az adott űrlapverzió korábban telepített XSD, XPath és UIModel
+     * célkönyvtárait. Így egy átnevezett állomány régi példánya nem marad az aktív könyvtárban.
+     */
+    private void clearInstalledArtifactDirectoriesForRefresh(String repositoryName, String tagName, Path schemaRoot) {
+        if (isFullCheckCorePublicRepository(repositoryName)) {
+            return;
+        }
+        if (isCommonRepository(repositoryName)) {
+            Path commonRoot = configuredDirectory(COMMON_XSD_DIR_PROPERTY);
+            int deleted = deleteDirectoryContentsInside(commonRoot, commonRoot);
+            if (deleted > 0) {
+                LOGGER.info("Korábbi common XSD tartalom törölve frissítés előtt: repository={}, tag={}, deletedEntries={}",
+                        repositoryName, tagName, deleted);
+            }
+            return;
+        }
+        String formType = normalizeFormType(repositoryName);
+        String version = normalizeVersion(tagName);
+        Path schemaTarget = GitHubPathSafety.resolveInside(schemaRoot, formType, version);
+        Path xpathRoot = configuredDirectory(XPATH_RULE_DIR_PROPERTY);
+        Path xpathTarget = GitHubPathSafety.resolveInside(xpathRoot, formType, version);
+        Path uiModelRoot = configuredDirectory(UI_MODEL_DIR_PROPERTY);
+        Path uiModelTarget = GitHubPathSafety.resolveInside(uiModelRoot, formType, version);
+
+        int deleted = 0;
+        deleted += deleteDirectoryTreeInside(schemaRoot, schemaTarget);
+        deleted += deleteDirectoryTreeInside(xpathRoot, xpathTarget);
+        deleted += deleteDirectoryTreeInside(uiModelRoot, uiModelTarget);
+        if (deleted > 0) {
+            LOGGER.info("Korábbi telepített csomagtartalom törölve frissítés előtt: repository={}, tag={}, deletedEntries={}",
+                    repositoryName, tagName, deleted);
+        }
+    }
+
+    private void publishSchemaArtifactsChanged(String source) {
+        eventPublisher.publishEvent(new SchemaArtifactsChangedEvent(source));
     }
 
     /** Visszaadja a lokális GitHub artefaktumok megengedett gyökérkönyvtárait. */
@@ -918,8 +976,10 @@ public class GitHubSchemaUpdaterService {
             extractZipStrippingRoot(archive, extractDir);
             Path payloadRoot = resolvePayloadRoot(extractDir);
             if (isFullCheckCorePublicRepository(repositoryName)) {
+                Files.deleteIfExists(targetDirectory.resolve(FULL_CHECK_CORE_PUBLIC_XSL).normalize());
                 installFullCheckCorePublicXsl(payloadRoot, targetDirectory);
             } else {
+                deleteDirectoryContentsInside(targetDirectory, targetDirectory);
                 synchronizeDirectRelease(payloadRoot, targetDirectory);
             }
             return downloadSource;
@@ -934,9 +994,10 @@ public class GitHubSchemaUpdaterService {
      *
      * @param sourceDirectory a forráskönyvtár
      * @param targetDirectory a célkönyvtár
+     * @return a ténylegesen telepített XSL forrás- és célútvonalát tartalmazó eredmény
      * @throws IOException ha a művelet végrehajtása közben a jelzett hiba bekövetkezik
      */
-    private void installFullCheckCorePublicXsl(Path sourceDirectory, Path targetDirectory) throws IOException {
+    private InstalledArtifactResult installFullCheckCorePublicXsl(Path sourceDirectory, Path targetDirectory) throws IOException {
         List<Path> matches;
         try (Stream<Path> files = Files.walk(sourceDirectory)) {
             matches = files.filter(Files::isRegularFile)
@@ -960,6 +1021,12 @@ public class GitHubSchemaUpdaterService {
         installAndVerifyArtifact(source, target, expectedSize);
         LOGGER.info("Installed full_check_core_public XSL into configured XSL root: source={}, target={}, size={}",
                 source, target, expectedSize);
+        return new InstalledArtifactResult(
+                "XSL",
+                source.toString(),
+                target.toString(),
+                "INSTALLED",
+                "A full_check_core_public XSL állomány telepítése sikeres.");
     }
 
     /**
@@ -1035,6 +1102,9 @@ public class GitHubSchemaUpdaterService {
      * Egy lokálisan feltöltött ZIP-et a GitHub-letöltéssel azonos kicsomagolási és telepítési pipeline-on dolgoz fel.
      */
     public TagUpdateResult importLocalArchive(Path archive, String repositoryName, String tagName, boolean force) {
+        if (isFullCheckCorePublicRepository(repositoryName)) {
+            return importFullCheckCorePublicLocalArchive(archive, repositoryName, tagName, force);
+        }
         Path schemaRoot = resolveTargetSchemaDir();
         Path repositoryDir = GitHubPathSafety.resolveInside(schemaRoot, repositoryName);
         Path tagTargetDir = GitHubPathSafety.resolveInside(repositoryDir, tagName);
@@ -1058,11 +1128,12 @@ public class GitHubSchemaUpdaterService {
                                     + "). Felülírás csak Force módban engedélyezett.");
                 }
             }
+            if (ExceptionSafeOperations.fileExists(tagTargetDir) && !force) {
+                return new TagUpdateResult(tagName, "SKIPPED", tagTargetDir.toString(),
+                        "A cél release könyvtár már létezik; felülírás nem történt.");
+            }
+            clearInstalledArtifactDirectoriesForRefresh(repositoryName, tagName, schemaRoot);
             if (ExceptionSafeOperations.fileExists(tagTargetDir)) {
-                if (!force) {
-                    return new TagUpdateResult(tagName, "SKIPPED", tagTargetDir.toString(),
-                            "A cél release könyvtár már létezik; felülírás nem történt.");
-                }
                 deleteRecursively(tagTargetDir);
             }
             ExceptionSafeOperations.createDirectories(tagTargetDir.getParent());
@@ -1080,6 +1151,7 @@ public class GitHubSchemaUpdaterService {
                 result.setMessage("A lokális csomag kicsomagolódott, de legalább egy artefaktum telepítése sikertelen.");
             } else {
                 writeInstallationMarker(tagTargetDir, artifacts);
+                publishSchemaArtifactsChanged("local-import:" + repositoryName + "@" + tagName);
             }
             LOGGER.info("Local template package import completed: repository={}, tag={}, force={}, status={}",
                     repositoryName, tagName, force, result.getStatus());
@@ -1089,6 +1161,50 @@ public class GitHubSchemaUpdaterService {
             return new TagUpdateResult(tagName, "FAILED", tagTargetDir.toString(), ex.getMessage());
         } finally {
             try { deleteRecursively(workDir); } catch (IOException ex) { LOGGER.debug("Import staging cleanup failed: {}", workDir, ex); }
+        }
+    }
+
+    /**
+     * A full_check_core_public lokális ZIP-et a normál verziózott űrlapsablon-könyvtár helyett
+     * közvetlenül a konfigurált XSL gyökérbe telepíti. A ZIP egyéb állományai nem kerülnek az aktív XSL könyvtárba.
+     */
+    private TagUpdateResult importFullCheckCorePublicLocalArchive(Path archive,
+                                                                   String repositoryName,
+                                                                   String tagName,
+                                                                   boolean force) {
+        Path targetDirectory = resolveDirectLatestRepositoryTarget(repositoryName);
+        Path targetFile = targetDirectory.resolve(FULL_CHECK_CORE_PUBLIC_XSL).normalize();
+        if (!force && ExceptionSafeOperations.fileExists(targetFile)) {
+            return new TagUpdateResult(tagName, "SKIPPED", targetDirectory.toString(),
+                    "A " + FULL_CHECK_CORE_PUBLIC_XSL
+                            + " már megtalálható a konfigurált XSL célkönyvtárban; felülírás csak Force módban engedélyezett.");
+        }
+
+        Path schemaRoot = resolveTargetSchemaDir();
+        Path tempRoot = schemaRoot.resolve(properties.getTempDirectoryName());
+        Path workDir = tempRoot.resolve("local-import-full-check-" + UUID.randomUUID());
+        Path extractDir = workDir.resolve("extract");
+        try {
+            ExceptionSafeOperations.createDirectories(extractDir);
+            extractZipStrippingRoot(archive, extractDir);
+            Path payloadRoot = resolvePayloadRoot(extractDir);
+            InstalledArtifactResult artifact = installFullCheckCorePublicXsl(payloadRoot, targetDirectory);
+            TagUpdateResult result = new TagUpdateResult(tagName, "IMPORTED", targetDirectory.toString(),
+                    "A full_check_core_public csomag XSL állománya a konfigurált XSL célkönyvtárba került.");
+            result.setInstalledArtifacts(List.of(artifact));
+            LOGGER.info("Local full_check_core_public package import completed: repository={}, tag={}, force={}, target={}",
+                    repositoryName, tagName, force, targetFile);
+            return result;
+        } catch (Exception ex) {
+            LOGGER.warn("Local full_check_core_public package import failed: repository={}, tag={}",
+                    repositoryName, tagName, ex);
+            return new TagUpdateResult(tagName, "FAILED", targetDirectory.toString(), ex.getMessage());
+        } finally {
+            try {
+                deleteRecursively(workDir);
+            } catch (IOException ex) {
+                LOGGER.debug("full_check_core_public import staging cleanup failed: {}", workDir, ex);
+            }
         }
     }
 
@@ -1132,6 +1248,7 @@ public class GitHubSchemaUpdaterService {
             LOGGER.info("Downloaded GitHub archive for {}/{} using {}.", repositoryName, tagName, downloadSource);
             extractZipStrippingRoot(archive, extractDir);
             Path payloadRoot = resolvePayloadRoot(extractDir);
+            clearInstalledArtifactDirectoriesForRefresh(repositoryName, tagName, targetSchemaDir);
             if (ExceptionSafeOperations.fileExists(tagTargetDir)) {
                 deleteRecursively(tagTargetDir);
             }

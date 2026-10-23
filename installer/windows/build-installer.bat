@@ -16,26 +16,14 @@ if errorlevel 1 (
 set "PROJECT_DIR=%CD%"
 popd
 
-if not exist "%PROJECT_DIR%\version.cmd" (
-    echo HIBA: Hianyzik a projekt gyokerbol a version.cmd.
-    exit /b 1
-)
-
-set "VERSION_ARGS="
-if defined VERSION_BUMP_OVERRIDE set "VERSION_ARGS=--override=%VERSION_BUMP_OVERRIDE%"
-call "%PROJECT_DIR%\version.cmd" %VERSION_ARGS%
+call "%PROJECT_DIR%\resolve-build-version.cmd"
 if errorlevel 1 (
-    echo HIBA: Az automatikus verzioelemzes sikertelen.
-    exit /b 1
-)
-for /f "usebackq tokens=1,* delims==" %%A in ("%PROJECT_DIR%\target\generated-version\build-version.env") do set "%%A=%%B"
-if not defined VERSION_RELEASE (
-    echo HIBA: A generalt release verzio nem olvashato.
+    echo HIBA: Nem sikerult feloldani a build verziojat.
     exit /b 1
 )
 set "APP_NUMERIC_VERSION=%VERSION_RELEASE%"
 set "BUILD_TIMESTAMP=%VERSION_TIMESTAMP%"
-set "APP_VERSION=%VERSION_RELEASE%-%VERSION_TIMESTAMP%"
+set "APP_VERSION=%FULL_RELEASE%"
 
 set "BUILD_DIR=%PROJECT_DIR%\installer\windows\build"
 set "STAGE_DIR=%BUILD_DIR%\stage"
@@ -86,7 +74,7 @@ mkdir "%DIST_DIR%"
 
 echo [2/9] Maven build
 cd /d "%PROJECT_DIR%"
-call mvn clean package -DskipTests -Drevision=%VERSION_RELEASE% -Dapp.release.version=%VERSION_RELEASE% -Dapp.build.timestamp=%VERSION_TIMESTAMP%
+call mvn clean package -DskipTests -Drevision=%VERSION_RELEASE% -Dapp.release.version=%VERSION_RELEASE% -Dapp.build.timestamp=%VERSION_TIMESTAMP% -Dapp.full.release=%FULL_RELEASE%
 if errorlevel 1 (
     echo HIBA: Maven build sikertelen.
     exit /b 1

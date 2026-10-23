@@ -11,11 +11,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ChainRepeatFrontendContractTest {
 
     private static String source;
+    private static String xmlEditorSource;
 
     @BeforeAll
     static void loadSource() throws Exception {
         ClassPathResource resource = new ClassPathResource("static/js/form/form-renderer-runtime.js");
         source = resource.getContentAsString(StandardCharsets.UTF_8);
+        xmlEditorSource = new ClassPathResource("static/js/xml/xml-editor-runtime.js")
+                .getContentAsString(StandardCharsets.UTF_8);
     }
 
     @Test
@@ -41,4 +44,15 @@ class ChainRepeatFrontendContractTest {
         assertTrue(rebuildCall > elseBranch);
         assertTrue(renderCall > rebuildCall);
     }
+    @Test
+    void repeatFieldPathBindingIgnoresOccurrenceIndexesInDefinitionPrefix() {
+        assertTrue(source.contains("function repeatRelativePathSuffix(fieldPath, repeatTemplatePath)"));
+        assertTrue(source.contains("fieldSegments[index].replace(/\\[\\d+\\]$/, '')"));
+        assertTrue(source.contains("return relativeSuffix ? `${canonicalOccurrence}/${relativeSuffix}` : canonicalOccurrence;"));
+
+        assertTrue(xmlEditorSource.contains("function repeatRelativePathSuffixForFormData(fieldPath, repeatTemplatePath)"));
+        assertTrue(xmlEditorSource.contains("fieldSegments[index].replace(/\\[\\d+\\]$/, '')"));
+        assertTrue(xmlEditorSource.contains("return relativeSuffix ? `${occurrenceCanonical}/${relativeSuffix}` : occurrenceCanonical;"));
+    }
+
 }

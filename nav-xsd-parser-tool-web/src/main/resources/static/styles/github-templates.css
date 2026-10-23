@@ -262,3 +262,9 @@ body.nav-application-theme[data-initial-tab="githubTemplatesTab"] .xml-files-too
 .template-package-import-force{display:flex;align-items:center;gap:.55rem;margin-top:1rem;font-weight:700}
 .template-package-import-result{margin-top:1rem;padding:.8rem;border-radius:9px;background:var(--nav-theme-surface-muted,#f8fafc);max-height:180px;overflow:auto;font-size:.84rem}
 .template-package-import-result-item{padding:.35rem 0;border-bottom:1px solid var(--nav-theme-border)}.template-package-import-result-item:last-child{border-bottom:0}
+
+.template-package-import-targets{margin-top:.55rem;padding:.55rem .65rem;border:1px solid var(--nav-theme-border);border-radius:7px;background:var(--nav-theme-surface,#fff)}
+.template-package-import-targets-label{display:block;margin-bottom:.35rem;font-weight:700}
+.template-package-import-target{display:grid;grid-template-columns:minmax(72px,auto) minmax(0,1fr);gap:.55rem;align-items:start;padding:.22rem 0}
+.template-package-import-target-type{font-weight:700;color:var(--nav-theme-muted)}
+.template-package-import-target code{min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:break-word}

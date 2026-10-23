@@ -37,11 +37,14 @@ public class BootstrapDefaultsEnvironmentPostProcessor implements EnvironmentPos
         String configuredDatasourceUrl = trimToNull(environment.getProperty("spring.datasource.url"));
         boolean existingDatasourceConfiguration = configuredDatasourceUrl != null;
 
+        boolean explicitDataDirectory = hasExplicitDataDirectory(environment);
+        boolean versionedInstallation = environment.getProperty(
+                "m2m.xml.editor.versioned-installation", Boolean.class, false);
         Path dataDirectory = resolveDataDirectory(environment);
         boolean bootstrapAutoLoadEnabled = environment.getProperty(
                 "m2m.xml.editor.bootstrap.auto-load-enabled", Boolean.class, true);
         Path bootstrapFile = bootstrapAutoLoadEnabled
-                ? resolveBootstrapFile(dataDirectory)
+                ? resolveBootstrapFile(dataDirectory, explicitDataDirectory && versionedInstallation)
                 : dataDirectory.resolve("config").resolve("application-bootstrap.properties");
         boolean generatedBootstrapExists = bootstrapAutoLoadEnabled
                 && ExceptionSafeOperations.isRegularFile(bootstrapFile);
@@ -53,6 +56,7 @@ public class BootstrapDefaultsEnvironmentPostProcessor implements EnvironmentPos
                 dataDirectory = parent.getParent();
             }
             generatedBootstrapProperties = loadBootstrapProperties(bootstrapFile);
+            normalizeMigratedBootstrapProperties(generatedBootstrapProperties, dataDirectory, bootstrapFile);
         }
         boolean generatedDatasourceConfiguration = generatedBootstrapProperties != null
                 && trimToNull(generatedBootstrapProperties.getProperty("spring.datasource.url")) != null;
@@ -151,7 +155,10 @@ public class BootstrapDefaultsEnvironmentPostProcessor implements EnvironmentPos
      * @param defaultDataDirectory a művelet bemeneti {@code defaultDataDirectory} értéke
      * @return a feloldott vagy lekért érték
      */
-    private Path resolveBootstrapFile(Path defaultDataDirectory) {
+    private Path resolveBootstrapFile(Path defaultDataDirectory, boolean explicitDataDirectory) {
+        if (explicitDataDirectory) {
+            return defaultDataDirectory.resolve("config").resolve("application-bootstrap.properties");
+        }
         Path locator = locatorFile();
         if (ExceptionSafeOperations.isRegularFile(locator)) {
             Properties properties = new Properties();
@@ -166,6 +173,62 @@ public class BootstrapDefaultsEnvironmentPostProcessor implements EnvironmentPos
             }
         }
         return defaultDataDirectory.resolve("config").resolve("application-bootstrap.properties");
+    }
+
+
+    /**
+     * Megállapítja, hogy az adatkönyvtárat a launcher, rendszerproperty vagy környezeti konfiguráció explicit megadta-e.
+     * A verziózott online telepítés külön jelöléssel dönti el, hogy ez elsőbbséget élvez-e a globális locatorral szemben.
+     */
+    private boolean hasExplicitDataDirectory(ConfigurableEnvironment environment) {
+        return firstNonBlank(environment.getProperty("app.data.dir"),
+                firstNonBlank(environment.getProperty("M2M_XML_EDITOR_HOME"),
+                        environment.getProperty("m2m.xml.editor.home"))) != null;
+    }
+
+    /**
+     * A korábbi verzióból változtatás nélkül átmásolt bootstrap fájlt futásidőben az aktuális
+     * verzió adatkönyvtárához köti. A fájlt nem írja át; a régi gyökér csak a belső,
+     * telepítés által kezelt útvonalak rebázisához marad meg memóriában.
+     */
+    private void normalizeMigratedBootstrapProperties(Properties properties, Path currentDataDirectory, Path bootstrapFile) {
+        String currentRoot = ManagedDataDirectoryPaths.normalize(currentDataDirectory.toAbsolutePath().normalize());
+        String legacyRoot = trimToNull(properties.getProperty("nav.xsdparsertool.data-directory"));
+        if (legacyRoot == null) {
+            legacyRoot = trimToNull(properties.getProperty("app.data.dir"));
+        }
+        if (legacyRoot != null && !legacyRoot.contains("${")) {
+            try {
+                String normalizedLegacy = ManagedDataDirectoryPaths.normalize(Path.of(legacyRoot).toAbsolutePath().normalize());
+                if (!normalizedLegacy.equalsIgnoreCase(currentRoot)) {
+                    properties.setProperty(ManagedDataDirectoryPaths.LEGACY_DATA_DIRECTORY_PROPERTY, normalizedLegacy);
+                    rebaseBootstrapPath(properties, "m2m.xml.editor.secret.master-key-file", normalizedLegacy, currentRoot);
+                    rebaseEmbeddedBootstrapValue(properties, "spring.datasource.url", normalizedLegacy, currentRoot);
+                    rebaseEmbeddedBootstrapValue(properties, "spring.config.import", normalizedLegacy, currentRoot);
+                    rebaseEmbeddedBootstrapValue(properties, "logging.file.name", normalizedLegacy, currentRoot);
+                }
+            } catch (RuntimeException ignored) {
+                // Nem szabványos régi gyökér esetén nem végzünk automatikus rebázist.
+            }
+        }
+        properties.setProperty("app.data.dir", currentRoot);
+        properties.setProperty("nav.xsdparsertool.data-directory", currentRoot);
+        properties.setProperty("nav.xsdparsertool.bootstrap-config-file",
+                ManagedDataDirectoryPaths.normalize(bootstrapFile.toAbsolutePath().normalize()));
+    }
+
+    private void rebaseBootstrapPath(Properties properties, String key, String legacyRoot, String currentRoot) {
+        String value = properties.getProperty(key);
+        if (value != null) {
+            properties.setProperty(key, ManagedDataDirectoryPaths.rebaseIfUnderLegacyRoot(value, legacyRoot, currentRoot));
+        }
+    }
+
+    private void rebaseEmbeddedBootstrapValue(Properties properties, String key, String legacyRoot, String currentRoot) {
+        String value = properties.getProperty(key);
+        if (value != null) {
+            properties.setProperty(key, ManagedDataDirectoryPaths.rebaseEmbeddedLegacyRoot(value, legacyRoot, currentRoot));
+        }
     }
 
     /**

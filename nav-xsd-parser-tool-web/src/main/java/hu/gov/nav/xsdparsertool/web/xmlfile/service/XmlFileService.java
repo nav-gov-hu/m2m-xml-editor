@@ -1145,7 +1145,7 @@ public class XmlFileService {
         String storedResolution = entity.getResolutionStatus();
         if ("READY".equalsIgnoreCase(entity.getStatus())
                 && (storedResolution == null || storedResolution.isBlank() || "RESOLVED".equalsIgnoreCase(storedResolution))
-                && entity.getXsdPath() != null && !entity.getXsdPath().isBlank()) {
+                && storedResolutionResourcesAvailable(entity)) {
             return entity;
         }
         if (entity.getFilePath() == null || entity.getFilePath().isBlank()) {
@@ -1191,6 +1191,35 @@ public class XmlFileService {
             startAutomaticXsdValidationIfPossible(saved, "Újrafeloldás utáni automatikus XSD validáció előkészítése.");
         }
         return saved;
+    }
+
+    /**
+     * Ellenőrzi, hogy a korábban eltárolt resolver-eredmény még ténylegesen használható-e.
+     * A kötelező XSD-nek léteznie kell; az opcionálisan eltárolt UIModel és XPath szabály
+     * csak akkor fogadható el, ha a hozzájuk tartozó fájl is megvan.
+     */
+    private boolean storedResolutionResourcesAvailable(XmlFileEntity entity) {
+        if (!storedFileExists(entity.getXsdPath())) {
+            return false;
+        }
+        if (entity.getUiModelPath() != null && !entity.getUiModelPath().isBlank()
+                && !storedFileExists(entity.getUiModelPath())) {
+            return false;
+        }
+        return entity.getXpathRulesPath() == null || entity.getXpathRulesPath().isBlank()
+                || storedFileExists(entity.getXpathRulesPath());
+    }
+
+    private boolean storedFileExists(String rawPath) {
+        if (rawPath == null || rawPath.isBlank()) {
+            return false;
+        }
+        try {
+            return ExceptionSafeOperations.isRegularFile(normalize(Path.of(rawPath)));
+        } catch (RuntimeException ex) {
+            log.debug("A korábban eltárolt resolver útvonal már nem használható: {}", rawPath, ex);
+            return false;
+        }
     }
 
     /**

@@ -640,7 +640,8 @@ public class SetupService {
         directorySettings.put("nav.xsdparsertool.xml-file.server-import.root-dir", dataDir.resolve("data/import"));
         directorySettings.put("nav.xsdparsertool.xml-index.config-path", dataDir.resolve("config/xml-index-config.xml"));
         directorySettings.put("nav.m2m.storage-directory", dataDir.resolve("data/attachments"));
-        directorySettings.forEach((key, path) -> saveDatabaseConfiguration(key, path.toAbsolutePath().normalize().toString()));
+        directorySettings.forEach((key, path) ->
+                saveDatabaseConfiguration(key, ManagedDataDirectoryPaths.toPortableValue(dataDir, path)));
     }
 
     /**
@@ -726,8 +727,8 @@ public class SetupService {
             }
         }
         properties.put("nav.xsdparsertool.setup.completed", Boolean.toString(completed));
-        properties.put("nav.xsdparsertool.data-directory", dataDir.toString());
-        properties.put("nav.xsdparsertool.bootstrap-config-file", file.toString());
+        properties.put("nav.xsdparsertool.data-directory", "${app.data.dir}");
+        properties.put("nav.xsdparsertool.bootstrap-config-file", "${app.data.dir}/config/application-bootstrap.properties");
         properties.put("nav.xsdparsertool.security.mode", mode);
         properties.put("nav.xsdparsertool.security.standalone.username", "local-user");
         properties.put("app.data.dir", dataDir.toAbsolutePath().normalize().toString().replace('\\', '/'));
@@ -736,8 +737,7 @@ public class SetupService {
         properties.put("spring.flyway.enabled", "true");
         properties.put("spring.flyway.encoding", "UTF-8");
         properties.put("spring.flyway.baseline-on-migrate", "true");
-        Path masterKeyFile = dataDir.resolve("config/master.key");
-        properties.put("m2m.xml.editor.secret.master-key-file", masterKeyFile.toString());
+        properties.put("m2m.xml.editor.secret.master-key-file", "${app.data.dir}/config/master.key");
         storePropertiesPreservingFile(file, properties);
     }
 
@@ -769,6 +769,11 @@ public class SetupService {
      * @throws IOException ha a művelet a deklarált technikai vagy üzleti feltétel miatt nem hajtható végre
      */
     private void storeBootstrapLocator(Path bootstrapFile) throws IOException {
+        if (environment.getProperty("m2m.xml.editor.versioned-installation", Boolean.class, false)) {
+            // A verziózott online telepítés saját app.data.dir értékkel indul. A globális locator
+            // átírása a side-by-side telepített korábbi verziókat is az új konfigurációra irányítaná.
+            return;
+        }
         Path locator = BootstrapDefaultsEnvironmentPostProcessor.locatorFile();
         ExceptionSafeOperations.createDirectories(locator.getParent());
         Properties locatorProperties = new Properties();
@@ -933,7 +938,9 @@ public class SetupService {
             properties.put("nav.xsdparsertool.database.type", type);
             properties.put("nav.xsdparsertool.database.schema", schema);
             properties.put("nav.xsdparsertool.database.encoding", "UTF-8");
-            properties.put("spring.datasource.url", url);
+            properties.put("spring.datasource.url", "H2".equalsIgnoreCase(type)
+                    ? "jdbc:h2:file:${app.data.dir}/database/schema-explorer;AUTO_SERVER=TRUE"
+                    : url);
             properties.put("spring.datasource.username", username);
             properties.put("spring.datasource.password", password);
             properties.put("spring.datasource.driver-class-name", driver);

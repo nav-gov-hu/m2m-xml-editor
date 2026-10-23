@@ -2057,16 +2057,26 @@ function findXmlNodesByTemplatePathForFormData(doc, templatePath){
   return states;
 }
 
+function repeatRelativePathSuffixForFormData(fieldPath, repeatTemplatePath){
+  const fieldSegments = canonicalizeXmlPath(fieldPath || '').split('/').filter(Boolean);
+  const templateSegments = canonicalizeXmlPath(repeatTemplatePath || '').split('/').filter(Boolean);
+  if(!fieldSegments.length || !templateSegments.length || fieldSegments.length < templateSegments.length) return null;
+  for(let index = 0; index < templateSegments.length; index++){
+    const fieldSegment = fieldSegments[index].replace(/\[\d+\]$/, '');
+    const templateSegment = templateSegments[index].replace(/\[\d+\]$/, '');
+    if(fieldSegment !== templateSegment) return null;
+  }
+  return fieldSegments.slice(templateSegments.length).join('/');
+}
+
 function concreteRepeatFieldPath(fieldPath, repeatTemplatePath, occurrencePath){
   const fieldCanonical = canonicalizeXmlPath(fieldPath || '');
   const templateCanonical = canonicalizeXmlPath(repeatTemplatePath || '');
   const occurrenceCanonical = canonicalizeXmlPath(occurrencePath || '');
   if(!fieldCanonical || !templateCanonical || !occurrenceCanonical) return fieldCanonical || fieldPath || '';
-  if(fieldCanonical === templateCanonical) return occurrenceCanonical;
-  if(fieldCanonical.startsWith(templateCanonical + '/')){
-    return occurrenceCanonical + fieldCanonical.substring(templateCanonical.length);
-  }
-  return fieldCanonical;
+  const relativeSuffix = repeatRelativePathSuffixForFormData(fieldCanonical, templateCanonical);
+  if(relativeSuffix === null) return fieldCanonical;
+  return relativeSuffix ? `${occurrenceCanonical}/${relativeSuffix}` : occurrenceCanonical;
 }
 
 /**

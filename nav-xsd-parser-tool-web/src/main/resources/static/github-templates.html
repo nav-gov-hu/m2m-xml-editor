@@ -38,7 +38,7 @@
       <div class="xml-files-toolbar" role="toolbar" aria-label="Űrlapsablon műveletek">
         <div class="xml-files-toolbar-left">
           <button type="button" class="xml-files-toolbar-button template-download-selected" id="downloadSelectedTemplatesButton" disabled title="Kijelölt release tagek letöltése">⇩</button>
-          <button type="button" class="xml-files-toolbar-button danger" id="deleteSelectedLocalTemplatesButton" disabled hidden title="Kijelölt lokális release-ek törlése">🗑</button>
+          <button type="button" class="xml-files-toolbar-button danger" id="deleteSelectedLocalTemplatesButton" disabled hidden title="Kijelölt release-ek manuális törlése a katalógusból és a helyi állományok közül">🗑</button>
           <button type="button" class="xml-files-toolbar-button refresh" id="refreshTemplatesButton" title="Helyi lista újratöltése">↻</button>
           <div class="template-package-menu" id="templatePackageMenu">
             <button type="button" class="xml-files-toolbar-button template-package-menu-button" id="templatePackageMenuButton" title="Csomagkezelés" aria-label="Csomagkezelés" aria-haspopup="menu" aria-expanded="false">
@@ -129,7 +129,7 @@
     </div>
     <div id="templatePackageImportFileList" class="template-package-import-file-list" aria-live="polite"></div>
     <label class="template-package-import-force"><input id="templatePackageImportForce" type="checkbox"> Force kicsomagolás és felülírás</label>
-    <p class="hint">Alapértelmezésben a már létező release/verzió és a hozzá tartozó telepített állományok nem íródnak felül.</p>
+    <p class="hint">Alapértelmezésben a már létező release/verzió és a hozzá tartozó telepített állományok nem íródnak felül. A betöltés eredményében fájlonként megjelenik a tényleges telepítési célútvonal.</p>
     <div id="templatePackageImportResult" class="template-package-import-result" hidden></div>
     <div class="template-confirm-actions">
       <button type="button" class="secondary" id="closeTemplatePackageImportButton">Bezárás</button>

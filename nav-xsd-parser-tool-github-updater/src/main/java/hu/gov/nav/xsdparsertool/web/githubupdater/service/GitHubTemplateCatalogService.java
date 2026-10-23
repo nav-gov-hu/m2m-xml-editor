@@ -108,12 +108,13 @@ public class GitHubTemplateCatalogService {
      * @param preferredOnly ha igaz, csak a lokálisan ismert űrlaptípusok repository-it tartalmazza a katalógus
      * @return az összeállított katalógusválasz
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public GitHubTemplateCatalogDtos.CatalogResponse catalog(boolean preferredOnly) {
+        synchronizeFilesystemCatalog();
         Set<String> localTypes = discoverLocalFormTypes();
         List<GitHubTemplateCatalogDtos.TemplateRow> rows = new ArrayList<>();
         List<GitHubTemplateRepository> repositories = RepositoryAccess.findAll(repositoryStore).stream()
-                .filter(repo -> !repo.isArchived())
+                .filter(repo -> !isIgnoredTechnicalRepository(repo.getRepositoryName()))
                 .filter(repo -> !repo.getRepositoryName().equalsIgnoreCase(properties.getCatalogRepository()))
                 .sorted(Comparator.comparing(GitHubTemplateRepository::getRepositoryUpdatedAt,
                         Comparator.nullsLast(Comparator.reverseOrder())))
@@ -152,6 +153,7 @@ public class GitHubTemplateCatalogService {
         requireToken("GitHub változásellenőrzés");
         List<GitHubApiClient.RepositorySummary> remote = apiClient.listOrganizationRepositorySummaries().stream()
                 .filter(repo -> !repo.archived())
+                .filter(repo -> !isIgnoredTechnicalRepository(repo.name()))
                 .filter(repo -> !repo.name().equalsIgnoreCase(properties.getCatalogRepository()))
                 .toList();
         Map<String, GitHubTemplateRepository> local = new HashMap<>();
@@ -162,13 +164,16 @@ public class GitHubTemplateCatalogService {
         for (GitHubApiClient.RepositorySummary repository : remote) {
             remoteNames.add(repository.name());
             GitHubTemplateRepository saved = local.get(repository.name());
-            if (saved == null || !Objects.equals(saved.getRepositoryUpdatedAt(), repository.updatedAt())
+            if (saved == null || saved.isArchived() || !Objects.equals(saved.getRepositoryUpdatedAt(), repository.updatedAt())
                     || !Objects.equals(saved.getDescription(), repository.description())
                     || !Objects.equals(saved.getRepositoryUrl(), repository.htmlUrl())) {
                 changed.add(repository);
             }
         }
-        List<String> removed = local.keySet().stream()
+        List<String> removed = local.entrySet().stream()
+                .filter(entry -> !entry.getValue().isArchived())
+                .map(Map.Entry::getKey)
+                .filter(name -> !isIgnoredTechnicalRepository(name))
                 .filter(name -> !remoteNames.contains(name))
                 .filter(this::shouldRemoveMissingRepository)
                 .sorted().toList();
@@ -183,13 +188,17 @@ public class GitHubTemplateCatalogService {
         List<GitHubApiClient.RepositorySummary> changed = new ArrayList<>();
         Set<String> remoteNames = new LinkedHashSet<>();
         for (ArtifactCatalogParser.FormEntry form : catalog.forms()) {
+            if (isIgnoredTechnicalRepository(form.formId())) continue;
             remoteNames.add(form.formId());
             if (catalogFormChanged(form, local.get(form.formId()))) {
                 changed.add(new GitHubApiClient.RepositorySummary(form.formId(), form.formName(), catalog.generatedAt(),
                         repositoryUrl(form.formId()), false));
             }
         }
-        List<String> removed = local.keySet().stream()
+        List<String> removed = local.entrySet().stream()
+                .filter(entry -> !entry.getValue().isArchived())
+                .map(Map.Entry::getKey)
+                .filter(name -> !isIgnoredTechnicalRepository(name))
                 .filter(name -> !isCommonRepository(name) && !isFullCheckCorePublicRepository(name))
                 .filter(name -> !name.equalsIgnoreCase(properties.getCatalogRepository()))
                 .filter(name -> !remoteNames.contains(name))
@@ -197,7 +206,7 @@ public class GitHubTemplateCatalogService {
                 .sorted().toList();
         LOGGER.info("Artifact catalog change check completed: forms={}, changed={}, removed={}, generatedAt={}",
                 catalog.forms().size(), changed.size(), removed.size(), catalog.generatedAt());
-        return finishInspection(catalog.forms().size(), changed, removed, catalog);
+        return finishInspection(remoteNames.size(), changed, removed, catalog);
     }
 
     private boolean shouldRemoveMissingRepository(String repositoryName) {
@@ -206,7 +215,7 @@ public class GitHubTemplateCatalogService {
     }
 
     private boolean catalogFormChanged(ArtifactCatalogParser.FormEntry form, GitHubTemplateRepository saved) {
-        if (saved == null || !Objects.equals(saved.getDescription(), form.formName())) return true;
+        if (saved == null || saved.isArchived() || !Objects.equals(saved.getDescription(), form.formName())) return true;
         List<GitHubTemplateRelease> releases = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(form.formId());
         Map<String, GitHubTemplateRelease> localByTag = new HashMap<>();
         releases.forEach(release -> localByTag.put(release.getReleaseTag(), release));
@@ -307,10 +316,11 @@ public class GitHubTemplateCatalogService {
             int processedRemoved = 0;
             for (String repository : inspection.removed) {
                 progress = progress.removing(repository, processedRemoved);
-                removeRepositorySnapshot(repository);
+                persistenceService.markRepositoryMissingButPreserved(repository);
                 processedRemoved++;
                 progress = progress.removing(repository, processedRemoved);
             }
+            synchronizeFilesystemCatalog();
             markSuccessfulSync(inspection.organizationRepositoryCount);
             latestInspection = null;
             progress = progress.completed(releaseCount);
@@ -327,6 +337,7 @@ public class GitHubTemplateCatalogService {
      * @param tags a művelethez átadott {@code tags} érték
      */
     public void saveRepositorySnapshot(GitHubApiClient.RepositorySummary source, List<String> tags) {
+        if (source == null || isIgnoredTechnicalRepository(source.name())) return;
         persistenceService.replaceRepositorySnapshot(source, tags);
     }
 
@@ -389,6 +400,7 @@ public class GitHubTemplateCatalogService {
         updateRequest.setForceDownloadAll(request.force());
         java.util.Map<String, String> selectedRepositoryTags = request.items().stream()
                 .filter(item -> item != null && StringUtils.hasText(item.repository()) && StringUtils.hasText(item.tag()))
+                .filter(item -> !isIgnoredTechnicalRepository(item.repository()))
                 .collect(java.util.stream.Collectors.toMap(
                         GitHubTemplateCatalogDtos.DownloadItem::repository,
                         GitHubTemplateCatalogDtos.DownloadItem::tag,
@@ -414,7 +426,7 @@ public class GitHubTemplateCatalogService {
      */
     public GitHubTemplateCatalogDtos.LocalDeleteResponse deleteLocal(GitHubTemplateCatalogDtos.LocalDeleteRequest request) {
         if (request == null || request.items() == null || request.items().isEmpty()) {
-            throw new IllegalArgumentException("Legalább egy lokális repository/release kijelölése szükséges.");
+            throw new IllegalArgumentException("Legalább egy repository/release kijelölése szükséges.");
         }
         int deletedFileSystemEntries = 0;
         int deletedReleases = 0;
@@ -423,7 +435,10 @@ public class GitHubTemplateCatalogService {
         for (GitHubTemplateCatalogDtos.DownloadItem item : request.items()) {
             if (item == null || !StringUtils.hasText(item.repository()) || !StringUtils.hasText(item.tag())) continue;
             repositories.add(item.repository());
-            int count = updaterService.deleteLocalRelease(item.repository(), item.tag());
+            // A csak katalógusban szereplő release törlése nem érintheti a telepített
+            // állományokat (különösen a common és full_check_core_public megosztott célkönyvtárait).
+            boolean locallyAvailable = isReleaseAvailableLocally(item.repository(), item.tag());
+            int count = locallyAvailable ? updaterService.deleteLocalRelease(item.repository(), item.tag()) : 0;
             persistenceService.removeReleaseRegistration(item.repository(), item.tag());
             deletedFileSystemEntries += count;
             deletedReleases++;
@@ -824,6 +839,14 @@ public class GitHubTemplateCatalogService {
      * @param repositoryName a GitHub repository neve
      * @return a(z) fullCheckCorePublicRepository érték
      */
+    /**
+     * Visszaadja, hogy a repository kizárólag GitHub organization-szintű technikai
+     * tartalmat hordoz-e, ezért nem része az űrlapsablon-katalógusnak.
+     */
+    private boolean isIgnoredTechnicalRepository(String repositoryName) {
+        return StringUtils.hasText(repositoryName) && ".github".equalsIgnoreCase(repositoryName.trim());
+    }
+
     private boolean isFullCheckCorePublicRepository(String repositoryName) {
         if (!StringUtils.hasText(repositoryName)) return false;
         String normalized = repositoryName.replaceFirst("(?i)^nav[-_]", "").trim();
@@ -870,10 +893,69 @@ public class GitHubTemplateCatalogService {
     }
 
     /**
-     * A megadott értéket a modul belső összehasonlítási és elérési szabályainak megfelelő kanonikus formára alakítja.
+     * A konfigurált schema-dir közvetlen repository/verzió könyvtáraiból automatikusan
+     * regisztrálja a katalógusból hiányzó, tényleges XSD-t tartalmazó lokális release-eket.
+     * A GitHub updater ideiglenes és telepítési-markerrel jelölt archív könyvtárait kihagyja.
+     */
+    private void synchronizeFilesystemCatalog() {
+        String configured = environment.getProperty(SCHEMA_DIR);
+        if (!StringUtils.hasText(configured)) return;
+        Path schemaRoot = Path.of(configured).toAbsolutePath().normalize();
+        if (!ExceptionSafeOperations.isDirectory(schemaRoot)) return;
+        String tempDirectoryName = properties.getTempDirectoryName();
+        try (Stream<Path> repositoryDirs = Files.list(schemaRoot)) {
+            for (Path repositoryDir : repositoryDirs.filter(Files::isDirectory).toList()) {
+                String repositoryName = repositoryDir.getFileName().toString();
+                if (!StringUtils.hasText(repositoryName)
+                        || repositoryName.startsWith(".")
+                        || repositoryName.equals(tempDirectoryName)
+                        || repositoryName.equalsIgnoreCase(properties.getCatalogRepository())
+                        || isCommonRepository(repositoryName)
+                        || isFullCheckCorePublicRepository(repositoryName)) {
+                    continue;
+                }
+                try (Stream<Path> versionDirs = Files.list(repositoryDir)) {
+                    for (Path versionDir : versionDirs.filter(Files::isDirectory).toList()) {
+                        if (ExceptionSafeOperations.isRegularFile(versionDir.resolve(INSTALLATION_MARKER_FILE))) continue;
+                        if (!containsXsdFile(versionDir)) continue;
+                        String versionDirectory = versionDir.getFileName().toString();
+                        if (!StringUtils.hasText(versionDirectory) || versionDirectory.startsWith(".")) continue;
+                        String releaseTag = existingReleaseTag(repositoryName, versionDirectory);
+                        persistenceService.registerLocalRelease(repositoryName, releaseTag, repositoryUrl(repositoryName));
+                    }
+                }
+            }
+        } catch (IOException ex) {
+            LOGGER.warn("A schema-dir lokális katalógus-szinkronja nem hajtható végre: {}", ex.getMessage());
+        }
+    }
+
+    private boolean containsXsdFile(Path directory) {
+        try (Stream<Path> files = Files.walk(directory)) {
+            return files.filter(Files::isRegularFile)
+                    .map(path -> path.getFileName() == null ? "" : path.getFileName().toString())
+                    .anyMatch(name -> name.toLowerCase(Locale.ROOT).endsWith(".xsd"));
+        } catch (IOException ex) {
+            LOGGER.debug("A lokális XSD könyvtár nem vizsgálható: {}", directory, ex);
+            return false;
+        }
+    }
+
+    private String existingReleaseTag(String repositoryName, String versionDirectory) {
+        String normalizedDirectory = normalizeVersion(versionDirectory);
+        return releaseStore.findByRepositoryNameOrderByReleaseTagAsc(repositoryName).stream()
+                .map(GitHubTemplateRelease::getReleaseTag)
+                .filter(StringUtils::hasText)
+                .filter(tag -> normalizeVersion(tag).equalsIgnoreCase(normalizedDirectory))
+                .findFirst()
+                .orElse(versionDirectory);
+    }
+
+    /**
+     * A repository nevet a lokális űrlaptípus-összehasonlításhoz használt formára alakítja.
      *
      * @param repository a GitHub repository neve
-     * @return a művelet eredménye
+     * @return a normalizált űrlaptípus
      */
     private String normalizeFormType(String repository) {
         if (!StringUtils.hasText(repository)) return "";

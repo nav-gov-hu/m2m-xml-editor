@@ -886,11 +886,11 @@ function showGitHubUpdateDialog(){
     const removed = Array.isArray(data.removedRepositories) ? data.removedRepositories : [];
     const items = [
       ...changed.map(name => `<li><strong>${escapeNotificationHtml(name)}</strong> – új vagy módosult repository</li>`),
-      ...removed.map(name => `<li><strong>${escapeNotificationHtml(name)}</strong> – eltávolított vagy archivált repository</li>`)
+      ...removed.map(name => `<li><strong>${escapeNotificationHtml(name)}</strong> – GitHubról eltűnt; a helyi katalógusban megmarad</li>`)
     ];
     const host = document.createElement('div');
-    host.className = 'github-update-dialog';
-    host.innerHTML = `<div class="app-dialog-backdrop"></div><section class="app-dialog-card" role="dialog" aria-modal="true" aria-labelledby="githubUpdateDialogTitle"><button type="button" class="app-dialog-close" aria-label="Bezárás">×</button><p class="eyebrow">GitHub űrlapsablonok</p><h2 id="githubUpdateDialogTitle">Frissítés érhető el</h2><p>${data.changedRepositoryCount || 0} módosult és ${data.removedRepositoryCount || 0} eltávolított repository található.</p><ul class="github-update-change-list">${items.join('') || '<li>A részletes változáslista nem érhető el.</li>'}</ul><p class="hint">A frissítés a Űrlapsablonok oldalon végezhető el.</p><div class="app-dialog-actions"><button type="button" class="secondary github-update-close">Bezárás</button><a class="primary github-update-open" href="/github-templates.html">Űrlapsablonok megnyitása</a></div></section>`;
+    host.className = 'app-dialog-modal github-update-dialog';
+    host.innerHTML = `<div class="app-dialog-backdrop"></div><section class="app-dialog-card" role="dialog" aria-modal="true" aria-labelledby="githubUpdateDialogTitle"><button type="button" class="app-dialog-close" aria-label="Bezárás">×</button><p class="eyebrow">GitHub űrlapsablonok</p><h2 id="githubUpdateDialogTitle">Frissítés érhető el</h2><p>${data.changedRepositoryCount || 0} módosult és ${data.removedRepositoryCount || 0} GitHubról eltűnt repository található.</p><ul class="github-update-change-list">${items.join('') || '<li>A részletes változáslista nem érhető el.</li>'}</ul><p class="hint">A GitHubról eltűnt repositoryk a helyi katalógusban megmaradnak. A frissítés az Űrlapsablonok oldalon végezhető el.</p><div class="app-dialog-actions"><button type="button" class="secondary github-update-close">Bezárás</button><button type="button" class="primary github-update-open">Űrlapsablonok megnyitása</button></div></section>`;
     document.body.appendChild(host);
         /**
      * Elrejti vagy lezárja a close felületi állapotát, és szükség esetén rendezi a kapcsolódó UI-state-et.
@@ -901,6 +901,7 @@ const close = () => host.remove();
     host.querySelector('.app-dialog-backdrop')?.addEventListener('click', close);
     host.querySelector('.app-dialog-close')?.addEventListener('click', close);
     host.querySelector('.github-update-close')?.addEventListener('click', close);
+    host.querySelector('.github-update-open')?.addEventListener('click', () => { window.location.href = '/github-templates.html'; });
   }
 
     /**

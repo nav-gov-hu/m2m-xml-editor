@@ -371,14 +371,26 @@ function repeatOccurrencePaths(rows, parentTemplate = null, parentOccurrencePath
   return [...result].sort((left, right) => left.localeCompare(right, 'hu', { numeric:true }));
 }
 
+function repeatRelativePathSuffix(fieldPath, repeatTemplatePath){
+  const fieldSegments = repeatPathKey(fieldPath).split('/').filter(Boolean);
+  const templateSegments = repeatPathKey(repeatTemplatePath).split('/').filter(Boolean);
+  if(!fieldSegments.length || !templateSegments.length || fieldSegments.length < templateSegments.length) return null;
+  for(let index = 0; index < templateSegments.length; index++){
+    const fieldSegment = fieldSegments[index].replace(/\[\d+\]$/, '');
+    const templateSegment = templateSegments[index].replace(/\[\d+\]$/, '');
+    if(fieldSegment !== templateSegment) return null;
+  }
+  return fieldSegments.slice(templateSegments.length).join('/');
+}
+
 function fieldPathForRepeatOccurrence(field, row, occurrencePath){
   const template = repeatPathKey(row?.repeatContainerPath || row?.xmlPath || '');
   const fieldPath = repeatPathKey(field?.xmlPath || '');
   if(!template || !fieldPath) return fieldPath;
   const canonicalOccurrence = repeatPathKey(occurrencePath);
-  if(fieldPath === template) return canonicalOccurrence;
-  if(fieldPath.startsWith(template + '/')) return canonicalOccurrence + fieldPath.substring(template.length);
-  return fieldPath;
+  const relativeSuffix = repeatRelativePathSuffix(fieldPath, template);
+  if(relativeSuffix === null) return fieldPath;
+  return relativeSuffix ? `${canonicalOccurrence}/${relativeSuffix}` : canonicalOccurrence;
 }
 
 function ensureRepeatRowInstance(row, occurrencePath, rowInstancesByRowId, valuesByFieldId){
@@ -386,25 +398,40 @@ function ensureRepeatRowInstance(row, occurrencePath, rowInstancesByRowId, value
   const instances = rowInstancesByRowId[row.id];
   const canonicalOccurrence = repeatPathKey(occurrencePath);
   let instance = instances.find(candidate => repeatPathKey(candidate?.xmlPath || '') === canonicalOccurrence);
-  if(instance) return instance;
-
-  const occurrenceIndex = repeatOccurrenceIndex(canonicalOccurrence);
   const pathKey = canonicalOccurrence.replace(/[^A-Za-z0-9]+/g, '_');
-  instance = {
-    id:`${row.id}#virtual:${pathKey}`,
-    xmlPath:canonicalOccurrence,
-    virtual:!findNodeByPath(currentXmlDocument, canonicalOccurrence),
-    valuesByFieldId:{}
-  };
+  const occurrenceNode = currentXmlDocument ? findNodeByPath(currentXmlDocument, canonicalOccurrence) : null;
+
+  if(!instance){
+    instance = {
+      id:`${row.id}#virtual:${pathKey}`,
+      xmlPath:canonicalOccurrence,
+      virtual:!occurrenceNode,
+      valuesByFieldId:{}
+    };
+    instances.push(instance);
+  }
+
+  // A szerverről érkezett vagy korábban cache-elt példány értékei eltérő
+  // Chain_elem előforduláshoz tartozhatnak. A megjelenítéshez mindig a
+  // konkrét XML-útvonalból olvassunk, a hiányzó mezőket is újraszámolva.
+  instance.virtual = !occurrenceNode;
+  if(!instance.valuesByFieldId) instance.valuesByFieldId = {};
   (row.fields || []).forEach(field => {
-    const key = `${row.id}#virtual:${pathKey}:${field.id}`;
+    if(!field?.id) return;
     const xmlPath = fieldPathForRepeatOccurrence(field, row, canonicalOccurrence);
     const node = currentXmlDocument ? findNodeByPath(currentXmlDocument, xmlPath) : null;
-    const valueObj = { fieldId:field.id, key, xmlPath, value:node ? (node.textContent || '').trim() : '', present:!!node };
+    const previous = instance.valuesByFieldId[field.id];
+    const key = previous?.key || `${row.id}#virtual:${pathKey}:${field.id}`;
+    const valueObj = {
+      fieldId:field.id,
+      key,
+      xmlPath,
+      value:node && !node.children?.length ? (node.textContent || '').trim() : '',
+      present:!!node
+    };
     instance.valuesByFieldId[field.id] = valueObj;
     valuesByFieldId[key] = valueObj;
   });
-  instances.push(instance);
   return instance;
 }
 

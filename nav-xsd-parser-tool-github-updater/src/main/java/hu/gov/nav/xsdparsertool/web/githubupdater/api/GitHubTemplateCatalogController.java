@@ -125,12 +125,12 @@ public class GitHubTemplateCatalogController {
      * @return a művelet eredménye
      */
 
-    /** A kijelölt lokális GitHub release-eket eltávolítja a fájlrendszerből és a lokális katalógus-adatbázisból. */
+    /** A kijelölt GitHub release-eket eltávolítja a helyi katalógusból és, ha telepítettek, a fájlrendszerből. */
     @PostMapping("/local-delete")
     public ResponseEntity<GitHubTemplateCatalogDtos.LocalDeleteResponse> deleteLocal(
             @RequestBody GitHubTemplateCatalogDtos.LocalDeleteRequest request) {
         if (request == null || request.items() == null || request.items().isEmpty()) {
-            throw new IllegalArgumentException("Legalább egy lokális repository/release kijelölése szükséges.");
+            throw new IllegalArgumentException("Legalább egy repository/release kijelölése szükséges.");
         }
         if (request.items().size() > 100) throw new IllegalArgumentException("Túl sok törlendő elem.");
         java.util.List<GitHubTemplateCatalogDtos.DownloadItem> safeItems = request.items().stream()

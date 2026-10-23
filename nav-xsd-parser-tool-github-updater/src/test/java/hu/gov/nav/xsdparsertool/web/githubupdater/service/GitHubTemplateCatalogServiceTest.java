@@ -87,6 +87,30 @@ class GitHubTemplateCatalogServiceTest {
         verifyNoInteractions(apiClient);
     }
 
+
+    @Test
+    void githubTechnicalRepositoryIsExcludedFromCatalogAndChangeCheck() throws Exception {
+        properties.setToken("test-token");
+        GitHubTemplateRepository technical = repository(".github", "organization metadata");
+        when(RepositoryAccess.findAll(repositoryStore)).thenReturn(List.of(technical));
+        when(RepositoryAccess.findById(syncStateStore, 1L)).thenReturn(Optional.empty());
+        when(environment.getProperty("nav.xsdparsertool.paths.schema-dir")).thenReturn(tempDir.toString());
+        when(apiClient.listOrganizationRepositorySummaries()).thenReturn(List.of(
+                new GitHubApiClient.RepositorySummary(
+                        ".github", "organization metadata", Instant.parse("2026-10-14T10:00:00Z"),
+                        "https://example.invalid/.github", false)));
+
+        GitHubTemplateCatalogDtos.CatalogResponse catalog = service.catalog(false);
+        GitHubTemplateCatalogDtos.ChangeCheckResponse changes = service.checkForChanges();
+
+        assertEquals(0, catalog.repositoryCount());
+        assertTrue(catalog.rows().isEmpty());
+        assertFalse(changes.changesDetected());
+        assertTrue(changes.changedRepositories().isEmpty());
+        assertTrue(changes.removedRepositories().isEmpty());
+        verify(persistenceService, never()).replaceRepositorySnapshot(any(), any());
+    }
+
     @Test
     void checkForChangesWithoutTokenFailsBeforeGitHubCall() {
         IllegalStateException error = assertThrows(IllegalStateException.class, service::checkForChanges);
@@ -310,6 +334,53 @@ class GitHubTemplateCatalogServiceTest {
                 () -> service.writeLocalBundle("NAV-2608", "release/..", new ByteArrayOutputStream()));
         assertThrows(IllegalArgumentException.class,
                 () -> service.localBundleFileName(".", "v1.2.3"));
+    }
+
+    @Test
+    void filesystemXsdReleaseMissingFromDatabaseIsRegisteredAsLocalCatalogRelease() throws Exception {
+        Path localVersion = Files.createDirectories(tempDir.resolve("NAV-LOCAL").resolve("1.0"));
+        Files.writeString(localVersion.resolve("NAV_LOCAL.xsd"), "<schema/>");
+        when(environment.getProperty("nav.xsdparsertool.paths.schema-dir")).thenReturn(tempDir.toString());
+        when(repositoryStore.findAll()).thenReturn(List.of());
+        when(releaseStore.findByRepositoryNameOrderByReleaseTagAsc("NAV-LOCAL")).thenReturn(List.of());
+        when(syncStateStore.findById(1L)).thenReturn(Optional.empty());
+
+        service.catalog(false);
+
+        verify(persistenceService).registerLocalRelease(
+                "NAV-LOCAL", "1.0", "https://github.com/nav-test/NAV-LOCAL");
+    }
+
+    @Test
+    void archivedRepositoryIsStillVisibleInLocalCatalog() {
+        GitHubTemplateRepository repository = repository("NAV-OLD", "Korábbi helyi sablon");
+        repository.setArchived(true);
+        GitHubTemplateRelease release = release("NAV-OLD", "1.0");
+        when(environment.getProperty("nav.xsdparsertool.paths.schema-dir")).thenReturn(tempDir.toString());
+        when(repositoryStore.findAll()).thenReturn(List.of(repository));
+        when(releaseStore.findByRepositoryNameOrderByReleaseTagAsc("NAV-OLD")).thenReturn(List.of(release));
+        when(syncStateStore.findById(1L)).thenReturn(Optional.empty());
+        when(updaterService.resolveTargetSchemaDir()).thenReturn(tempDir);
+
+        GitHubTemplateCatalogDtos.CatalogResponse response = service.catalog(false);
+
+        assertEquals(1, response.rowCount());
+        assertEquals("NAV-OLD", response.rows().get(0).repository());
+    }
+
+    @Test
+    void alreadyPreservedMissingRepositoryIsNotReportedAsRemovedAgain() throws Exception {
+        properties.setToken("test-token");
+        GitHubTemplateRepository repository = repository("NAV-OLD", "Korábbi helyi sablon");
+        repository.setArchived(true);
+        when(repositoryStore.findAll()).thenReturn(List.of(repository));
+        when(apiClient.listOrganizationRepositorySummaries()).thenReturn(List.of());
+        when(syncStateStore.findById(1L)).thenReturn(Optional.empty());
+
+        GitHubTemplateCatalogDtos.ChangeCheckResponse response = service.checkForChanges();
+
+        assertFalse(response.changesDetected());
+        assertTrue(response.removedRepositories().isEmpty());
     }
 
     private GitHubTemplateRepository repository(String name, String description) {

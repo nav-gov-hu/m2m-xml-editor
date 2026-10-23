@@ -54,8 +54,8 @@ public class GitHubTemplateCatalogPersistenceService {
         target.setLastSyncedAt(now);
         repositoryStore.save(target);
 
-        List<GitHubTemplateRelease> localImports = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(source.name()).stream()
-                .filter(GitHubTemplateRelease::isLocalImported).toList();
+        List<GitHubTemplateRelease> previousReleases =
+                releaseStore.findByRepositoryNameOrderByReleaseTagAsc(source.name());
         try {
             releaseStore.deleteByRepositoryName(source.name());
         } catch (RuntimeException ex) {
@@ -64,18 +64,18 @@ public class GitHubTemplateCatalogPersistenceService {
 
         java.util.LinkedHashMap<String, GitHubTemplateRelease> merged = new java.util.LinkedHashMap<>();
         tags.stream().distinct().forEach(tag -> merged.put(tag, newRelease(source.name(), tag, now)));
-        for (GitHubTemplateRelease local : localImports) {
-            GitHubTemplateRelease release = merged.get(local.getReleaseTag());
+        for (GitHubTemplateRelease previous : previousReleases) {
+            GitHubTemplateRelease release = merged.get(previous.getReleaseTag());
             if (release == null) {
-                GitHubTemplateRelease preserved = newRelease(source.name(), local.getReleaseTag(), now);
-                preserved.setFormName(local.getFormName());
-                preserved.setValidFrom(local.getValidFrom());
-                preserved.setValidTo(local.getValidTo());
-                preserved.setDisabled(local.isDisabled());
+                GitHubTemplateRelease preserved = newRelease(source.name(), previous.getReleaseTag(), now);
+                preserved.setFormName(previous.getFormName());
+                preserved.setValidFrom(previous.getValidFrom());
+                preserved.setValidTo(previous.getValidTo());
+                preserved.setDisabled(previous.isDisabled());
                 preserved.setLocalImported(true);
-                merged.put(local.getReleaseTag(), preserved);
+                merged.put(previous.getReleaseTag(), preserved);
             } else {
-                release.setLocalImported(true);
+                release.setLocalImported(previous.isLocalImported());
             }
         }
         if (!merged.isEmpty()) releaseStore.saveAll(merged.values());
@@ -95,8 +95,8 @@ public class GitHubTemplateCatalogPersistenceService {
         target.setArchived(false);
         target.setLastSyncedAt(now);
         repositoryStore.save(target);
-        List<GitHubTemplateRelease> localImports = releaseStore.findByRepositoryNameOrderByReleaseTagAsc(form.formId()).stream()
-                .filter(GitHubTemplateRelease::isLocalImported).toList();
+        List<GitHubTemplateRelease> previousReleases =
+                releaseStore.findByRepositoryNameOrderByReleaseTagAsc(form.formId());
         releaseStore.deleteByRepositoryName(form.formId());
         java.util.LinkedHashMap<String, GitHubTemplateRelease> merged = new java.util.LinkedHashMap<>();
         form.versions().forEach(version -> {
@@ -107,18 +107,18 @@ public class GitHubTemplateCatalogPersistenceService {
             release.setDisabled(version.disabled());
             merged.put(version.formVersion(), release);
         });
-        for (GitHubTemplateRelease local : localImports) {
-            GitHubTemplateRelease release = merged.get(local.getReleaseTag());
+        for (GitHubTemplateRelease previous : previousReleases) {
+            GitHubTemplateRelease release = merged.get(previous.getReleaseTag());
             if (release == null) {
-                GitHubTemplateRelease preserved = newRelease(form.formId(), local.getReleaseTag(), now);
-                preserved.setFormName(local.getFormName());
-                preserved.setValidFrom(local.getValidFrom());
-                preserved.setValidTo(local.getValidTo());
-                preserved.setDisabled(local.isDisabled());
+                GitHubTemplateRelease preserved = newRelease(form.formId(), previous.getReleaseTag(), now);
+                preserved.setFormName(previous.getFormName());
+                preserved.setValidFrom(previous.getValidFrom());
+                preserved.setValidTo(previous.getValidTo());
+                preserved.setDisabled(previous.isDisabled());
                 preserved.setLocalImported(true);
-                merged.put(local.getReleaseTag(), preserved);
+                merged.put(previous.getReleaseTag(), preserved);
             } else {
-                release.setLocalImported(true);
+                release.setLocalImported(previous.isLocalImported());
             }
         }
         if (!merged.isEmpty()) releaseStore.saveAll(merged.values());
@@ -148,6 +148,21 @@ public class GitHubTemplateCatalogPersistenceService {
         existing.setLastSyncedAt(now);
         releaseStore.save(existing);
         releaseStore.flush();
+    }
+
+
+    /**
+     * A GitHubról vagy a külső Catalogból eltűnt repository-t helyben megőrzi, és
+     * archiváltként jelöli. A release rekordok változatlanok maradnak; tényleges törlés
+     * csak a külön adminisztrátori manuális törlési művelettel történik.
+     */
+    @Transactional
+    public void markRepositoryMissingButPreserved(String repositoryName) {
+        RepositoryAccess.findById(repositoryStore, repositoryName).ifPresent(repository -> {
+            repository.setArchived(true);
+            repository.setLastSyncedAt(Instant.now());
+            repositoryStore.save(repository);
+        });
     }
 
     /** Egy konkrét release lokális regisztrációját törli; üres repository esetén a repository rekordot is eltávolítja. */

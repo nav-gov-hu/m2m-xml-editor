@@ -555,6 +555,31 @@ class XmlFileServiceCoverageTest {
     }
 
     @Test
+    void refreshResolutionIfNeededReResolvesWhenStoredXsdNoLongerExists() throws Exception {
+        Path xml = tempDir.resolve("renamed-schema.xml");
+        Path newXsd = tempDir.resolve("new-schema-name.xsd");
+        Files.writeString(xml, "<Doc/>", StandardCharsets.UTF_8);
+        Files.writeString(newXsd, "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"/>", StandardCharsets.UTF_8);
+
+        XmlFileEntity entity = entity(91L, "renamed-schema.xml", xml);
+        entity.setResolutionStatus("RESOLVED");
+        entity.setXsdPath(tempDir.resolve("old-schema-name.xsd").toString());
+        when(RepositoryAccess.findById(repository, 91L)).thenReturn(Optional.of(entity));
+        when(headerDetectionService.detect(xml.toAbsolutePath().normalize())).thenReturn(new XmlHeaderInfo(
+                "Doc", "urn:test", "urn:test new-schema-name.xsd", null, "FORM", "1", null));
+        when(resourceResolutionService.resolve(any(XmlHeaderInfo.class))).thenReturn(new XmlResourceResolutionInfo(
+                "FORM", "1", newXsd.toString(), null, null, "RESOLVED", null));
+        when(repository.save(entity)).thenReturn(entity);
+
+        XmlFileEntity refreshed = service.refreshResolutionIfNeeded(91L);
+
+        assertEquals(newXsd.toString(), refreshed.getXsdPath());
+        verify(headerDetectionService).detect(xml.toAbsolutePath().normalize());
+        verify(resourceResolutionService).resolve(any(XmlHeaderInfo.class));
+        verify(repository).save(entity);
+    }
+
+    @Test
     void resolveInfoRefreshesDetectedResourcesWithoutOverwritingStoredMetadata() throws Exception {
         Path xml = tempDir.resolve("resolver.xml");
         Path xsd = tempDir.resolve("resolved.xsd");
